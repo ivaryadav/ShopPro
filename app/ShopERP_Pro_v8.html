@@ -1890,6 +1890,56 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════
+     WEB LOGIN SCREEN  (shown only in hosted/web mode)
+     Hidden in Electron mode (SHOPERPRO_API_URL is empty)
+     ═══════════════════════════════════════════════════════ -->
+<div id="web-login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);align-items:center;justify-content:center;z-index:9999">
+  <div style="width:100%;max-width:400px;padding:24px">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-size:32px;font-weight:900;color:var(--accent);letter-spacing:-1px">ShopERP Pro</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:4px">Sign in to your shop account</div>
+    </div>
+    <div id="web-login-error" style="display:none;background:rgba(239,68,68,.12);border:1px solid var(--red);color:var(--red);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px"></div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">Shop Name <span style="color:var(--text3);font-size:11px">(optional if username is unique)</span></label>
+      <input class="form-control" id="wl-shop" placeholder="e.g. Ravi Mobiles" autocomplete="organization">
+    </div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">Username *</label>
+      <input class="form-control" id="wl-user" placeholder="Your username" autocomplete="username" onkeydown="if(event.key==='Enter')webLogin()">
+    </div>
+    <div class="form-group" style="margin-bottom:20px">
+      <label class="form-label">Password *</label>
+      <input class="form-control" id="wl-pass" type="password" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter')webLogin()">
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;font-weight:700" onclick="webLogin()" id="wl-btn">Sign In</button>
+    <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--text3)">
+      New shop? <a href="#" style="color:var(--accent)" onclick="showWebRegister()">Register here</a>
+    </div>
+    <div id="web-register-form" style="display:none;margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text)">Create New Shop Account</div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">Shop Name *</label>
+        <input class="form-control" id="wr-shop" placeholder="e.g. Ravi Mobile Shop">
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">Owner Username *</label>
+        <input class="form-control" id="wr-user" placeholder="Choose a username">
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">Password *</label>
+        <input class="form-control" id="wr-pass" type="password" placeholder="Min 6 characters">
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Email <span style="color:var(--text3)">(optional)</span></label>
+        <input class="form-control" id="wr-email" type="email" placeholder="For account recovery">
+      </div>
+      <button class="btn btn-success" style="width:100%;padding:11px;font-weight:700" onclick="webRegister()" id="wr-btn">Create Shop</button>
+    </div>
+  </div>
+</div>
+
 <!-- APP -->
 <div id="app" class="hidden">
   <!-- SIDEBAR -->
@@ -2161,6 +2211,32 @@ const LICENSE_REGISTRY=[
 
 const DB_KEY='shoperpro_v8';
 
+// ── Web/Hosted Mode Config ────────────────────────────────────────────────────
+// Set SHOPERPRO_API_URL to your server URL when deploying online.
+// Leave as empty string '' to run in local/Electron mode (uses localStorage only).
+const SHOPERPRO_API_URL = '';  // e.g. 'https://yourdomain.com'
+
+const _api = {
+  token() { return sessionStorage.getItem('shoperpro_token') || ''; },
+  setToken(t) { sessionStorage.setItem('shoperpro_token', t); },
+  clearToken() { sessionStorage.removeItem('shoperpro_token'); },
+  headers() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + this.token() }; },
+  async get(path) {
+    const r = await fetch(SHOPERPRO_API_URL + path, { headers: this.headers() });
+    if (r.status === 401) { _api.clearToken(); showWebLoginScreen(); throw new Error('Session expired'); }
+    return r.json();
+  },
+  async put(path, body) {
+    const r = await fetch(SHOPERPRO_API_URL + path, { method: 'PUT', headers: this.headers(), body: JSON.stringify(body) });
+    if (r.status === 401) { _api.clearToken(); showWebLoginScreen(); throw new Error('Session expired'); }
+    return r.json();
+  },
+  async post(path, body) {
+    const r = await fetch(SHOPERPRO_API_URL + path, { method: 'POST', headers: this.headers(), body: JSON.stringify(body) });
+    return r.json();
+  },
+};
+
 // ── Inline SVG Icon Library (works offline, no CDN required) ──────────────
 const _icons={
   edit:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
@@ -2323,7 +2399,7 @@ let DB={
 };
 
 function saveDB(){
-  // 1. Save to localStorage — critical path
+  // 1. Save to localStorage — always, instant, critical path
   try{
     localStorage.setItem(DB_KEY,JSON.stringify(DB));
     var ind=document.getElementById('autosave-ind');
@@ -2335,9 +2411,9 @@ function saveDB(){
   }catch(e){
     var ind=document.getElementById('autosave-ind');
     if(ind){ind.textContent='⚠ Save failed';ind.style.color='var(--red)';ind.style.opacity='1';}
-    return; // stop if save failed
+    return;
   }
-  // 2. Realtime UI refresh — separate try/catch so errors never break save
+  // 2. Realtime UI refresh
   try{
     var sc2=document.getElementById('sales-tbl-body');
     if(sc2&&typeof filterSalesTable==='function')filterSalesTable();
@@ -2347,9 +2423,24 @@ function saveDB(){
     if(rc&&typeof buildReportContent==='function'){
       rc.innerHTML=buildReportContent(window._reportFY||getCurrentFY());
     }
-  }catch(e){ /* silent — non-critical */ }
+  }catch(e){ /* silent */ }
+  // 3. Async sync to server (web mode only, non-blocking)
+  if(SHOPERPRO_API_URL && _api.token()){
+    clearTimeout(window._apiSyncTimer);
+    window._apiSyncTimer = setTimeout(function(){
+      _api.put('/api/data', { data: DB }).catch(function(){
+        var ind=document.getElementById('autosave-ind');
+        if(ind){ind.textContent='⚠ Cloud sync failed';ind.style.color='var(--orange)';ind.style.opacity='1';}
+      });
+    }, 800); // debounce — wait 800ms after last save before syncing
+  }
 }
-function loadDB(){const d=localStorage.getItem(DB_KEY);if(d)try{DB=JSON.parse(d);}catch(e){}migrateDB();}
+function loadDB(){
+  // In web mode, data is loaded async from API in bootApp() before this runs
+  const d=localStorage.getItem(DB_KEY);
+  if(d)try{DB=JSON.parse(d);}catch(e){}
+  migrateDB();
+}
 function migrateDB(){
   // ── ACTIVATION FIX: always unlock if valid license key present ──
   var _validKeys=['M0B1-SH0P-ER9A-FR33','L1F3-T1M3-0NC3-PR0X','SH0P-3RP0-PR0X-2025','D3M0-K3Y0-0000-0001','SADM-9999-PROX-0001'];
@@ -3106,10 +3197,105 @@ function updateRepairBadge(){
 }
 
 // ============================================================
+// WEB LOGIN — shown only when SHOPERPRO_API_URL is set
+// ============================================================
+function showWebLoginScreen(){
+  ['activation-screen','setup-pin-screen','user-select-screen','pin-login-screen','app'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.classList.add('hidden');
+  });
+  var el=document.getElementById('web-login-screen');
+  if(el)el.style.display='flex';
+}
+function showWebRegister(){
+  document.getElementById('web-register-form').style.display='block';
+}
+function webLogin(){
+  var shop=document.getElementById('wl-shop').value.trim();
+  var user=document.getElementById('wl-user').value.trim();
+  var pass=document.getElementById('wl-pass').value;
+  var errEl=document.getElementById('web-login-error');
+  var btn=document.getElementById('wl-btn');
+  if(!user||!pass){errEl.textContent='Username and password are required.';errEl.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Signing in…';errEl.style.display='none';
+  _api.post('/api/auth/login',{username:user,password:pass,shopName:shop||undefined})
+    .then(function(res){
+      if(res.error){errEl.textContent=res.error;errEl.style.display='block';btn.disabled=false;btn.textContent='Sign In';return;}
+      _api.setToken(res.token);
+      // Load this shop's data from server
+      return _api.get('/api/data').then(function(d){
+        if(d.data&&Object.keys(d.data).length>0){
+          DB=d.data;
+          localStorage.setItem(DB_KEY,JSON.stringify(DB));
+        }
+        migrateDB();
+        document.getElementById('web-login-screen').style.display='none';
+        var ind=document.getElementById('autosave-ind');
+        if(ind)ind.title='Synced to cloud · '+res.shopName;
+        continueBootApp();
+      });
+    })
+    .catch(function(e){
+      errEl.textContent='Connection error. Check your internet.';
+      errEl.style.display='block';
+      btn.disabled=false;btn.textContent='Sign In';
+    });
+}
+function webRegister(){
+  var shop=document.getElementById('wr-shop').value.trim();
+  var user=document.getElementById('wr-user').value.trim();
+  var pass=document.getElementById('wr-pass').value;
+  var email=document.getElementById('wr-email').value.trim();
+  var errEl=document.getElementById('web-login-error');
+  var btn=document.getElementById('wr-btn');
+  if(!shop||!user||!pass){errEl.textContent='Shop name, username, and password are required.';errEl.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Creating…';errEl.style.display='none';
+  _api.post('/api/auth/register',{shopName:shop,username:user,password:pass,email:email||undefined})
+    .then(function(res){
+      if(res.error){errEl.textContent=res.error;errEl.style.display='block';btn.disabled=false;btn.textContent='Create Shop';return;}
+      _api.setToken(res.token);
+      document.getElementById('web-login-screen').style.display='none';
+      continueBootApp();
+    })
+    .catch(function(){
+      errEl.textContent='Connection error.';errEl.style.display='block';
+      btn.disabled=false;btn.textContent='Create Shop';
+    });
+}
+
+// ============================================================
 // BOOT — decide which screen to show on load
 // ============================================================
 function bootApp(){
+  // Web/hosted mode: require login first, then load data from server
+  if(SHOPERPRO_API_URL){
+    initTheme();
+    document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+    if(_api.token()){
+      // Token exists — try to restore session from server
+      _api.get('/api/data').then(function(d){
+        if(d.data&&Object.keys(d.data).length>0){
+          DB=d.data;
+          localStorage.setItem(DB_KEY,JSON.stringify(DB));
+        }
+        loadDB();
+        continueBootApp();
+      }).catch(function(){
+        // Token invalid/expired — show login
+        _api.clearToken();
+        loadDB(); // fallback to localStorage
+        showWebLoginScreen();
+      });
+    } else {
+      loadDB(); // load from localStorage as fallback while offline
+      showWebLoginScreen();
+    }
+    return;
+  }
+  // Electron / local mode — original flow
   loadDB();
+  continueBootApp();
+}
+function continueBootApp(){
   initMachineId();
   initTheme();
   document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
