@@ -453,6 +453,23 @@ nav{flex:1;padding:8px;overflow-y:auto}
 .btn-wa{background:#25d366;color:#fff}
 .btn-wa:hover{opacity:.88}
 .btn-purple{background:var(--purple);color:#fff}
+/* ── ADMIN PANEL NAV ── */
+.adm-nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;transition:.15s;margin-bottom:1px;position:relative}
+.adm-nav-item:hover{background:var(--bg3);color:var(--text)}
+.adm-nav-item.active{background:rgba(239,68,68,.12);color:var(--red);font-weight:600}
+.adm-nav-item.active::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:3px;background:var(--red);border-radius:0 3px 3px 0}
+/* ── ADMIN KEY DISPLAY ── */
+.adm-key-display{background:var(--bg);border:2px solid var(--accent);border-radius:12px;padding:20px;text-align:center;margin:16px 0}
+.adm-key-text{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--accent);letter-spacing:5px;user-select:all;cursor:text}
+/* ── PLAN GRID ── */
+.adm-plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px}
+.adm-plan-card{padding:12px 8px;border-radius:7px;border:1.5px solid var(--border2);background:var(--bg3);cursor:pointer;text-align:center;transition:.2s}
+.adm-plan-card:hover{border-color:var(--accent)}
+.adm-plan-card.selected{border-color:var(--accent);background:rgba(59,130,246,.12)}
+.adm-plan-card .apc-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px}
+.adm-plan-card .apc-days{font-size:10px;color:var(--text3)}
+.adm-plan-card .apc-price{font-size:13px;font-weight:800;color:var(--green);margin-top:6px}
+.adm-plan-card.selected .apc-name{color:var(--accent)}
 .btn-sm{padding:5px 11px;font-size:11px}
 .btn-xs{padding:3px 8px;font-size:11px;border-radius:var(--r-xs)}
 .btn-icon{padding:6px;border-radius:var(--r-xs);background:transparent;border:1px solid var(--border2);color:var(--text2);cursor:pointer;transition:.15s;line-height:1;min-width:30px;min-height:30px;display:inline-flex;align-items:center;justify-content:center;}
@@ -1882,6 +1899,17 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
         <button class="auth-btn-primary" onclick="doForgotPinVerify()" style="margin-top:14px">
           Verify &amp; Reset PIN
         </button>
+        <div style="display:flex;align-items:center;gap:8px;margin:16px 0 12px">
+          <div style="flex:1;height:1px;background:rgba(255,255,255,.08)"></div>
+          <span style="font-size:10px;color:rgba(255,255,255,.2)">OR</span>
+          <div style="flex:1;height:1px;background:rgba(255,255,255,.08)"></div>
+        </div>
+        <button class="auth-btn-wa" onclick="requestPinResetWA()" style="width:100%">
+          📲 Request Reset via WhatsApp
+        </button>
+        <div style="font-size:10px;color:rgba(255,255,255,.18);text-align:center;margin-top:6px;line-height:1.5">
+          Sends a request to your admin — they will reset your PIN<br>and share it back on your registered WhatsApp number.
+        </div>
         <div style="text-align:center;margin-top:16px">
           <button onclick="cancelForgotPin()" style="background:none;border:none;color:rgba(255,255,255,.22);font-size:12px;cursor:pointer">← Back to Login</button>
         </div>
@@ -1940,6 +1968,134 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     PORTAL SELECTION — First screen in web mode
+     Two choices: Super Admin  |  Shop Login
+     Download links for Windows & Mac desktop app
+     ═══════════════════════════════════════════════════════════ -->
+<div id="portal-select-screen" style="display:none;position:fixed;inset:0;background:var(--bg);align-items:center;justify-content:center;z-index:9990;flex-direction:column;gap:0">
+  <div style="width:100%;max-width:440px;padding:28px 24px">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="font-size:34px;font-weight:900;color:var(--accent);letter-spacing:-1.5px">ShopERP Pro</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:5px">Mobile Shop ERP · Billing · Repairs · Inventory</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px">
+      <button onclick="selectPortal('admin')" style="padding:20px 12px;background:var(--bg2);border:2px solid var(--border2);border-radius:12px;cursor:pointer;transition:.18s;color:var(--text)" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border2)'">
+        <div style="font-size:28px;margin-bottom:8px">🛡️</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">Super Admin</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">License & tenant control</div>
+      </button>
+      <button onclick="selectPortal('user')" style="padding:20px 12px;background:var(--bg2);border:2px solid var(--border2);border-radius:12px;cursor:pointer;transition:.18s;color:var(--text)" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
+        <div style="font-size:28px;margin-bottom:8px">🏪</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">Shop Login</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">Sign in to your shop</div>
+      </button>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:20px;text-align:center">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">📥 Download Desktop App</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <a id="dl-win-link" href="#" style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--bg3);border:1.5px solid var(--border2);border-radius:9px;color:var(--text);font-size:12px;font-weight:600;text-decoration:none;transition:.15s" onmouseover="if(this.href!=='#'&&!this.getAttribute('data-disabled'))this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor=''" title="Download for Windows">
+          🪟 Windows (.exe)
+        </a>
+        <a id="dl-mac-link" href="#" style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--bg3);border:1.5px solid var(--border2);border-radius:9px;color:var(--text);font-size:12px;font-weight:600;text-decoration:none;transition:.15s" onmouseover="if(this.href!=='#'&&!this.getAttribute('data-disabled'))this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor=''" title="Download for Mac">
+          🍎 macOS (.dmg)
+        </a>
+      </div>
+      <div id="dl-status-msg" style="font-size:10px;color:var(--text3);margin-top:10px">Use the desktop app for the best offline experience</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ADMIN LOGIN SCREEN
+     ═══════════════════════════════════════════════════════════ -->
+<div id="admin-login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);align-items:center;justify-content:center;z-index:9991">
+  <div style="width:100%;max-width:380px;padding:28px 24px">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-size:28px;margin-bottom:6px">🛡️</div>
+      <div style="font-size:18px;font-weight:900;color:var(--red)">Admin Console</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px">Developer & License Management</div>
+    </div>
+    <div id="admin-login-error" style="display:none;background:rgba(239,68,68,.12);border:1px solid var(--red);color:var(--red);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:14px"></div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">Admin Password</label>
+      <input class="form-control" id="adm-pass" type="password" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <button class="btn btn-danger" style="width:100%;padding:12px;font-size:14px;font-weight:700;justify-content:center" onclick="adminLogin()">🛡️ Enter Admin Console</button>
+    <div style="text-align:center;margin-top:16px">
+      <a href="#" style="font-size:12px;color:var(--text3)" onclick="showPortalSelect()">← Back to portal selection</a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ADMIN DASHBOARD PANEL
+     ═══════════════════════════════════════════════════════════ -->
+<div id="admin-panel" style="display:none;position:fixed;inset:0;z-index:9992;background:var(--bg)">
+  <div style="display:flex;height:100vh">
+    <!-- Admin Sidebar -->
+    <div id="adm-sidebar" style="width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0">
+      <div style="padding:16px;border-bottom:1px solid var(--border)">
+        <div style="font-size:14px;font-weight:800;color:var(--red)">🛡️ ShopERP Admin</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">License Management Console</div>
+      </div>
+      <div style="padding:6px 8px;margin:8px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:6px;font-size:10px;color:var(--red);font-weight:700;text-align:center">⚠️ DEVELOPER ONLY</div>
+      <nav style="padding:8px;flex:1">
+        <div style="font-size:9px;color:var(--text3);font-weight:700;padding:8px 8px 4px;letter-spacing:.8px;text-transform:uppercase">Main</div>
+        <div class="adm-nav-item active" onclick="showAdminPage('adm-dashboard')">📊 Dashboard</div>
+        <div style="font-size:9px;color:var(--text3);font-weight:700;padding:8px 8px 4px;letter-spacing:.8px;text-transform:uppercase">License Tools</div>
+        <div class="adm-nav-item" onclick="showAdminPage('adm-generate')">🔑 Generate Key</div>
+        <div class="adm-nav-item" onclick="showAdminPage('adm-validate')">✅ Validate Key</div>
+        <div style="font-size:9px;color:var(--text3);font-weight:700;padding:8px 8px 4px;letter-spacing:.8px;text-transform:uppercase">Tenants</div>
+        <div class="adm-nav-item" onclick="showAdminPage('adm-customers')">👥 All Customers</div>
+        <div class="adm-nav-item" onclick="showAdminPage('adm-expiring')">⏳ Expiring Soon</div>
+        <div class="adm-nav-item" onclick="showAdminPage('adm-suspended')">🚫 Suspended</div>
+        <div class="adm-nav-item" onclick="showAdminPage('adm-pins')">🔐 User PINs</div>
+        <div style="font-size:9px;color:var(--text3);font-weight:700;padding:8px 8px 4px;letter-spacing:.8px;text-transform:uppercase">Settings</div>
+        <div class="adm-nav-item" onclick="showAdminPage('adm-settings')">⚙️ Settings</div>
+      </nav>
+      <div style="padding:12px 16px;border-top:1px solid var(--border)">
+        <button onclick="adminLogout()" style="width:100%;padding:7px;background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">← Logout Admin</button>
+      </div>
+    </div>
+    <!-- Admin Content -->
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:12px 22px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <div>
+          <div style="font-size:14px;font-weight:700" id="adm-page-title">Dashboard</div>
+          <div style="font-size:11px;color:var(--text2)" id="adm-page-sub">License overview & revenue summary</div>
+        </div>
+        <div style="font-size:11px;color:var(--text3)" id="adm-topbar-date"></div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:20px" id="adm-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SUSPENDED SCREEN — Shown when tenant is paused/terminated
+     Data is safe but app is locked
+     ═══════════════════════════════════════════════════════════ -->
+<div id="suspended-screen" style="display:none;position:fixed;inset:0;background:var(--bg);align-items:center;justify-content:center;z-index:9993;flex-direction:column">
+  <div style="width:100%;max-width:420px;padding:28px 24px;text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">🔒</div>
+    <div style="font-size:20px;font-weight:900;color:var(--red);margin-bottom:6px" id="sus-title">Account Suspended</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6" id="sus-message">
+      Your ShopERP Pro account has been suspended.<br>
+      Please contact support to reactivate.
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:16px;margin-bottom:20px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Your Machine ID (share this with support)</div>
+      <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--accent);letter-spacing:2px" id="sus-machine-id">Loading...</div>
+      <button onclick="copySusMachineId()" style="margin-top:8px;padding:5px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;font-size:11px;color:var(--text2);cursor:pointer">📋 Copy Machine ID</button>
+    </div>
+    <button onclick="contactSupportWA()" style="width:100%;padding:12px;background:#25D366;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px">
+      💬 Contact Support on WhatsApp
+    </button>
+    <div style="font-size:11px;color:var(--text3)" id="sus-contact-info"></div>
+  </div>
+</div>
+
 <!-- APP -->
 <div id="app" class="hidden">
   <!-- SIDEBAR -->
@@ -1966,6 +2122,10 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
       <div class="nav-item" onclick="showPage('inventory')"><span class="nav-icon"><i class="bi bi-boxes"></i></span><span>Inventory</span><span class="nav-badge" id="inv-badge" style="display:none;background:var(--orange)">0</span></div>
       <div class="nav-item" onclick="showPage('sales')"><span class="nav-icon"><i class="bi bi-receipt"></i></span><span>Sales & Billing</span></div>
       <div class="nav-item" onclick="showPage('repairs')"><span class="nav-icon"><i class="bi bi-tools"></i></span><span>Repairs</span><span class="nav-badge" id="repair-badge" style="display:none">0</span></div>
+      <div class="nav-item" onclick="showPage('imei')"><span class="nav-icon"><i class="bi bi-upc-scan"></i></span><span>IMEI Register</span></div>
+      <div class="nav-item" onclick="showPage('purchases')"><span class="nav-icon"><i class="bi bi-cart-plus-fill"></i></span><span>Purchases</span></div>
+      <div class="nav-item" onclick="showPage('quotes')"><span class="nav-icon"><i class="bi bi-file-earmark-text-fill"></i></span><span>Quotations</span></div>
+      <div class="nav-item" onclick="showPage('cashbook')"><span class="nav-icon"><i class="bi bi-journal-richtext"></i></span><span>Cashbook</span></div>
       <div class="nav-item" onclick="showPage('customers')"><span class="nav-icon"><i class="bi bi-people-fill"></i></span><span>Customers</span></div>
       <div class="nav-item" onclick="showPage('expenses')"><span class="nav-icon"><i class="bi bi-wallet2"></i></span><span>Expenses</span></div>
       <div class="nav-section owner-only" id="owner-nav-section">Analytics & Tools</div>
@@ -2034,6 +2194,8 @@ const MASTER_SECRET = 'SH0P3RP0-PR0-M4ST3R-K3Y-D33P4K-2025-X9Z';
 
 // ── PLANS ────────────────────────────────────────────────────
 const PLANS = {
+  daily:      { label: '1 Day',       days: 1,     code: 55, price: 0,   testOnly: true  },
+  weekly:     { label: '1 Week',      days: 7,     code: 66, price: 0,   testOnly: true  },
   monthly:    { label: 'Monthly',     days: 30,    code: 11, price: 299  },
   halfyearly: { label: 'Half-Yearly', days: 180,   code: 22, price: 1499 },
   yearly:     { label: 'Yearly',      days: 365,   code: 33, price: 2499 },
@@ -2499,6 +2661,15 @@ function migrateDB(){
       c.id=nid;usedCustIds[nid]=true;
     });
   }
+  // ── Ensure new module arrays exist (safe migration for existing data) ──
+  if(!DB.imeis)DB.imeis=[];
+  if(!DB.purchases)DB.purchases=[];
+  if(!DB.quotes)DB.quotes=[];
+  if(!DB.cashEntries)DB.cashEntries=[];
+  if(!DB.nextImeiId)DB.nextImeiId=(DB.imeis.reduce(function(m,x){return Math.max(m,x.id||0);},0))+1;
+  if(!DB.nextPurchaseId)DB.nextPurchaseId=(DB.purchases.reduce(function(m,x){return Math.max(m,x.id||0);},0))+1;
+  if(!DB.nextQuoteId)DB.nextQuoteId=(DB.quotes.reduce(function(m,x){return Math.max(m,x.id||0);},0))+1;
+  if(!DB.nextCashEntryId)DB.nextCashEntryId=(DB.cashEntries.reduce(function(m,x){return Math.max(m,x.id||0);},0))+1;
   // ── Fix sales: ensure paid/total/discount are numbers, IDs are integers ──
   if(DB.sales){
     var usedSaleIds={};
@@ -2956,6 +3127,29 @@ function cancelForgotPin(){
   }
   showUserSelectScreen();
 }
+function requestPinResetWA(){
+  loadAdminDB();
+  var adminPhone=(ADMIN_DB.settings&&(ADMIN_DB.settings.devPhone||ADMIN_DB.settings.supportPhone||''))||'';
+  if(!adminPhone){
+    alert('Admin WhatsApp number is not configured yet.\nPlease contact your administrator directly.');
+    return;
+  }
+  var u=typeof _loginUserId!=='undefined'?DB.users.find(function(x){return x.id===_loginUserId;}):null;
+  var userName=u?u.name:'User';
+  var userPhone=u&&u.phone?(u.phone+'').replace(/\D/g,''):'';
+  var shopName=(DB.settings&&DB.settings.shopName)||'My Shop';
+  var machineId=getAppMachineId()||'N/A';
+  var msg='🔐 *PIN Reset Request*\n\n'
+    +'*Shop:* '+shopName+'\n'
+    +'*User:* '+userName+'\n'
+    +(userPhone?'*My WhatsApp:* +91 '+userPhone+'\n':'')
+    +'*Machine ID:* '+machineId+'\n\n'
+    +'I forgot my login PIN. Please reset it and share the new PIN with me on WhatsApp.';
+  var clean=adminPhone.replace(/\D/g,'');
+  if(clean.length<10){alert('Admin contact number is invalid. Please reach out directly.');return;}
+  if(!clean.startsWith('91')&&clean.length===10)clean='91'+clean;
+  window.open('https://wa.me/'+clean+'?text='+encodeURIComponent(msg),'_blank');
+}
 function loginPinPress(d){
   if(_loginBuf.length>=6)return;
   _loginBuf+=d;renderLoginDots(_loginBuf);
@@ -3231,6 +3425,14 @@ function webLogin(){
         document.getElementById('web-login-screen').style.display='none';
         var ind=document.getElementById('autosave-ind');
         if(ind)ind.title='Synced to cloud · '+res.shopName;
+        // Check if tenant is suspended/terminated via admin records
+        loadAdminDB();
+        var shopLower=(res.shopName||'').toLowerCase();
+        var rec=ADMIN_DB.customers.find(function(c){return(c.shopName||'').toLowerCase()===shopLower;});
+        if(rec&&(rec.status==='paused'||rec.status==='terminated')){
+          showSuspendedScreen(rec.status,rec.suspendReason||'');
+          return;
+        }
         continueBootApp();
       });
     })
@@ -3262,13 +3464,505 @@ function webRegister(){
     });
 }
 
-// ============================================================
+// ════════════════════════════════════════════════════════════════
+// PORTAL SELECTION + ADMIN DASHBOARD
+// ════════════════════════════════════════════════════════════════
+
+// ── Admin password (change before going live) ──
+// In web/hosted mode this should come from .env via API.
+// For local/Electron mode this is checked client-side.
+const ADMIN_PASSWORD = 'ShopERP@Admin2025';
+
+// ── Admin DB (separate from main app DB) ──
+const ADMIN_STORE_KEY = 'shoperpro_admin_v1';
+let ADMIN_DB = {
+  customers: [],
+  nextId: 1,
+  settings: {
+    devName: 'Developer',
+    devPhone: '',
+    devEmail: '',
+    currency: '₹',
+    graceDays: 3,
+    supportPhone: '',
+    downloadWin: '',   // URL to Windows installer
+    downloadMac: '',   // URL to Mac DMG
+    plans: { daily:0, weekly:0, monthly:299, halfyearly:1499, yearly:2499, lifetime:7999 }
+  }
+};
+function saveAdminDB(){ try{ localStorage.setItem(ADMIN_STORE_KEY,JSON.stringify(ADMIN_DB)); }catch(e){} }
+function loadAdminDB(){ const d=localStorage.getItem(ADMIN_STORE_KEY); if(d)try{ ADMIN_DB=JSON.parse(d); }catch(e){} }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Portal selection ──
+function showPortalSelect(){
+  ['web-login-screen','admin-login-screen','admin-panel','suspended-screen'].forEach(function(id){
+    var el=document.getElementById(id); if(el)el.style.display='none';
+  });
+  // Update download links from admin settings
+  var dlWin=document.getElementById('dl-win-link');
+  var dlMac=document.getElementById('dl-mac-link');
+  var dlMsg=document.getElementById('dl-status-msg');
+  var winUrl=ADMIN_DB.settings.downloadWin||'';
+  var macUrl=ADMIN_DB.settings.downloadMac||'';
+  var anyAvail=winUrl||macUrl;
+  if(dlWin){
+    if(winUrl){dlWin.href=winUrl;dlWin.removeAttribute('data-disabled');dlWin.style.opacity='1';dlWin.style.pointerEvents='';}
+    else{dlWin.href='#';dlWin.setAttribute('data-disabled','1');dlWin.style.opacity='0.35';dlWin.style.pointerEvents='none';dlWin.title='Not available yet';}
+  }
+  if(dlMac){
+    if(macUrl){dlMac.href=macUrl;dlMac.removeAttribute('data-disabled');dlMac.style.opacity='1';dlMac.style.pointerEvents='';}
+    else{dlMac.href='#';dlMac.setAttribute('data-disabled','1');dlMac.style.opacity='0.35';dlMac.style.pointerEvents='none';dlMac.title='Not available yet';}
+  }
+  if(dlMsg)dlMsg.textContent=anyAvail?'Click to download the desktop version for the best offline experience':'Desktop downloads coming soon — contact your admin for the latest installer.';
+  var el=document.getElementById('portal-select-screen'); if(el)el.style.display='flex';
+}
+function selectPortal(mode){
+  localStorage.setItem('shoperpro_portal_mode', mode);
+  document.getElementById('portal-select-screen').style.display='none';
+  if(mode==='admin'){
+    var el=document.getElementById('admin-login-screen'); if(el)el.style.display='flex';
+    setTimeout(function(){ var p=document.getElementById('adm-pass'); if(p)p.focus(); },100);
+  } else {
+    showWebLoginScreen();
+  }
+}
+
+// ── Admin login / logout ──
+function adminLogin(){
+  var pass=document.getElementById('adm-pass').value;
+  var errEl=document.getElementById('admin-login-error');
+  if(!pass){ errEl.textContent='Password required.'; errEl.style.display='block'; return; }
+  if(pass!==ADMIN_PASSWORD){ errEl.textContent='Incorrect admin password.'; errEl.style.display='block'; document.getElementById('adm-pass').value=''; return; }
+  errEl.style.display='none';
+  document.getElementById('admin-login-screen').style.display='none';
+  document.getElementById('adm-pass').value='';
+  loadAdminDB();
+  document.getElementById('admin-panel').style.display='block';
+  document.getElementById('adm-topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  showAdminPage('adm-dashboard');
+}
+function adminLogout(){
+  document.getElementById('admin-panel').style.display='none';
+  showPortalSelect();
+}
+
+// ── Admin navigation ──
+const ADM_PAGE_META={
+  'adm-dashboard': ['Dashboard','License overview & revenue summary'],
+  'adm-generate':  ['Generate Key','Create a new license key for a customer'],
+  'adm-validate':  ['Validate Key','Check if a key is valid for a machine'],
+  'adm-customers': ['All Customers','View and manage all license holders'],
+  'adm-expiring':  ['Expiring Soon','Licenses expiring within 30 days'],
+  'adm-suspended': ['Suspended Accounts','Paused or terminated tenants'],
+  'adm-pins':      ['User PINs','Reset or clear individual user PINs for the loaded shop'],
+  'adm-settings':  ['Settings','Admin preferences & download links'],
+};
+function showAdminPage(page){
+  document.querySelectorAll('.adm-nav-item').forEach(function(el){ el.classList.remove('active'); if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes("'"+page+"'"))el.classList.add('active'); });
+  var meta=ADM_PAGE_META[page]||['',''];
+  document.getElementById('adm-page-title').textContent=meta[0];
+  document.getElementById('adm-page-sub').textContent=meta[1];
+  var fns={'adm-dashboard':admPageDashboard,'adm-generate':admPageGenerate,'adm-validate':admPageValidate,'adm-customers':admPageCustomers,'adm-expiring':admPageExpiring,'adm-suspended':admPageSuspended,'adm-pins':admPagePins,'adm-settings':admPageSettings};
+  var fn=fns[page]; if(!fn)return;
+  document.getElementById('adm-content').innerHTML=fn();
+  if(page==='adm-generate')admInitGenerate();
+  if(page==='adm-customers'||page==='adm-suspended'||page==='adm-expiring')admRenderCurrentPage(page);
+}
+
+// ── Admin helper functions ──
+function admIsActive(c){ if(c.status==='paused'||c.status==='terminated')return false; if(c.plan==='lifetime')return true; if(!c.expiryDate)return false; return new Date(c.expiryDate)>=new Date(new Date().toDateString()); }
+function admDaysLeft(c){ if(c.plan==='lifetime')return Infinity; if(!c.expiryDate)return 0; return Math.max(0,Math.round((new Date(c.expiryDate)-new Date(new Date().toDateString()))/(86400000))); }
+function admPlanBadge(p){ return{monthly:'bg-blue',halfyearly:'bg-purple',yearly:'bg-gold',lifetime:'bg-green'}[p]||'bg-blue'; }
+function admStatusBadge(c){ if(c.status==='terminated')return'<span class="badge bg-red">Terminated</span>'; if(c.status==='paused')return'<span class="badge bg-orange">Paused</span>'; return admIsActive(c)?'<span class="badge bg-green">Active</span>':'<span class="badge bg-red">Expired</span>'; }
+
+// ── Admin Dashboard ──
+function admPageDashboard(){
+  var total=ADMIN_DB.customers.length;
+  var active=ADMIN_DB.customers.filter(c=>admIsActive(c)).length;
+  var expired=ADMIN_DB.customers.filter(c=>!admIsActive(c)&&c.status!=='paused'&&c.status!=='terminated').length;
+  var paused=ADMIN_DB.customers.filter(c=>c.status==='paused'||c.status==='terminated').length;
+  var exp30=ADMIN_DB.customers.filter(c=>{ if(!admIsActive(c)||c.plan==='lifetime')return false; return admDaysLeft(c)<=30; }).length;
+  var revenue=ADMIN_DB.customers.reduce(function(s,c){return s+(c.revenue||0);},0);
+  var cur=ADMIN_DB.settings.currency||'₹';
+  var recent=ADMIN_DB.customers.slice().reverse().slice(0,5);
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px">
+    ${[['Total','bg-blue',total,'All time'],['Active','bg-green',active,'Currently valid'],['Expired','bg-red',expired,'Need renewal'],['Expiring 30d','bg-orange',exp30,'Soon'],['Revenue','bg-gold',cur+revenue.toLocaleString('en-IN'),'Collected'],['Suspended','bg-purple',paused,'Paused/Terminated']].map(function(s){
+      return `<div class="card" style="text-align:center;position:relative;overflow:hidden"><div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${s[0]}</div><div style="font-size:22px;font-weight:800;color:var(--accent)">${s[2]}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">${s[3]}</div></div>`;
+    }).join('')}
+  </div>
+  ${exp30>0?`<div class="alert alert-warn" style="margin-bottom:16px">⏳ <strong>${exp30} license${exp30>1?'s':''}</strong> expiring within 30 days — <a href="#" onclick="showAdminPage('adm-expiring')" style="color:var(--orange)">view →</a></div>`:''}
+  <div class="card"><div class="card-header"><div class="card-title">Recent Customers</div><button class="btn btn-ghost btn-sm" onclick="showAdminPage('adm-customers')">View all</button></div>
+  ${recent.length===0?'<div style="color:var(--text3);font-size:12px">No customers yet.</div>':`<div class="tbl-wrap"><table><thead><tr><th>Shop</th><th>Plan</th><th>Status</th><th>Days Left</th></tr></thead><tbody>
+    ${recent.map(function(c){return`<tr><td><strong style="font-size:12px">${esc(c.shopName)}</strong><br><span style="font-size:10px;color:var(--text3)">${esc(c.ownerName)}</span></td><td><span class="badge ${admPlanBadge(c.plan)}">${PLANS[c.plan]?.label||c.plan}</span></td><td>${admStatusBadge(c)}</td><td style="font-family:var(--mono);font-size:12px">${c.plan==='lifetime'?'∞':admDaysLeft(c)+'d'}</td></tr>`;}).join('')}
+  </tbody></table></div>`}</div>`;
+}
+
+// ── Generate Key Page ──
+var _admSelectedPlan='monthly';
+function admPageGenerate(){
+  var cur=ADMIN_DB.settings.currency||'₹';
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:960px">
+    <div class="card">
+      <div class="card-title">Customer Information</div>
+      <div class="form-group"><label class="form-label">Shop Name *</label><input class="form-control" id="ag-shop" placeholder="e.g. Dada Mobile Store" maxlength="80"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group"><label class="form-label">Owner Name *</label><input class="form-control" id="ag-owner" placeholder="Full name" maxlength="60"></div>
+        <div class="form-group"><label class="form-label">Phone</label><input class="form-control" id="ag-phone" placeholder="10-digit" type="tel" maxlength="10"></div>
+      </div>
+      <div class="form-group"><label class="form-label">City</label><input class="form-control" id="ag-city" placeholder="e.g. Mehsana, Gujarat"></div>
+      <div class="form-group"><label class="form-label">Notes</label><input class="form-control" id="ag-notes" placeholder="Optional"></div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+      <div class="card-title">Machine ID *</div>
+      <div class="alert alert-info" style="margin-bottom:12px;font-size:11px">Ask customer to share their Machine ID from Settings → License tab.</div>
+      <div class="form-group"><label class="form-label">Machine ID</label>
+        <div style="display:flex;gap:8px"><input class="form-control" id="ag-machine" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform:uppercase;font-family:var(--mono)" maxlength="19" oninput="admMachineInput(this)">
+        <button class="btn btn-ghost" onclick="navigator.clipboard.readText().then(t=>{document.getElementById('ag-machine').value=t.trim().toUpperCase();})">📋</button></div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">Select Plan</div>
+        <div class="adm-plan-grid" id="adm-plan-grid">
+          ${Object.entries(PLANS).map(function([id,p]){var isTest=!!p.testOnly;return`<div class="adm-plan-card${id===_admSelectedPlan?' selected':''}${isTest?' adm-plan-test':''}" id="aplan-${id}" onclick="admSelectPlan('${id}')" style="${isTest?'border-style:dashed;opacity:.85':''}"><div class="apc-name">${p.label}${isTest?'<span style="font-size:8px;background:var(--orange);color:#fff;border-radius:3px;padding:1px 4px;margin-left:4px;vertical-align:middle">TEST</span>':''}</div><div class="apc-days">${id==='lifetime'?'Forever':p.days===1?'1 day':p.days+' days'}</div><div class="apc-price">${isTest?'<span style="font-size:9px;color:var(--text3)">Testing only</span>':cur+(ADMIN_DB.settings.plans[id]||p.price).toLocaleString('en-IN')}</div></div>`;}).join('')}
+        </div>
+        <div id="adm-plan-info" style="margin-top:10px;font-size:11px;color:var(--text3)"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Generated Key</div>
+        <div id="adm-key-output"><div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">Fill the form and click Generate →</div></div>
+        <button class="btn btn-gold" style="width:100%;justify-content:center;padding:12px;font-size:13px;margin-top:6px" onclick="admDoGenerate()">⚡ Generate License Key</button>
+      </div>
+    </div>
+  </div>`;
+}
+function admInitGenerate(){ admUpdatePlanInfo(); }
+function admMachineInput(el){ let v=el.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,16); el.value=v.match(/.{1,4}/g)?.join('-')||v; }
+function admSelectPlan(plan){ _admSelectedPlan=plan; document.querySelectorAll('.adm-plan-card').forEach(c=>c.classList.remove('selected')); var el=document.getElementById('aplan-'+plan); if(el)el.classList.add('selected'); admUpdatePlanInfo(); }
+function admUpdatePlanInfo(){ var info=document.getElementById('adm-plan-info'); if(!info)return; var p=PLANS[_admSelectedPlan]; if(!p)return; var isTest=!!p.testOnly; var expStr=isTest?'⚠ Test plan — expires '+new Date(Date.now()+p.days*86400000).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):_admSelectedPlan==='lifetime'?'✓ Lifetime — never expires':'✓ Valid for '+p.days+' days from today (expires '+new Date(Date.now()+p.days*86400000).toLocaleDateString('en-IN')+')'; info.textContent=expStr; info.style.color=isTest?'var(--orange)':'var(--text3)'; }
+function admDoGenerate(){
+  var shopName=(document.getElementById('ag-shop')||{value:''}).value.trim();
+  var ownerName=(document.getElementById('ag-owner')||{value:''}).value.trim();
+  var phone=(document.getElementById('ag-phone')||{value:''}).value.replace(/\D/g,'');
+  var city=(document.getElementById('ag-city')||{value:''}).value.trim();
+  var notes=(document.getElementById('ag-notes')||{value:''}).value.trim();
+  var machineId=(document.getElementById('ag-machine')||{value:''}).value.trim().toUpperCase();
+  if(!shopName||!ownerName){toast('Shop name and owner name are required','error');return;}
+  var midClean=machineId.replace(/-/g,''); if(midClean.length!==16){toast('Machine ID must be 16 characters','error');return;}
+  try{
+    var key=generateKey(machineId,_admSelectedPlan,'CUST'+ADMIN_DB.nextId);
+    var plan=PLANS[_admSelectedPlan];
+    var expiryDate=new Date(); expiryDate.setDate(expiryDate.getDate()+plan.days);
+    var customer={id:ADMIN_DB.nextId++,shopName,ownerName,phone,city,notes,machineId,plan:_admSelectedPlan,key,status:'active',issuedDate:new Date().toISOString().split('T')[0],expiryDate:_admSelectedPlan==='lifetime'?'lifetime':expiryDate.toISOString().split('T')[0],revenue:ADMIN_DB.settings.plans[_admSelectedPlan]||plan.price};
+    ADMIN_DB.customers.push(customer); saveAdminDB();
+    var out=document.getElementById('adm-key-output');
+    if(out)out.innerHTML=`<div class="adm-key-display"><div class="adm-key-text">${key}</div><div style="font-size:11px;color:var(--text3);margin-top:8px">${plan.label} · ${_admSelectedPlan==='lifetime'?'Never expires':'Expires '+expiryDate.toLocaleDateString('en-IN')}</div></div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-ghost" onclick="navigator.clipboard.writeText('${key}').then(()=>toast('Copied!','success'))" style="flex:1;justify-content:center">📋 Copy Key</button><button class="btn btn-wa" onclick="admSendWA('${key}','${esc(shopName)}','${esc(ownerName)}','${phone}','${_admSelectedPlan}')" style="flex:1;justify-content:center">💬 WhatsApp</button></div><div class="alert alert-success" style="margin-top:12px;font-size:11px">✓ Key saved. Customer ID: #${customer.id}</div>`;
+    toast('Key generated for '+shopName,'success');
+  }catch(e){ toast('Failed: '+e.message,'error'); }
+}
+function admSendWA(key,shop,owner,phone,plan){
+  var cc=ADMIN_DB.settings.countryCode||'91';
+  var ph=phone.replace(/[^0-9]/g,''); if(ph&&!ph.startsWith(cc))ph=cc+ph;
+  var msg='Hello '+owner+'! 🙏\n\nYour *ShopERP Pro* license key:\n\n🔑 *'+key+'*\n\nPlan: '+(PLANS[plan]?.label||plan)+'\n\nSteps:\n1. Open ShopERP Pro\n2. Go to Settings → License\n3. Enter this key and click Activate ✓\n\nContact: '+(ADMIN_DB.settings.supportPhone||'')+'\n_ShopERP Pro Team_';
+  var url=ph?'https://wa.me/'+ph+'?text='+encodeURIComponent(msg):'https://wa.me/?text='+encodeURIComponent(msg);
+  window.open(url,'_blank');
+}
+
+// ── Validate Key Page ──
+function admPageValidate(){
+  return`<div style="max-width:600px"><div class="card" style="margin-bottom:16px"><div class="card-title">Validate License Key</div>
+    <div class="form-group"><label class="form-label">License Key</label><div style="display:flex;gap:8px"><input class="form-control" id="av-key" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform:uppercase;font-family:var(--mono);flex:1" maxlength="19"><button class="btn btn-ghost" onclick="navigator.clipboard.readText().then(t=>{document.getElementById('av-key').value=t.trim().toUpperCase();})">📋</button></div></div>
+    <div class="form-group"><label class="form-label">Machine ID</label><div style="display:flex;gap:8px"><input class="form-control" id="av-machine" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform:uppercase;font-family:var(--mono);flex:1" maxlength="19" oninput="admMachineInput(this)"><button class="btn btn-ghost" onclick="navigator.clipboard.readText().then(t=>{document.getElementById('av-machine').value=t.trim().toUpperCase();})">📋</button></div></div>
+    <button class="btn btn-primary" onclick="admDoValidate()" style="width:100%;justify-content:center;padding:10px">🔍 Validate Key</button></div>
+    <div id="adm-validate-result"></div></div>`;
+}
+function admDoValidate(){
+  var key=(document.getElementById('av-key')||{value:''}).value.trim();
+  var mid=(document.getElementById('av-machine')||{value:''}).value.trim();
+  var result=document.getElementById('adm-validate-result'); if(!result)return;
+  var r=validateKey(key,mid);
+  if(r.valid&&!r.expired) result.innerHTML='<div class="alert alert-success"><strong>✓ Valid License</strong><br>Plan: '+r.planLabel+' · Expires: '+r.expiryDate+' · '+r.message+'</div>';
+  else if(r.valid&&r.expired) result.innerHTML='<div class="alert alert-warn"><strong>⚠ Expired</strong><br>'+r.message+'</div>';
+  else result.innerHTML='<div class="alert alert-danger"><strong>✕ Invalid Key</strong><br>'+r.message+'</div>';
+}
+
+// ── Customers Page ──
+function admPageCustomers(){
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div style="font-size:15px;font-weight:700">All Customers (${ADMIN_DB.customers.length})</div><div style="display:flex;gap:8px"><button class="btn btn-ghost btn-sm" onclick="admExportCSV()">⬇ CSV</button><button class="btn btn-primary btn-sm" onclick="showAdminPage('adm-generate')">+ New License</button></div></div>
+  <div style="display:flex;gap:8px;margin-bottom:14px"><input class="search-input" id="adm-cust-search" placeholder="Search shop, owner, city..." oninput="admFilterCustomers()" style="flex:1"><select class="form-control" id="adm-cust-status" style="width:130px" onchange="admFilterCustomers()"><option value="">All Status</option><option value="active">Active</option><option value="expired">Expired</option><option value="paused">Paused</option><option value="terminated">Terminated</option></select></div>
+  <div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table id="adm-cust-table"><thead><tr><th>#</th><th>Shop</th><th>Owner</th><th>Phone</th><th>Plan</th><th>Expiry</th><th>Status</th><th>Actions</th></tr></thead><tbody id="adm-cust-tbody"></tbody></table></div></div>`;
+}
+function admRenderCurrentPage(page){
+  if(page==='adm-customers')admRenderCustomers(ADMIN_DB.customers);
+  if(page==='adm-expiring')admRenderExpiring();
+  if(page==='adm-suspended')admRenderSuspended();
+}
+function admFilterCustomers(){
+  var q=(document.getElementById('adm-cust-search')||{value:''}).value.toLowerCase();
+  var st=(document.getElementById('adm-cust-status')||{value:''}).value;
+  var list=ADMIN_DB.customers.filter(function(c){
+    var match=!q||(c.shopName||'').toLowerCase().includes(q)||(c.ownerName||'').toLowerCase().includes(q)||(c.city||'').toLowerCase().includes(q)||(c.phone||'').includes(q);
+    var statusOk=!st||
+      (st==='active'&&admIsActive(c)&&c.status!=='paused'&&c.status!=='terminated')||
+      (st==='expired'&&!admIsActive(c)&&c.status!=='paused'&&c.status!=='terminated')||
+      (st==='paused'&&c.status==='paused')||(st==='terminated'&&c.status==='terminated');
+    return match&&statusOk;
+  });
+  admRenderCustomers(list);
+}
+function admRenderCustomers(list){
+  var tbody=document.getElementById('adm-cust-tbody'); if(!tbody)return;
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">No customers found.</td></tr>'; return; }
+  tbody.innerHTML=list.slice().reverse().map(function(c){
+    var dl=admDaysLeft(c); var isSuspended=c.status==='paused'||c.status==='terminated';
+    return`<tr><td style="font-family:var(--mono);color:var(--text3);font-size:11px">#${c.id}</td>
+      <td><strong>${esc(c.shopName)}</strong>${c.notes?'<br><span style="font-size:10px;color:var(--text3)">'+esc(c.notes)+'</span>':''}</td>
+      <td>${esc(c.ownerName)}</td><td style="font-family:var(--mono);font-size:11px">${c.phone||'—'}</td>
+      <td><span class="badge ${admPlanBadge(c.plan)}">${PLANS[c.plan]?.label||c.plan}</span></td>
+      <td style="font-family:var(--mono);font-size:11px;color:${admIsActive(c)?'var(--text)':'var(--red)'}">${c.plan==='lifetime'?'∞':c.expiryDate||'—'}</td>
+      <td>${admStatusBadge(c)}${!isSuspended&&admIsActive(c)&&c.plan!=='lifetime'?'<br><span style="font-size:10px;color:'+(dl<=7?'var(--red)':dl<=30?'var(--orange)':'var(--text3)')+'">'+dl+'d left</span>':''}</td>
+      <td style="white-space:nowrap;display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn btn-xs btn-ghost" onclick="admRenewCustomer(${c.id})" title="Renew">🔄</button>
+        ${c.status==='paused'?`<button class="btn btn-xs btn-success" onclick="admRestoreCustomer(${c.id})" title="Restore">✅ Restore</button>`:
+          c.status==='terminated'?`<button class="btn btn-xs" style="background:var(--orange);color:#000;font-size:11px;padding:3px 8px;border:none;border-radius:5px;cursor:pointer" onclick="admRestoreCustomer(${c.id})">♻ Restore</button>`:
+          `<button class="btn btn-xs btn-ghost" onclick="admPauseCustomer(${c.id})" title="Pause" style="color:var(--orange);border-color:var(--orange)">⏸ Pause</button>
+           <button class="btn btn-xs btn-danger" onclick="admTerminateCustomer(${c.id})" title="Terminate">🚫 Stop</button>`}
+        <button class="btn btn-xs btn-ghost" onclick="navigator.clipboard.writeText('${c.key}').then(()=>toast('Copied!','success'))" title="Copy key">📋</button>
+        <button class="btn btn-xs btn-danger" onclick="admDeleteCustomer(${c.id})" title="Delete">🗑</button>
+      </td></tr>`;
+  }).join('');
+}
+
+// ── Customer Actions ──
+function admPauseCustomer(id){
+  var c=ADMIN_DB.customers.find(x=>x.id===id); if(!c)return;
+  var reason=prompt('Reason for pausing (shown to customer):','Payment overdue');
+  if(reason===null)return;
+  c.status='paused'; c.suspendReason=reason||'Account paused'; saveAdminDB(); showAdminPage('adm-customers'); toast('Account paused for '+c.shopName,'info');
+}
+function admTerminateCustomer(id){
+  var c=ADMIN_DB.customers.find(x=>x.id===id); if(!c)return;
+  var reason=prompt('Reason for termination (shown to customer):','License not renewed');
+  if(reason===null)return;
+  c.status='terminated'; c.suspendReason=reason||'Account terminated'; saveAdminDB(); showAdminPage('adm-customers'); toast('Account terminated for '+c.shopName,'error');
+}
+function admRestoreCustomer(id){
+  var c=ADMIN_DB.customers.find(x=>x.id===id); if(!c)return;
+  c.status='active'; c.suspendReason=''; saveAdminDB(); showAdminPage('adm-customers'); toast('Account restored for '+c.shopName,'success');
+}
+function admRenewCustomer(id){
+  var c=ADMIN_DB.customers.find(x=>x.id===id); if(!c)return;
+  var plan=prompt('Renew plan:\ndaily / weekly / monthly / halfyearly / yearly / lifetime',c.plan);
+  if(!plan||!PLANS[plan]){toast('Invalid plan','error');return;}
+  try{
+    var key=generateKey(c.machineId,plan,'CUST'+c.id);
+    var p=PLANS[plan]; var exp=new Date(); exp.setDate(exp.getDate()+p.days);
+    c.plan=plan; c.key=key; c.status='active'; c.expiryDate=plan==='lifetime'?'lifetime':exp.toISOString().split('T')[0];
+    c.revenue=(c.revenue||0)+(ADMIN_DB.settings.plans[plan]||p.price);
+    saveAdminDB(); showAdminPage('adm-customers'); toast('Renewed '+c.shopName+' → '+p.label,'success');
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+function admDeleteCustomer(id){
+  var c=ADMIN_DB.customers.find(x=>x.id===id); if(!c)return;
+  if(!confirm('Delete '+c.shopName+'? This cannot be undone.'))return;
+  ADMIN_DB.customers=ADMIN_DB.customers.filter(x=>x.id!==id); saveAdminDB(); showAdminPage('adm-customers'); toast('Deleted','info');
+}
+
+// ── Expiring Soon Page ──
+function admPageExpiring(){ return'<div id="adm-expiring-list"></div>'; }
+function admRenderExpiring(){
+  var el=document.getElementById('adm-expiring-list'); if(!el)return;
+  var list=ADMIN_DB.customers.filter(function(c){ if(!admIsActive(c)||c.plan==='lifetime')return false; return admDaysLeft(c)<=30; }).sort(function(a,b){return admDaysLeft(a)-admDaysLeft(b);});
+  if(!list.length){el.innerHTML='<div class="alert alert-success">✓ No licenses expiring within 30 days.</div>';return;}
+  el.innerHTML='<div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table><thead><tr><th>Shop</th><th>Owner</th><th>Plan</th><th>Expiry</th><th>Days Left</th><th>Actions</th></tr></thead><tbody>'+
+    list.map(function(c){var dl=admDaysLeft(c);var dlColor=dl<=7?'var(--red)':dl<=15?'var(--orange)':'var(--text)';return'<tr><td><strong>'+esc(c.shopName)+'</strong></td><td>'+esc(c.ownerName)+'</td><td><span class="badge '+admPlanBadge(c.plan)+'">'+(PLANS[c.plan]?PLANS[c.plan].label:c.plan)+'</span></td><td style="font-family:var(--mono);font-size:11px">'+(c.expiryDate||'—')+'</td><td style="color:'+dlColor+';font-weight:700">'+dl+'d</td><td><button class="btn btn-xs btn-success" onclick="admRenewCustomer('+c.id+')">🔄 Renew</button><button class="btn btn-xs btn-wa" onclick="admSendWA(\''+c.key+'\',\''+esc(c.shopName)+'\',\''+esc(c.ownerName)+'\',\''+(c.phone||'')+'\',\''+c.plan+'\')" style="margin-left:4px">💬</button></td></tr>';}).join('')+
+  '</tbody></table></div></div>';
+}
+
+// ── Suspended Page ──
+function admPageSuspended(){ return'<div id="adm-suspended-list"></div>'; }
+function admRenderSuspended(){
+  var el=document.getElementById('adm-suspended-list'); if(!el)return;
+  var list=ADMIN_DB.customers.filter(function(c){return c.status==='paused'||c.status==='terminated';});
+  if(!list.length){el.innerHTML='<div class="alert alert-success">✓ No suspended accounts.</div>';return;}
+  el.innerHTML='<div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table><thead><tr><th>Shop</th><th>Owner</th><th>Status</th><th>Reason</th><th>Actions</th></tr></thead><tbody>'+
+    list.map(function(c){return`<tr><td><strong>${esc(c.shopName)}</strong></td><td>${esc(c.ownerName)}</td><td>${admStatusBadge(c)}</td><td style="font-size:11px;color:var(--text3)">${esc(c.suspendReason||'—')}</td><td><button class="btn btn-xs btn-success" onclick="admRestoreCustomer(${c.id})">✅ Restore</button></td></tr>`;}).join('')+
+  '</tbody></table></div></div>';
+}
+
+// ── User PINs Page ──
+function admPagePins(){
+  var users=DB.users||[];
+  if(!users.length)return'<div class="card"><p style="color:var(--text2);padding:20px">No users found in current shop data. Open the app once to initialize users.</p></div>';
+  var rows=users.map(function(u){
+    var roleColor=u.role==='owner'?'var(--accent)':u.role==='superadmin'?'var(--red)':'var(--text2)';
+    var phone=(u.phone||'').replace(/\D/g,'');
+    var phoneDisplay=phone?phone:'<span style="color:var(--text3);font-size:10px">not set</span>';
+    var waQuickBtn=phone&&phone.length>=10?'<a href="https://wa.me/'+(phone.length===10?'91':'')+phone+'" target="_blank" class="btn btn-xs btn-wa" style="padding:2px 7px;font-size:10px">💬</a>':'';
+    return'<tr>'+
+      '<td><strong>'+esc(u.name||'')+'</strong></td>'+
+      '<td><span style="font-size:10px;font-weight:700;color:'+roleColor+'">'+esc(u.role||'')+'</span></td>'+
+      '<td><span style="color:'+(u.pinSet?'var(--green)':'var(--red)')+';">'+(u.pinSet?'Set ✓':'Not set')+'</span></td>'+
+      '<td><div style="display:flex;align-items:center;gap:5px">'+phoneDisplay+' '+waQuickBtn+'</div></td>'+
+      '<td>'+
+        '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+
+          '<input type="text" id="pin-new-'+u.id+'" placeholder="6 digits" maxlength="6" inputmode="numeric" pattern="[0-9]*"'+
+            ' style="width:90px;padding:5px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:var(--mono);font-size:15px;letter-spacing:4px;text-align:center">'+
+          '<button class="btn btn-xs btn-primary" onclick="admResetPin('+u.id+')">Set &amp; Share</button>'+
+          '<button class="btn btn-xs btn-ghost" onclick="admClearPin('+u.id+')" title="Force user to create a new PIN on next use">Clear</button>'+
+        '</div>'+
+        '<div id="pin-result-'+u.id+'" style="display:none;margin-top:8px;padding:10px 14px;background:var(--bg3);border:1.5px solid var(--green);border-radius:8px;font-size:13px">'+
+          '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">New PIN for <strong>'+esc(u.name)+'</strong> — share this securely:</div>'+
+          '<div style="display:flex;align-items:center;gap:10px">'+
+            '<span id="pin-show-'+u.id+'" style="font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:6px;color:var(--green)"></span>'+
+            '<button class="btn btn-xs btn-ghost" onclick="admCopyPin(\'pin-show-'+u.id+'\')" title="Copy PIN">📋 Copy</button>'+
+            '<button class="btn btn-xs btn-wa" onclick="admSharePinWA('+u.id+')" title="Send PIN to user\'s registered WhatsApp">💬 Send to User</button>'+
+          '</div>'+
+          (phone?'':'<div style="font-size:10px;color:var(--orange);margin-top:5px">⚠ No WhatsApp number on file — ask user to add it in Settings → Users.</div>')+
+          '<div style="font-size:10px;color:var(--text3);margin-top:4px">User should change their PIN after first login.</div>'+
+        '</div>'+
+      '</td>'+
+    '</tr>';
+  }).join('');
+  return'<div class="card" style="max-width:960px">'+
+    '<div class="card-header"><div class="card-title">🔐 User PINs</div></div>'+
+    '<p style="font-size:12px;color:var(--text3);margin-bottom:14px">'+
+      'Type a new 6-digit PIN and click <strong>Set &amp; Share</strong>. The new PIN is revealed so you can send it directly to the user\'s registered WhatsApp. '+
+      'Use <strong>Clear</strong> to force the user to create their own PIN on next login.'+
+    '</p>'+
+    '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Role</th><th>PIN Status</th><th>WhatsApp</th><th>Reset PIN &amp; Share</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody></table></div></div>';
+}
+function admResetPin(userId){
+  var inp=document.getElementById('pin-new-'+userId);
+  if(!inp){toast('Input not found','error');return;}
+  var newPin=inp.value.replace(/\D/g,'').trim();
+  if(newPin.length!==6){toast('Enter exactly 6 digits','error');inp.focus();return;}
+  var u=(DB.users||[]).find(function(x){return x.id===userId;});
+  if(!u){toast('User not found','error');return;}
+  u.pin=newPin; u.pinSet=true;
+  saveDB();
+  inp.value='';
+  // Show the result panel with the new PIN
+  var resDiv=document.getElementById('pin-result-'+userId);
+  var showEl=document.getElementById('pin-show-'+userId);
+  if(resDiv&&showEl){ showEl.textContent=newPin; resDiv.style.display='block'; }
+  toast('PIN reset for '+esc(u.name)+' — share the new PIN with them','success');
+}
+function admCopyPin(elId){
+  var el=document.getElementById(elId);
+  if(!el)return;
+  navigator.clipboard.writeText(el.textContent).then(function(){ toast('PIN copied to clipboard','success'); }).catch(function(){ toast('Copy: '+el.textContent,'info'); });
+}
+function admSharePinWA(userId){
+  var u=(DB.users||[]).find(function(x){return x.id===userId;});
+  var showEl=document.getElementById('pin-show-'+userId);
+  if(!u||!showEl||!showEl.textContent){toast('Reset the PIN first, then click WhatsApp','error');return;}
+  var pin=showEl.textContent;
+  var shopName=(DB.settings&&DB.settings.shopName)||'ShopERP Pro';
+  var msg='Hello '+esc(u.name)+',\n\n'
+    +'Your login PIN for *'+shopName+'* has been reset by the administrator.\n\n'
+    +'🔐 Your new PIN is:\n\n*'+pin+'*\n\n'
+    +'Please use this to log in. You can change your PIN anytime from Settings → Users.\n\n'
+    +'— ShopERP Support';
+  var phone=(u.phone||'').replace(/\D/g,'');
+  if(phone&&phone.length>=10){
+    if(!phone.startsWith('91')&&phone.length===10)phone='91'+phone;
+    window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg),'_blank');
+  } else {
+    // No registered phone — open general WhatsApp so admin can pick contact
+    window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+    toast('No phone stored for '+esc(u.name)+'. Add it in Settings → Users, then try again.','info');
+  }
+}
+function admClearPin(userId){
+  var u=(DB.users||[]).find(function(x){return x.id===userId;});
+  if(!u){toast('User not found','error');return;}
+  if(!confirm('Clear PIN for '+u.name+'?\nThey will be asked to create a new PIN on their next login.'))return;
+  u.pin=''; u.pinSet=false;
+  saveDB();
+  var resDiv=document.getElementById('pin-result-'+userId); if(resDiv)resDiv.style.display='none';
+  toast('PIN cleared for '+esc(u.name)+'. They will set a new one on next login.','info');
+}
+
+// ── Settings Page ──
+function admPageSettings(){
+  var s=ADMIN_DB.settings; var cur=s.currency||'₹';
+  return`<div style="max-width:700px"><div class="card" style="margin-bottom:16px">
+    <div class="card-title">Developer Info</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label class="form-label">Your Name</label><input class="form-control" id="as-devname" value="${esc(s.devName||'')}"></div>
+      <div class="form-group"><label class="form-label">Support Phone (WhatsApp)</label><input class="form-control" id="as-phone" value="${esc(s.devPhone||'')}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Support Email</label><input class="form-control" id="as-email" value="${esc(s.devEmail||'')}"></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">📥 Desktop App Download Links</div>
+    <div class="alert alert-info" style="margin-bottom:12px;font-size:11px">These links appear on the login page so customers can download the desktop version.</div>
+    <div class="form-group"><label class="form-label">Windows Download URL (.exe)</label><input class="form-control" id="as-dl-win" placeholder="https://yoursite.com/ShopERP-Pro-Setup.exe" value="${esc(s.downloadWin||'')}"></div>
+    <div class="form-group"><label class="form-label">Mac Download URL (.dmg)</label><input class="form-control" id="as-dl-mac" placeholder="https://yoursite.com/ShopERP-Pro.dmg" value="${esc(s.downloadMac||'')}"></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Plan Prices (${cur})</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      ${Object.entries(PLANS).map(function([id,p]){var isTest=!!p.testOnly;return`<div class="form-group"><label class="form-label">${p.label} (${p.days===36500?'Lifetime':p.days+'d'})${isTest?' <span style="font-size:9px;background:var(--orange);color:#fff;border-radius:3px;padding:1px 4px">TEST</span>':''}</label><input class="form-control" id="as-price-${id}" type="number" value="${s.plans[id]!==undefined?s.plans[id]:p.price}" ${isTest?'placeholder="0 — testing only"':''}></div>`;}).join('')}
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="admSaveSettings()">💾 Save Settings</button></div>`;
+}
+function admSaveSettings(){
+  var s=ADMIN_DB.settings;
+  s.devName=(document.getElementById('as-devname')||{value:''}).value.trim();
+  s.devPhone=(document.getElementById('as-phone')||{value:''}).value.trim();
+  s.devEmail=(document.getElementById('as-email')||{value:''}).value.trim();
+  s.downloadWin=(document.getElementById('as-dl-win')||{value:''}).value.trim();
+  s.downloadMac=(document.getElementById('as-dl-mac')||{value:''}).value.trim();
+  Object.keys(PLANS).forEach(function(id){ var el=document.getElementById('as-price-'+id); if(el)s.plans[id]=parseFloat(el.value)||PLANS[id].price; });
+  saveAdminDB(); toast('Settings saved','success');
+}
+function admExportCSV(){
+  var lines=['ID,Shop Name,Owner,Phone,City,Plan,Issued,Expiry,Status,Revenue'];
+  ADMIN_DB.customers.forEach(function(c){ lines.push([c.id,c.shopName,c.ownerName,c.phone||'',c.city||'',c.plan,c.issuedDate,c.expiryDate,c.status||'active',c.revenue||0].map(function(v){return'"'+String(v||'').replace(/"/g,'""')+'"';}).join(',')); });
+  var blob=new Blob([lines.join('\n')],{type:'text/csv'}); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='shoperpro_customers.csv'; a.click(); toast('CSV downloaded','success');
+}
+
+// ── Suspended Screen (shown to terminated/paused users) ──
+function showSuspendedScreen(status, reason){
+  var mid=typeof generateBrowserMachineId==='function'?generateBrowserMachineId():'—';
+  window._susMachineId=mid;
+  var el=document.getElementById('suspended-screen'); if(!el)return;
+  var titleEl=document.getElementById('sus-title');
+  var msgEl=document.getElementById('sus-message');
+  var midEl=document.getElementById('sus-machine-id');
+  var contactEl=document.getElementById('sus-contact-info');
+  if(titleEl)titleEl.textContent=status==='terminated'?'Account Terminated':'Account Paused';
+  if(msgEl)msgEl.innerHTML=(reason?'Reason: <strong>'+escHtml(reason)+'</strong><br><br>':'')+(status==='terminated'?'Your ShopERP Pro account has been terminated.':'Your ShopERP Pro account is temporarily paused.')+'<br>Please contact support to resolve this.';
+  if(midEl)midEl.textContent=mid;
+  if(contactEl){
+    var sp=ADMIN_DB.settings.devPhone||ADMIN_DB.settings.supportPhone||'';
+    contactEl.textContent=sp?'Support: '+sp:'Contact your ShopERP Pro service provider';
+  }
+  el.style.display='flex';
+}
+function copySusMachineId(){ navigator.clipboard.writeText(window._susMachineId||'').then(function(){toast('Machine ID copied','success');}); }
+function contactSupportWA(){
+  var mid=window._susMachineId||'';
+  var sp=ADMIN_DB.settings.devPhone||ADMIN_DB.settings.supportPhone||'';
+  var cc=ADMIN_DB.settings.countryCode||'91';
+  var ph=sp.replace(/[^0-9]/g,''); if(ph&&!ph.startsWith(cc))ph=cc+ph;
+  var msg='Hello! I need help reactivating my ShopERP Pro account.\n\nMachine ID: *'+mid+'*\n\nPlease assist.';
+  var url=ph?'https://wa.me/'+ph+'?text='+encodeURIComponent(msg):'https://wa.me/?text='+encodeURIComponent(msg);
+  window.open(url,'_blank');
+}
+
+// ════════════════════════════════════════════════════════════════
 // BOOT — decide which screen to show on load
-// ============================================================
+// ════════════════════════════════════════════════════════════════
 function bootApp(){
   // Web/hosted mode: require login first, then load data from server
   if(SHOPERPRO_API_URL){
     initTheme();
+    loadAdminDB(); // populate download links for portal select screen
     document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
     if(_api.token()){
       // Token exists — try to restore session from server
@@ -3280,14 +3974,18 @@ function bootApp(){
         loadDB();
         continueBootApp();
       }).catch(function(){
-        // Token invalid/expired — show login
+        // Token invalid/expired — show portal selection
         _api.clearToken();
         loadDB(); // fallback to localStorage
-        showWebLoginScreen();
+        var lastMode=localStorage.getItem('shoperpro_portal_mode');
+        if(lastMode==='admin'){ var el=document.getElementById('admin-login-screen'); if(el)el.style.display='flex'; }
+        else showPortalSelect();
       });
     } else {
       loadDB(); // load from localStorage as fallback while offline
-      showWebLoginScreen();
+      var lastMode=localStorage.getItem('shoperpro_portal_mode');
+      if(lastMode==='admin'){ var el=document.getElementById('admin-login-screen'); if(el)el.style.display='flex'; }
+      else showPortalSelect();
     }
     return;
   }
@@ -3486,11 +4184,15 @@ function showPage(page){
     settings:['Settings','Shop configuration & branding'],
     superadmin:['Super Admin','License & system management'],
     support:['Contact & Support','Get help, renewal & machine ID'],
+    imei:['IMEI Register','Track phones by IMEI number'],
+    purchases:['Purchases','Stock in from suppliers'],
+    quotes:['Quotations','Estimates & quotes'],
+    cashbook:['Cashbook','Daily cash flow & ledger'],
   };
   const t=titles[page]||['',''];
   document.getElementById('page-title').textContent=t[0];
   document.getElementById('page-sub').textContent=t[1];
-  const fns={pos:pagePOS,dashboard:pageDashboard,inventory:pageInventory,sales:pageSales,repairs:pageRepairs,customers:pageCustomers,expenses:pageExpenses,reports:pageReports,engage:pageEngage,settings:pageSettings,superadmin:pageSuperAdmin,support:pageSupport};
+  const fns={pos:pagePOS,dashboard:pageDashboard,inventory:pageInventory,sales:pageSales,repairs:pageRepairs,customers:pageCustomers,expenses:pageExpenses,reports:pageReports,engage:pageEngage,settings:pageSettings,superadmin:pageSuperAdmin,support:pageSupport,imei:pageIMEI,purchases:pagePurchases,quotes:pageQuotes,cashbook:pageCashbook};
   const c=document.getElementById('content');
   // Hide FAB on POS (it covers the payment panel); show on all other pages
   const fabWrap=document.getElementById('fab-wrap');
@@ -3507,6 +4209,10 @@ function showPage(page){
       repairs:()=>{filterRepairsTable();},
       customers:()=>{renderCustTable();renderCustStats();},
       engage:()=>{if(document.getElementById('wa-type'))previewWaMsg();},
+      imei:()=>{renderIMEITable();},
+      purchases:()=>{renderPurchasesTable();},
+      quotes:()=>{renderQuotesTable();},
+      cashbook:()=>{renderCashbook();},
       support:()=>{
         const el=document.getElementById('support-machine-id');
         if(el){
@@ -10022,9 +10728,13 @@ function renderUsersList(){
   <div style="background:var(--bg3);border-radius:var(--r-sm);padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px">
     <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
       <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0">${u.name[0].toUpperCase()}</div>
-      <div>
+      <div style="flex:1;min-width:0">
         <div style="font-weight:600;font-size:13px">${escHtml(u.name)}</div>
         <div style="font-size:10px;color:var(--text3);margin-top:2px">${u.role==='owner'?(DB.settings.ownerRoleLabel||'Administrator'):'Staff Member'} &nbsp;•&nbsp; PIN: <span style="color:${u.pinSet?'var(--green)':'var(--red)'}">${u.pinSet?'Set ✓':'Not Set'}</span></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:5px">
+          <input type="tel" inputmode="numeric" maxlength="10" placeholder="WhatsApp number" value="${escHtml(u.phone||'')}" oninput="updateUserPhone(${u.id},this.value)" style="width:150px;padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:11px">
+          ${u.phone?`<a href="https://wa.me/91${(u.phone+'').replace(/\D/g,'')}" target="_blank" class="btn btn-xs btn-wa" style="padding:3px 8px;font-size:11px">💬</a>`:''}
+        </div>
       </div>
     </div>
     <div style="display:flex;gap:6px;flex-shrink:0">
@@ -10032,6 +10742,12 @@ function renderUsersList(){
       ${u.role!=='owner'?`<button class="btn btn-danger btn-xs" onclick="removeStaff(${u.id})">Remove</button>`:''}
     </div>
   </div>`).join('');
+}
+function updateUserPhone(userId,val){
+  const u=DB.users.find(x=>x.id===userId);
+  if(!u)return;
+  u.phone=(val||'').replace(/\D/g,'');
+  saveDB();
 }
 
 // ── OWNER PROFILE ─────────────────────────────────────────────
@@ -10231,14 +10947,16 @@ function showBackupReminder(){
 function addStaffModal(){
   openModal('Add Staff Member',`
   <div class="form-group"><label class="form-label">Staff Name *</label><input class="form-control" id="ns-name" placeholder="e.g. Ravi Kumar" maxlength="40" oninput="personNameInput(this,40)"></div>
-  <div class="alert alert-info" style="font-size:12px;margin-top:8px">After adding, you can set their 6-digit PIN from the users list.</div>`,
+  <div class="form-group" style="margin-top:10px"><label class="form-label">WhatsApp Number <span style="font-weight:400;color:var(--text3)">(for PIN sharing)</span></label><input class="form-control" id="ns-phone" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit mobile number" oninput="phoneInput(this)"></div>
+  <div class="alert alert-info" style="font-size:12px;margin-top:10px">After adding, you can set their 6-digit PIN from the users list. The phone number is used to share a reset PIN via WhatsApp if they ever forget it.</div>`,
   `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doAddStaff()">Add Staff</button>`);
 }
 function doAddStaff(){
   const name=document.getElementById('ns-name').value.trim();
+  const phone=(document.getElementById('ns-phone')?.value||'').replace(/\D/g,'');
   if(!name){toast('Staff name is required','error');return;}
   const id=DB.nextUserId++;
-  DB.users.push({id,name,role:'staff',pin:'',pinSet:false});
+  DB.users.push({id,name,role:'staff',pin:'',pinSet:false,phone:phone||''});
   saveDB();closeModal();renderUsersList();toast(`${name} added. Set their PIN now.`,'success');
 }
 function removeStaff(id){
@@ -11788,6 +12506,529 @@ if (document.readyState === 'loading') {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════════ */
+
+// ============================================================
+// ══ IMEI REGISTER ═══════════════════════════════════════════
+// ============================================================
+function pageIMEI(){
+  return`<div class="ph"><div class="ph-left"><div class="ph-title">IMEI Register</div><div class="ph-sub">Track every phone by IMEI — sold, in stock, returned</div></div><div class="ph-right"><button class="btn btn-primary" onclick="addIMEIEntry()">+ Add IMEI</button></div></div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <input class="form-control" id="imei-search" placeholder="Search IMEI, device, customer…" style="max-width:280px" oninput="renderIMEITable()">
+    <select class="form-control" id="imei-status-filter" style="max-width:150px" onchange="renderIMEITable()">
+      <option value="">All Status</option><option value="In Stock">In Stock</option><option value="Sold">Sold</option><option value="Returned">Returned</option>
+    </select>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table><thead><tr><th>IMEI</th><th>Device</th><th>Colour/Storage</th><th>Status</th><th>Customer / Sold To</th><th>Cost</th><th>Sale Price</th><th>Date</th><th></th></tr></thead><tbody id="imei-tbody"></tbody></table></div></div>`;
+}
+function renderIMEITable(){
+  var q=(document.getElementById('imei-search')||{value:''}).value.toLowerCase();
+  var sf=(document.getElementById('imei-status-filter')||{value:''}).value;
+  var cur=DB.settings.currency||'₹';
+  var list=(DB.imeis||[]).filter(function(r){
+    if(sf&&r.status!==sf)return false;
+    if(!q)return true;
+    return(r.imei||'').toLowerCase().includes(q)||(r.deviceName||'').toLowerCase().includes(q)||(r.customerName||'').toLowerCase().includes(q)||(r.supplier||'').toLowerCase().includes(q);
+  }).sort(function(a,b){return b.id-a.id;});
+  var tbody=document.getElementById('imei-tbody');if(!tbody)return;
+  if(!list.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--text3)">No IMEI records yet. Click "+ Add IMEI" to start tracking.</td></tr>';return;}
+  var statusColor={Sold:'var(--green)',Returned:'var(--orange)','In Stock':'var(--accent)'};
+  tbody.innerHTML=list.map(function(r){
+    return'<tr>'+
+      '<td><span style="font-family:var(--mono);font-size:12px;font-weight:600">'+escHtml(r.imei||'—')+'</span></td>'+
+      '<td><strong>'+escHtml(r.deviceName||'')+'</strong><div style="font-size:10px;color:var(--text3)">'+escHtml(r.brand||'')+'</div></td>'+
+      '<td style="font-size:11px">'+escHtml(r.color||'')+(r.storage?' / '+escHtml(r.storage):'')+'</td>'+
+      '<td><span class="badge" style="background:'+(statusColor[r.status]||'var(--text3)')+';color:#fff;font-size:10px">'+escHtml(r.status||'')+'</span></td>'+
+      '<td>'+(r.status==='Sold'?'<div style="font-size:12px">'+escHtml(r.customerName||'—')+'</div><div style="font-size:10px;color:var(--text3)">'+escHtml(r.soldDate||'')+'</div>':escHtml(r.supplier||'—'))+'</td>'+
+      '<td style="font-family:var(--mono);font-size:12px">'+cur+(r.costPrice||0).toLocaleString('en-IN')+'</td>'+
+      '<td style="font-family:var(--mono);font-size:12px;color:'+(r.salePrice?'var(--green)':'var(--text3)')+'">'+((r.salePrice&&r.status==='Sold')?cur+r.salePrice.toLocaleString('en-IN'):'—')+'</td>'+
+      '<td style="font-size:11px;color:var(--text3)">'+escHtml(r.purchaseDate||'')+'</td>'+
+      '<td><div style="display:flex;gap:4px">'+
+        (r.status==='In Stock'?'<button class="btn btn-xs btn-success" onclick="markIMEISold('+r.id+')">Sell</button>':'')+
+        '<button class="btn btn-xs btn-ghost" onclick="editIMEIEntry('+r.id+')">Edit</button>'+
+        '<button class="btn btn-xs btn-danger" onclick="deleteIMEIEntry('+r.id+')">Del</button>'+
+      '</div></td>'+
+    '</tr>';
+  }).join('');
+}
+function _imeiModal(r){
+  var cur=DB.settings.currency||'₹';
+  var custs=DB.customers.map(function(c){return'<option value="'+c.id+'|'+escHtml(c.name)+'">'+escHtml(c.name)+(c.phone?' ('+c.phone+')':'')+'</option>';}).join('');
+  return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+  <div class="form-group"><label class="form-label">IMEI Number *</label><input class="form-control" id="im-imei" maxlength="20" placeholder="15-digit IMEI" value="${escHtml(r.imei||'')}"></div>
+  <div class="form-group"><label class="form-label">Device Name *</label><input class="form-control" id="im-device" placeholder="e.g. Samsung Galaxy A15" value="${escHtml(r.deviceName||'')}"></div>
+  <div class="form-group"><label class="form-label">Brand</label><input class="form-control" id="im-brand" placeholder="Samsung / Apple / Redmi" value="${escHtml(r.brand||'')}"></div>
+  <div class="form-group"><label class="form-label">Storage</label><input class="form-control" id="im-storage" placeholder="128GB / 256GB" value="${escHtml(r.storage||'')}"></div>
+  <div class="form-group"><label class="form-label">Colour</label><input class="form-control" id="im-color" placeholder="Black / Blue / Gold" value="${escHtml(r.color||'')}"></div>
+  <div class="form-group"><label class="form-label">Status</label><select class="form-control" id="im-status" onchange="imeiStatusToggle()"><option value="In Stock" ${(r.status||'In Stock')==='In Stock'?'selected':''}>In Stock</option><option value="Sold" ${r.status==='Sold'?'selected':''}>Sold</option><option value="Returned" ${r.status==='Returned'?'selected':''}>Returned</option></select></div>
+  <div class="form-group"><label class="form-label">Supplier</label><input class="form-control" id="im-supplier" placeholder="Supplier name" value="${escHtml(r.supplier||'')}"></div>
+  <div class="form-group"><label class="form-label">Purchase Date</label><input class="form-control" id="im-pdate" type="date" value="${r.purchaseDate||new Date().toISOString().split('T')[0]}"></div>
+  <div class="form-group"><label class="form-label">Cost Price (${cur})</label><input class="form-control" id="im-cost" type="number" placeholder="0" value="${r.costPrice||''}"></div>
+  <div class="form-group"><label class="form-label">Note</label><input class="form-control" id="im-note" placeholder="Any note" value="${escHtml(r.note||'')}"></div>
+  </div>
+  <div id="im-sold-section" style="${(r.status==='Sold'?'':'display:none')};margin-top:6px;padding:10px;background:var(--bg3);border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div class="form-group"><label class="form-label">Sold To (Customer)</label><select class="form-control" id="im-cust"><option value="">— Select —</option>${custs}</select></div>
+    <div class="form-group"><label class="form-label">Sold Date</label><input class="form-control" id="im-sdate" type="date" value="${r.soldDate||new Date().toISOString().split('T')[0]}"></div>
+    <div class="form-group"><label class="form-label">Sale Price (${cur})</label><input class="form-control" id="im-sale" type="number" placeholder="0" value="${r.salePrice||''}"></div>
+    <div class="form-group"><label class="form-label">Invoice No</label><input class="form-control" id="im-inv" placeholder="INV-001" value="${escHtml(r.invoiceNo||'')}"></div>
+  </div>`;
+}
+function imeiStatusToggle(){var v=(document.getElementById('im-status')||{}).value;var s=document.getElementById('im-sold-section');if(s)s.style.display=v==='Sold'?'grid':'none';}
+function addIMEIEntry(){
+  openModal('Add IMEI Record',_imeiModal({}),'<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveIMEIEntry(0)">Save</button>');
+}
+function editIMEIEntry(id){
+  var r=DB.imeis.find(function(x){return x.id===id;}); if(!r)return;
+  openModal('Edit IMEI Record',_imeiModal(r),'<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveIMEIEntry('+id+')">Update</button>');
+  if(r.status==='Sold'){var s=document.getElementById('im-sold-section');if(s)s.style.display='grid'; var sc=document.getElementById('im-cust');if(sc&&r.customerId)sc.value=r.customerId+'|'+r.customerName;}
+}
+function saveIMEIEntry(existingId){
+  var imei=(document.getElementById('im-imei')||{value:''}).value.trim();
+  var dev=(document.getElementById('im-device')||{value:''}).value.trim();
+  if(!imei||!dev){toast('IMEI and device name are required','error');return;}
+  var dup=DB.imeis.find(function(x){return x.imei===imei&&x.id!==existingId;});
+  if(dup){toast('IMEI '+imei+' already registered to "'+dup.deviceName+'"','error');return;}
+  var status=(document.getElementById('im-status')||{value:'In Stock'}).value;
+  var custVal=(document.getElementById('im-cust')||{value:''}).value;
+  var custParts=custVal.split('|');
+  var rec={
+    id:existingId||DB.nextImeiId++,
+    imei:imei, deviceName:dev,
+    brand:(document.getElementById('im-brand')||{value:''}).value.trim(),
+    storage:(document.getElementById('im-storage')||{value:''}).value.trim(),
+    color:(document.getElementById('im-color')||{value:''}).value.trim(),
+    status:status,
+    supplier:(document.getElementById('im-supplier')||{value:''}).value.trim(),
+    purchaseDate:(document.getElementById('im-pdate')||{value:''}).value,
+    costPrice:parseFloat((document.getElementById('im-cost')||{value:0}).value)||0,
+    note:(document.getElementById('im-note')||{value:''}).value.trim(),
+    customerId:custParts[0]?parseInt(custParts[0])||0:0,
+    customerName:custParts[1]||'',
+    soldDate:status==='Sold'?(document.getElementById('im-sdate')||{value:''}).value:'',
+    salePrice:status==='Sold'?(parseFloat((document.getElementById('im-sale')||{value:0}).value)||0):0,
+    invoiceNo:status==='Sold'?(document.getElementById('im-inv')||{value:''}).value.trim():'',
+  };
+  if(existingId)DB.imeis=DB.imeis.map(function(x){return x.id===existingId?rec:x;});
+  else DB.imeis.push(rec);
+  saveDB();closeModal();renderIMEITable();toast(existingId?'IMEI updated':'IMEI registered','success');
+}
+function markIMEISold(id){
+  var r=DB.imeis.find(function(x){return x.id===id;}); if(!r)return;
+  r.status='In Stock'; // temporarily set to trigger modal with Sold pre-selected
+  r._preselectSold=true;
+  editIMEIEntry(id);
+  setTimeout(function(){var s=document.getElementById('im-status');if(s){s.value='Sold';imeiStatusToggle();}},100);
+}
+function deleteIMEIEntry(id){
+  var r=DB.imeis.find(function(x){return x.id===id;}); if(!r)return;
+  showConfirm('Delete IMEI record for '+r.deviceName+' ('+r.imei+')?',function(){DB.imeis=DB.imeis.filter(function(x){return x.id!==id;});saveDB();renderIMEITable();toast('Deleted','info');});
+}
+
+// ============================================================
+// ══ PURCHASE / SUPPLIER MANAGEMENT ══════════════════════════
+// ============================================================
+function pagePurchases(){
+  var cur=DB.settings.currency||'₹';
+  var totalPaid=DB.purchases.reduce(function(a,p){return a+(p.paid||0);},0);
+  var totalDue=DB.purchases.reduce(function(a,p){return a+(p.total-(p.paid||0));},0);
+  return`<div class="ph"><div class="ph-left"><div class="ph-title">Purchases</div><div class="ph-sub">Stock in from suppliers · track payments</div></div><div class="ph-right"><button class="btn btn-primary" onclick="addPurchase()">+ New Purchase</button></div></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
+    <div class="stat-card"><div class="stat-label">Total Purchases</div><div class="stat-value">${cur}${(totalPaid+totalDue).toLocaleString('en-IN')}</div></div>
+    <div class="stat-card"><div class="stat-label">Paid to Suppliers</div><div class="stat-value" style="color:var(--green)">${cur}${totalPaid.toLocaleString('en-IN')}</div></div>
+    <div class="stat-card"><div class="stat-label">Pending Payment</div><div class="stat-value" style="color:var(--red)">${cur}${totalDue.toLocaleString('en-IN')}</div></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <input class="form-control" id="pur-search" placeholder="Search supplier, invoice…" style="max-width:250px" oninput="renderPurchasesTable()">
+    <select class="form-control" id="pur-status-filter" style="max-width:150px" onchange="renderPurchasesTable()">
+      <option value="">All</option><option value="Paid">Paid</option><option value="Partial">Partial</option><option value="Pending">Pending</option>
+    </select>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table><thead><tr><th>Bill No</th><th>Supplier</th><th>Date</th><th>Items</th><th>Total</th><th>Paid</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>`;
+}
+function renderPurchasesTable(){
+  var q=(document.getElementById('pur-search')||{value:''}).value.toLowerCase();
+  var sf=(document.getElementById('pur-status-filter')||{value:''}).value;
+  var cur=DB.settings.currency||'₹';
+  var list=(DB.purchases||[]).filter(function(p){
+    if(sf&&p.status!==sf)return false;
+    if(!q)return true;
+    return(p.supplier||'').toLowerCase().includes(q)||(p.billNo||'').toLowerCase().includes(q);
+  }).sort(function(a,b){return b.id-a.id;});
+  var tbody=document.getElementById('pur-tbody');if(!tbody)return;
+  if(!list.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--text3)">No purchases yet. Click "+ New Purchase" to add.</td></tr>';return;}
+  var sc={'Paid':'badge-success','Partial':'badge-orange','Pending':'badge-red'};
+  tbody.innerHTML=list.map(function(p){
+    var due=(p.total||0)-(p.paid||0);
+    return'<tr>'+
+      '<td><strong>'+escHtml(p.billNo||'—')+'</strong></td>'+
+      '<td>'+escHtml(p.supplier||'')+'</td>'+
+      '<td style="font-size:11px;color:var(--text3)">'+escHtml(p.date||'')+'</td>'+
+      '<td style="font-size:11px;max-width:200px">'+((p.items||[]).map(function(i){return escHtml(i.name)+' x'+i.qty;}).join(', '))+'</td>'+
+      '<td style="font-family:var(--mono);font-size:12px;font-weight:700">'+cur+(p.total||0).toLocaleString('en-IN')+'</td>'+
+      '<td style="font-family:var(--mono);font-size:12px;color:var(--green)">'+cur+(p.paid||0).toLocaleString('en-IN')+'</td>'+
+      '<td style="font-family:var(--mono);font-size:12px;color:'+(due>0?'var(--red)':'var(--text3)')+'">'+cur+due.toLocaleString('en-IN')+'</td>'+
+      '<td><span class="badge '+(sc[p.status]||'')+'">'+escHtml(p.status||'Pending')+'</span></td>'+
+      '<td><div style="display:flex;gap:4px">'+
+        (due>0?'<button class="btn btn-xs btn-success" onclick="payPurchaseDue('+p.id+')">Pay</button>':'')+
+        '<button class="btn btn-xs btn-ghost" onclick="viewPurchase('+p.id+')">View</button>'+
+        '<button class="btn btn-xs btn-danger" onclick="deletePurchase('+p.id+')">Del</button>'+
+      '</div></td>'+
+    '</tr>';
+  }).join('');
+}
+function addPurchase(){
+  var invItems=DB.inventory.map(function(p){return'<option value="'+p.id+'">'+escHtml(p.name)+'</option>';}).join('');
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'+
+    '<div class="form-group"><label class="form-label">Supplier Name *</label><input class="form-control" id="pr-supplier" placeholder="e.g. Ashok Traders"></div>'+
+    '<div class="form-group"><label class="form-label">Bill / Invoice No</label><input class="form-control" id="pr-bill" placeholder="e.g. BILL-2025-001"></div>'+
+    '<div class="form-group"><label class="form-label">Date</label><input class="form-control" id="pr-date" type="date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '<div class="form-group"><label class="form-label">Amount Paid (₹)</label><input class="form-control" id="pr-paid" type="number" placeholder="0" oninput="updatePurchaseStatus()"></div>'+
+    '<div class="form-group"><label class="form-label">Pay Method</label><select class="form-control" id="pr-method"><option>Cash</option><option>UPI</option><option>Bank Transfer</option><option>Cheque</option><option>Credit</option></select></div>'+
+    '<div class="form-group"><label class="form-label">Note</label><input class="form-control" id="pr-note" placeholder="Optional note"></div>'+
+    '</div>'+
+    '<div style="font-size:12px;font-weight:700;margin-bottom:8px">Items Purchased <button type="button" class="btn btn-xs btn-ghost" onclick="addPurchaseItemRow()">+ Add Item</button></div>'+
+    '<div id="pr-items" style="margin-bottom:10px"><div class="pr-item-row" style="display:grid;grid-template-columns:2fr 80px 90px 24px;gap:6px;margin-bottom:6px">'+
+      '<select class="form-control" style="font-size:12px" onchange="autofillPurchaseItem(this)"><option value="">— Select product —</option>'+invItems+'</select>'+
+      '<input class="form-control" placeholder="Qty" type="number" style="font-size:12px" oninput="calcPurchaseTotal()">'+
+      '<input class="form-control" placeholder="Cost ₹" type="number" style="font-size:12px" oninput="calcPurchaseTotal()">'+
+      '<button type="button" class="btn btn-xs btn-danger" onclick="this.closest(\'.pr-item-row\').remove();calcPurchaseTotal()">×</button>'+
+    '</div></div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg3);border-radius:8px">'+
+      '<div style="font-size:13px;font-weight:700">Total: <span id="pr-total-display" style="color:var(--green)">₹0</span></div>'+
+      '<div style="font-size:11px;color:var(--text3)" id="pr-due-display"></div>'+
+    '</div>';
+  openModal('New Purchase',html,'<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="savePurchase()">Save Purchase</button>');
+}
+function addPurchaseItemRow(){
+  var invItems=DB.inventory.map(function(p){return'<option value="'+p.id+'">'+escHtml(p.name)+'</option>';}).join('');
+  var row=document.createElement('div');row.className='pr-item-row';row.style.cssText='display:grid;grid-template-columns:2fr 80px 90px 24px;gap:6px;margin-bottom:6px';
+  row.innerHTML='<select class="form-control" style="font-size:12px" onchange="autofillPurchaseItem(this)"><option value="">— Select —</option>'+invItems+'</select><input class="form-control" placeholder="Qty" type="number" style="font-size:12px" oninput="calcPurchaseTotal()"><input class="form-control" placeholder="Cost ₹" type="number" style="font-size:12px" oninput="calcPurchaseTotal()"><button type="button" class="btn btn-xs btn-danger" onclick="this.closest(\'.pr-item-row\').remove();calcPurchaseTotal()">×</button>';
+  document.getElementById('pr-items').appendChild(row);
+}
+function autofillPurchaseItem(sel){
+  var p=DB.inventory.find(function(x){return x.id===parseInt(sel.value);});
+  if(!p)return;
+  var row=sel.closest('.pr-item-row');
+  var inputs=row.querySelectorAll('input');
+  if(inputs[0]&&!inputs[0].value)inputs[0].value=1;
+  if(inputs[1]&&!inputs[1].value)inputs[1].value=p.costPrice||0;
+  calcPurchaseTotal();
+}
+function calcPurchaseTotal(){
+  var rows=document.querySelectorAll('.pr-item-row');var total=0;
+  rows.forEach(function(row){var inputs=row.querySelectorAll('input');var qty=parseFloat((inputs[0]||{}).value)||0;var cost=parseFloat((inputs[1]||{}).value)||0;total+=qty*cost;});
+  var el=document.getElementById('pr-total-display');if(el)el.textContent='₹'+total.toLocaleString('en-IN');
+  updatePurchaseStatus();return total;
+}
+function updatePurchaseStatus(){
+  var total=calcPurchaseTotal();var paid=parseFloat((document.getElementById('pr-paid')||{value:0}).value)||0;
+  var due=total-paid;var el=document.getElementById('pr-due-display');
+  if(el)el.textContent=due>0?'Due: ₹'+due.toLocaleString('en-IN'):'Fully Paid ✓';
+}
+function savePurchase(){
+  var supplier=(document.getElementById('pr-supplier')||{value:''}).value.trim();
+  if(!supplier){toast('Supplier name required','error');return;}
+  var rows=document.querySelectorAll('.pr-item-row');var items=[];var total=0;
+  rows.forEach(function(row){
+    var sel=row.querySelector('select');var inputs=row.querySelectorAll('input');
+    var prodId=sel?parseInt(sel.value)||0:0;var qty=parseFloat((inputs[0]||{}).value)||0;var cost=parseFloat((inputs[1]||{}).value)||0;
+    if(qty>0){
+      var prod=DB.inventory.find(function(x){return x.id===prodId;});
+      var name=prod?prod.name:('Item '+(items.length+1));
+      items.push({productId:prodId,name:name,qty:qty,costPrice:cost});
+      total+=qty*cost;
+      // Auto-update inventory stock
+      if(prod){prod.stock=(prod.stock||0)+qty;if(cost>0)prod.costPrice=cost;}
+    }
+  });
+  if(!items.length){toast('Add at least one item','error');return;}
+  var paid=parseFloat((document.getElementById('pr-paid')||{value:0}).value)||0;
+  var status=paid>=total?'Paid':paid>0?'Partial':'Pending';
+  var purchase={
+    id:DB.nextPurchaseId++,
+    billNo:(document.getElementById('pr-bill')||{value:''}).value.trim()||('BILL-'+String(DB.nextPurchaseId-1).padStart(3,'0')),
+    supplier:supplier,date:(document.getElementById('pr-date')||{value:''}).value,
+    items:items,total:total,paid:paid,payMethod:(document.getElementById('pr-method')||{value:'Cash'}).value,
+    note:(document.getElementById('pr-note')||{value:''}).value.trim(),status:status,
+  };
+  DB.purchases.push(purchase);saveDB();closeModal();renderPurchasesTable();
+  toast('Purchase saved. Stock updated for '+items.length+' item(s).','success');
+}
+function payPurchaseDue(id){
+  var p=DB.purchases.find(function(x){return x.id===id;}); if(!p)return;
+  var due=(p.total||0)-(p.paid||0);
+  var amt=parseFloat(prompt('Amount to pay (Due: ₹'+due.toLocaleString('en-IN')+'):',''));
+  if(!amt||amt<=0)return;
+  p.paid=Math.min((p.paid||0)+amt,p.total);
+  p.status=p.paid>=p.total?'Paid':p.paid>0?'Partial':'Pending';
+  saveDB();renderPurchasesTable();toast('Payment recorded','success');
+}
+function viewPurchase(id){
+  var p=DB.purchases.find(function(x){return x.id===id;}); if(!p)return;
+  var cur=DB.settings.currency||'₹';
+  var html='<div style="margin-bottom:10px"><strong>'+escHtml(p.supplier)+'</strong> · '+escHtml(p.billNo)+'<br><span style="font-size:11px;color:var(--text3)">'+escHtml(p.date)+(p.note?' · '+escHtml(p.note):'')+'</span></div>'+
+    '<table style="width:100%;font-size:12px"><thead><tr><th>Item</th><th>Qty</th><th>Cost</th><th>Amount</th></tr></thead><tbody>'+
+    (p.items||[]).map(function(i){return'<tr><td>'+escHtml(i.name)+'</td><td>'+i.qty+'</td><td>'+cur+i.costPrice.toLocaleString('en-IN')+'</td><td>'+cur+(i.qty*i.costPrice).toLocaleString('en-IN')+'</td></tr>';}).join('')+
+    '</tbody></table><div style="margin-top:10px;padding:10px;background:var(--bg3);border-radius:8px;display:flex;justify-content:space-between">'+
+    '<span>Total: <strong>'+cur+(p.total||0).toLocaleString('en-IN')+'</strong></span>'+
+    '<span>Paid: <strong style="color:var(--green)">'+cur+(p.paid||0).toLocaleString('en-IN')+'</strong></span>'+
+    '<span>Due: <strong style="color:'+(((p.total||0)-(p.paid||0))>0?'var(--red)':'var(--green)')+'">'+cur+((p.total||0)-(p.paid||0)).toLocaleString('en-IN')+'</strong></span></div>';
+  openModal('Purchase — '+p.billNo,html,'<button class="btn btn-primary" onclick="closeModal()">Close</button>');
+}
+function deletePurchase(id){
+  showConfirm('Delete this purchase record?',function(){DB.purchases=DB.purchases.filter(function(x){return x.id!==id;});saveDB();renderPurchasesTable();toast('Deleted','info');});
+}
+
+// ============================================================
+// ══ QUOTATIONS / ESTIMATES ═══════════════════════════════════
+// ============================================================
+function pageQuotes(){
+  return`<div class="ph"><div class="ph-left"><div class="ph-title">Quotations</div><div class="ph-sub">Create estimates · convert to sale with one click</div></div><div class="ph-right"><button class="btn btn-primary" onclick="newQuote()">+ New Quote</button></div></div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <input class="form-control" id="qt-search" placeholder="Search customer, quote no…" style="max-width:260px" oninput="renderQuotesTable()">
+    <select class="form-control" id="qt-status" style="max-width:140px" onchange="renderQuotesTable()">
+      <option value="">All</option><option value="Draft">Draft</option><option value="Sent">Sent</option><option value="Accepted">Accepted</option><option value="Converted">Converted</option><option value="Expired">Expired</option>
+    </select>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table><thead><tr><th>Quote No</th><th>Customer</th><th>Date</th><th>Valid</th><th>Items</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody id="qt-tbody"></tbody></table></div></div>`;
+}
+function renderQuotesTable(){
+  var q=(document.getElementById('qt-search')||{value:''}).value.toLowerCase();
+  var sf=(document.getElementById('qt-status')||{value:''}).value;
+  var cur=DB.settings.currency||'₹';
+  var today=new Date().toISOString().split('T')[0];
+  var list=(DB.quotes||[]).filter(function(qt){
+    if(sf&&qt.status!==sf)return false;
+    if(!q)return true;
+    return(qt.customerName||'').toLowerCase().includes(q)||(qt.quoteNo||'').toLowerCase().includes(q);
+  }).sort(function(a,b){return b.id-a.id;});
+  var tbody=document.getElementById('qt-tbody');if(!tbody)return;
+  if(!list.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:28px;color:var(--text3)">No quotations yet. Click "+ New Quote" to create one.</td></tr>';return;}
+  var sc={Draft:'',Sent:'badge-blue',Accepted:'badge-success',Converted:'badge-purple',Expired:'badge-red'};
+  tbody.innerHTML=list.map(function(qt){
+    var expDate=new Date(qt.date);expDate.setDate(expDate.getDate()+(qt.validDays||30));
+    var expired=qt.status!=='Converted'&&expDate.toISOString().split('T')[0]<today;
+    var status=expired&&qt.status!=='Converted'?'Expired':qt.status;
+    return'<tr>'+
+      '<td><strong>'+escHtml(qt.quoteNo||'')+'</strong></td>'+
+      '<td>'+escHtml(qt.customerName||'Walk-in')+'</td>'+
+      '<td style="font-size:11px;color:var(--text3)">'+escHtml(qt.date||'')+'</td>'+
+      '<td style="font-size:11px">'+expDate.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+'</td>'+
+      '<td style="font-size:11px;max-width:180px">'+((qt.items||[]).map(function(i){return escHtml(i.name)+' x'+i.qty;}).join(', '))+'</td>'+
+      '<td style="font-family:var(--mono);font-size:12px;font-weight:700">'+cur+(qt.total||0).toLocaleString('en-IN')+'</td>'+
+      '<td><span class="badge '+(sc[status]||'')+'">'+status+'</span></td>'+
+      '<td><div style="display:flex;gap:4px">'+
+        (status!=='Converted'&&status!=='Expired'?'<button class="btn btn-xs btn-success" onclick="convertQuoteToSale('+qt.id+')">→ Sale</button>':'')+
+        '<button class="btn btn-xs btn-wa" onclick="whatsappQuote('+qt.id+')">💬</button>'+
+        '<button class="btn btn-xs btn-danger" onclick="deleteQuote('+qt.id+')">Del</button>'+
+      '</div></td>'+
+    '</tr>';
+  }).join('');
+}
+function newQuote(){
+  var custs=['<option value="">Walk-in Customer</option>'].concat(DB.customers.map(function(c){return'<option value="'+c.id+'|'+escHtml(c.name)+'|'+(c.phone||'')+'">'+escHtml(c.name)+(c.phone?' ('+c.phone+')':'')+'</option>';})).join('');
+  var invItems=DB.inventory.map(function(p){return'<option value="'+p.id+'">'+escHtml(p.name)+'</option>';}).join('');
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'+
+    '<div class="form-group"><label class="form-label">Customer</label><select class="form-control" id="qf-cust">'+custs+'</select></div>'+
+    '<div class="form-group"><label class="form-label">Valid for (days)</label><input class="form-control" id="qf-valid" type="number" value="30" min="1"></div>'+
+    '<div class="form-group"><label class="form-label">Discount (₹)</label><input class="form-control" id="qf-disc" type="number" value="0" oninput="calcQuoteTotal()"></div>'+
+    '<div class="form-group"><label class="form-label">Note</label><input class="form-control" id="qf-note" placeholder="Terms, delivery time, etc."></div>'+
+    '</div>'+
+    '<div style="font-size:12px;font-weight:700;margin-bottom:8px">Items <button type="button" class="btn btn-xs btn-ghost" onclick="addQuoteItemRow()">+ Item</button></div>'+
+    '<div id="qf-items" style="margin-bottom:10px"><div class="qf-item-row" style="display:grid;grid-template-columns:2fr 70px 90px 24px;gap:6px;margin-bottom:6px">'+
+      '<select class="form-control" style="font-size:12px" onchange="autofillQuoteItem(this)"><option value="">— Select —</option>'+invItems+'</select>'+
+      '<input class="form-control" placeholder="Qty" type="number" value="1" style="font-size:12px" oninput="calcQuoteTotal()">'+
+      '<input class="form-control" placeholder="Price ₹" type="number" style="font-size:12px" oninput="calcQuoteTotal()">'+
+      '<button type="button" class="btn btn-xs btn-danger" onclick="this.closest(\'.qf-item-row\').remove();calcQuoteTotal()">×</button>'+
+    '</div></div>'+
+    '<div style="padding:10px;background:var(--bg3);border-radius:8px;display:flex;justify-content:space-between;align-items:center">'+
+      '<span style="font-size:13px;font-weight:700">Total: <span id="qf-total-display" style="color:var(--green)">₹0</span></span>'+
+      '<span style="font-size:11px;color:var(--text3)" id="qf-disc-display"></span>'+
+    '</div>';
+  openModal('New Quotation',html,'<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveQuote()">Save Quote</button>');
+}
+function addQuoteItemRow(){
+  var invItems=DB.inventory.map(function(p){return'<option value="'+p.id+'">'+escHtml(p.name)+'</option>';}).join('');
+  var row=document.createElement('div');row.className='qf-item-row';row.style.cssText='display:grid;grid-template-columns:2fr 70px 90px 24px;gap:6px;margin-bottom:6px';
+  row.innerHTML='<select class="form-control" style="font-size:12px" onchange="autofillQuoteItem(this)"><option value="">— Select —</option>'+invItems+'</select><input class="form-control" placeholder="Qty" type="number" value="1" style="font-size:12px" oninput="calcQuoteTotal()"><input class="form-control" placeholder="Price ₹" type="number" style="font-size:12px" oninput="calcQuoteTotal()"><button type="button" class="btn btn-xs btn-danger" onclick="this.closest(\'.qf-item-row\').remove();calcQuoteTotal()">×</button>';
+  document.getElementById('qf-items').appendChild(row);
+}
+function autofillQuoteItem(sel){var p=DB.inventory.find(function(x){return x.id===parseInt(sel.value);});if(!p)return;var row=sel.closest('.qf-item-row');var inputs=row.querySelectorAll('input');if(inputs[1]&&!inputs[1].value)inputs[1].value=p.sellPrice||0;calcQuoteTotal();}
+function calcQuoteTotal(){
+  var rows=document.querySelectorAll('.qf-item-row');var sub=0;
+  rows.forEach(function(row){var inputs=row.querySelectorAll('input');var qty=parseFloat((inputs[0]||{}).value)||0;var price=parseFloat((inputs[1]||{}).value)||0;sub+=qty*price;});
+  var disc=parseFloat((document.getElementById('qf-disc')||{value:0}).value)||0;
+  var total=Math.max(0,sub-disc);
+  var el=document.getElementById('qf-total-display');if(el)el.textContent='₹'+total.toLocaleString('en-IN');
+  var del=document.getElementById('qf-disc-display');if(del&&disc>0)del.textContent='Subtotal ₹'+sub.toLocaleString('en-IN')+' − Discount ₹'+disc.toLocaleString('en-IN');
+  else if(del)del.textContent='';
+  return{sub,disc,total};
+}
+function saveQuote(){
+  var rows=document.querySelectorAll('.qf-item-row');var items=[];
+  rows.forEach(function(row){var sel=row.querySelector('select');var inputs=row.querySelectorAll('input');var prodId=sel?parseInt(sel.value)||0:0;var qty=parseFloat((inputs[0]||{}).value)||0;var price=parseFloat((inputs[1]||{}).value)||0;if(qty>0){var prod=DB.inventory.find(function(x){return x.id===prodId;});items.push({productId:prodId,name:prod?prod.name:'Custom',qty:qty,price:price});}});
+  if(!items.length){toast('Add at least one item','error');return;}
+  var ct=calcQuoteTotal();
+  var custVal=(document.getElementById('qf-cust')||{value:''}).value;var cp=custVal.split('|');
+  var qNo='QUO-'+String(DB.nextQuoteId).padStart(3,'0');
+  var quote={
+    id:DB.nextQuoteId++,quoteNo:qNo,
+    customerId:cp[0]?parseInt(cp[0])||0:0,customerName:cp[1]||'Walk-in',customerPhone:cp[2]||'',
+    date:new Date().toISOString().split('T')[0],validDays:parseInt((document.getElementById('qf-valid')||{value:'30'}).value)||30,
+    items:items,subtotal:ct.sub,discount:ct.disc,total:ct.total,
+    note:(document.getElementById('qf-note')||{value:''}).value.trim(),status:'Draft',
+  };
+  DB.quotes.push(quote);saveDB();closeModal();renderQuotesTable();toast('Quotation '+qNo+' saved','success');
+}
+function convertQuoteToSale(id){
+  var qt=DB.quotes.find(function(x){return x.id===id;}); if(!qt)return;
+  showConfirm('Convert "'+qt.quoteNo+'" to an actual sale invoice?',function(){
+    // Build a sale record from the quote
+    var invNo=nextInvoiceNo();
+    var sale={
+      id:(function(){var mx=DB.sales.reduce(function(m,s){return Math.max(m,s.id||0);},0);var nid=Math.max(DB.nextSaleId||0,mx)+1;DB.nextSaleId=nid+1;return nid;})(),
+      invoiceNo:invNo,customerId:qt.customerId,customerName:qt.customerName,
+      items:qt.items.map(function(i){return{productId:i.productId,name:i.name,qty:i.qty,price:i.price};}),
+      discount:qt.discount,total:qt.total,paid:0,payMethod:'Cash',payments:[],
+      date:new Date().toISOString().split('T')[0],note:'Converted from '+qt.quoteNo,
+      createdBy:currentUser?currentUser.name:'',
+    };
+    // Deduct inventory
+    sale.items.forEach(function(item){var p=DB.inventory.find(function(x){return x.id===item.productId;});if(p)p.stock=Math.max(0,(p.stock||0)-item.qty);});
+    DB.sales.push(sale);
+    qt.status='Converted';qt.convertedToInvoice=invNo;
+    saveDB();renderQuotesTable();
+    toast('Converted to '+invNo+'. Collect payment in Sales.','success');
+  });
+}
+function whatsappQuote(id){
+  var qt=DB.quotes.find(function(x){return x.id===id;}); if(!qt)return;
+  var cur=DB.settings.currency||'₹';var shop=DB.settings.shopName||'Our Shop';
+  var expDate=new Date(qt.date);expDate.setDate(expDate.getDate()+(qt.validDays||30));
+  var lines=qt.items.map(function(i){return'• '+i.name+' x'+i.qty+' = '+cur+( i.qty*i.price).toLocaleString('en-IN');}).join('\n');
+  var msg='📋 *Quotation from '+shop+'*\n'+'Quote No: *'+qt.quoteNo+'*\nDate: '+qt.date+'\nValid till: '+expDate.toLocaleDateString('en-IN')+'\n\n'+lines+(qt.discount?'\nDiscount: −'+cur+qt.discount.toLocaleString('en-IN'):'')+'\n\n*Total: '+cur+(qt.total||0).toLocaleString('en-IN')+'*'+(qt.note?'\n\n'+qt.note:'');
+  var phone=(qt.customerPhone||'').replace(/\D/g,'');
+  var url=phone&&phone.length>=10?'https://wa.me/'+(phone.length===10?'91':'')+phone+'?text='+encodeURIComponent(msg):'https://wa.me/?text='+encodeURIComponent(msg);
+  qt.status=qt.status==='Draft'?'Sent':qt.status;saveDB();renderQuotesTable();
+  window.open(url,'_blank');
+}
+function deleteQuote(id){showConfirm('Delete this quotation?',function(){DB.quotes=DB.quotes.filter(function(x){return x.id!==id;});saveDB();renderQuotesTable();toast('Deleted','info');});}
+
+// ============================================================
+// ══ CASHBOOK / DAY BOOK ══════════════════════════════════════
+// ============================================================
+function pageCashbook(){
+  var today=new Date().toISOString().split('T')[0];
+  return`<div class="ph"><div class="ph-left"><div class="ph-title">Cashbook</div><div class="ph-sub">Daily cash flow — sales, expenses & collections</div></div><div class="ph-right"><button class="btn btn-primary" onclick="addCashEntry()">+ Manual Entry</button></div></div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+    <input class="form-control" id="cb-from" type="date" value="${today}" style="width:140px" onchange="renderCashbook()">
+    <span style="color:var(--text3);font-size:12px">to</span>
+    <input class="form-control" id="cb-to" type="date" value="${today}" style="width:140px" onchange="renderCashbook()">
+    <select class="form-control" id="cb-method" style="max-width:130px" onchange="renderCashbook()">
+      <option value="">All Methods</option><option value="Cash">Cash</option><option value="UPI">UPI</option><option value="Card">Card</option><option value="Bank Transfer">Bank Transfer</option>
+    </select>
+    <button class="btn btn-ghost btn-sm" onclick="setCashbookRange('today')">Today</button>
+    <button class="btn btn-ghost btn-sm" onclick="setCashbookRange('week')">This Week</button>
+    <button class="btn btn-ghost btn-sm" onclick="setCashbookRange('month')">This Month</button>
+  </div>
+  <div id="cb-summary" style="margin-bottom:14px"></div>
+  <div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table><thead><tr><th>Time / Date</th><th>Description</th><th>Type</th><th>Method</th><th>Cash In</th><th>Cash Out</th><th>Balance</th></tr></thead><tbody id="cb-tbody"></tbody></table></div></div>`;
+}
+function setCashbookRange(r){
+  var today=new Date();var from,to=today.toISOString().split('T')[0];
+  if(r==='today'){from=to;}
+  else if(r==='week'){var d=new Date(today);d.setDate(d.getDate()-d.getDay()+1);from=d.toISOString().split('T')[0];}
+  else{from=today.toISOString().split('T')[0].substring(0,7)+'-01';}
+  var fEl=document.getElementById('cb-from');var tEl=document.getElementById('cb-to');
+  if(fEl)fEl.value=from;if(tEl)tEl.value=to;renderCashbook();
+}
+function renderCashbook(){
+  var from=(document.getElementById('cb-from')||{value:''}).value;
+  var to=(document.getElementById('cb-to')||{value:''}).value;
+  var method=(document.getElementById('cb-method')||{value:''}).value;
+  var cur=DB.settings.currency||'₹';
+  // Build entries from all sources
+  var entries=[];
+  // 1. Sales payments
+  (DB.sales||[]).forEach(function(s){
+    (s.payments||[{method:s.payMethod,amount:s.paid,date:s.date}]).forEach(function(p){
+      if(p.amount>0)entries.push({date:s.date,time:p.time||'',desc:'Sale '+s.invoiceNo+' — '+(s.customerName||'Walk-in'),type:'Sale',method:p.method||s.payMethod||'Cash',in:p.amount,out:0,source:'sale'});
+    });
+  });
+  // 2. Repair payments
+  (DB.repairs||[]).forEach(function(r){
+    (r.payments||[]).forEach(function(p){
+      if(p.amount>0)entries.push({date:p.date||r.delivered||r.received,time:p.time||'',desc:'Repair '+r.jobNo+' — '+(r.customerName||'')+(r.device?' ('+r.device+')':''),type:'Repair',method:p.method||'Cash',in:p.amount,out:0,source:'repair'});
+    });
+  });
+  // 3. Expenses
+  (DB.expenses||[]).forEach(function(e){
+    entries.push({date:e.date,time:'',desc:escHtml(e.title||e.category||'Expense')+(e.note?' — '+escHtml(e.note):''),type:'Expense',method:e.payMethod||'Cash',in:0,out:e.amount||0,source:'expense'});
+  });
+  // 4. Purchases paid
+  (DB.purchases||[]).forEach(function(p){
+    if(p.paid>0)entries.push({date:p.date,time:'',desc:'Purchase — '+escHtml(p.supplier)+' ('+escHtml(p.billNo)+')',type:'Purchase',method:p.payMethod||'Cash',in:0,out:p.paid,source:'purchase'});
+  });
+  // 5. Manual entries
+  (DB.cashEntries||[]).forEach(function(e){
+    entries.push({date:e.date,time:e.time||'',desc:escHtml(e.description||''),type:'Manual '+(e.type==='in'?'In':'Out'),method:e.method||'Cash',in:e.type==='in'?e.amount:0,out:e.type==='out'?e.amount:0,source:'manual',id:e.id});
+  });
+  // Filter
+  entries=entries.filter(function(e){if(!e.date)return false;return(!from||e.date>=from)&&(!to||e.date<=to)&&(!method||e.method===method);});
+  entries.sort(function(a,b){return a.date===b.date?(a.time||'').localeCompare(b.time||''):a.date.localeCompare(b.date);});
+  // Running balance
+  var totalIn=0,totalOut=0;
+  entries.forEach(function(e){totalIn+=e.in||0;totalOut+=e.out||0;});
+  var netBalance=totalIn-totalOut;
+  // Summary
+  var sumEl=document.getElementById('cb-summary');
+  if(sumEl)sumEl.innerHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">'+
+    '<div class="stat-card"><div class="stat-label">Total In</div><div class="stat-value" style="color:var(--green)">'+cur+totalIn.toLocaleString('en-IN')+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Total Out</div><div class="stat-value" style="color:var(--red)">'+cur+totalOut.toLocaleString('en-IN')+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Net Balance</div><div class="stat-value" style="color:'+(netBalance>=0?'var(--green)':'var(--red)')+'">'+cur+netBalance.toLocaleString('en-IN')+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Transactions</div><div class="stat-value">'+entries.length+'</div></div>'+
+    '</div>';
+  // Table
+  var tbody=document.getElementById('cb-tbody');if(!tbody)return;
+  if(!entries.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--text3)">No transactions in this period.</td></tr>';return;}
+  var running=0;
+  var typeColor={Sale:'var(--green)',Repair:'var(--accent)',Expense:'var(--red)',Purchase:'var(--orange)'};
+  tbody.innerHTML=entries.map(function(e){
+    running+=((e.in||0)-(e.out||0));
+    return'<tr>'+
+      '<td style="font-size:11px;white-space:nowrap">'+escHtml(e.date)+(e.time?'<br><span style="color:var(--text3)">'+escHtml(e.time)+'</span>':'')+'</td>'+
+      '<td style="font-size:12px;max-width:220px">'+e.desc+'</td>'+
+      '<td><span style="font-size:10px;font-weight:700;color:'+(typeColor[e.type.split(' ')[0]]||'var(--text2)')+'">'+e.type+'</span></td>'+
+      '<td style="font-size:11px">'+escHtml(e.method||'')+'</td>'+
+      '<td style="font-family:var(--mono);font-size:12px;color:var(--green);font-weight:600">'+(e.in?cur+e.in.toLocaleString('en-IN'):'')+'</td>'+
+      '<td style="font-family:var(--mono);font-size:12px;color:var(--red);">'+(e.out?cur+e.out.toLocaleString('en-IN'):'')+'</td>'+
+      '<td style="font-family:var(--mono);font-size:12px;font-weight:700;color:'+(running>=0?'var(--green)':'var(--red)')+'">'+cur+running.toLocaleString('en-IN')+'</td>'+
+    '</tr>';
+  }).join('');
+}
+function addCashEntry(){
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+    '<div class="form-group"><label class="form-label">Type</label><select class="form-control" id="ce-type"><option value="in">Cash In ↑</option><option value="out">Cash Out ↓</option></select></div>'+
+    '<div class="form-group"><label class="form-label">Amount (₹) *</label><input class="form-control" id="ce-amount" type="number" placeholder="0"></div>'+
+    '<div class="form-group"><label class="form-label">Description *</label><input class="form-control" id="ce-desc" placeholder="e.g. Cash received from owner" style="grid-column:span 2"></div>'+
+    '<div class="form-group"><label class="form-label">Method</label><select class="form-control" id="ce-method"><option>Cash</option><option>UPI</option><option>Bank Transfer</option><option>Card</option></select></div>'+
+    '<div class="form-group"><label class="form-label">Date</label><input class="form-control" id="ce-date" type="date" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '</div>';
+  openModal('Manual Cash Entry',html,'<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveCashEntry()">Save</button>');
+}
+function saveCashEntry(){
+  var amount=parseFloat((document.getElementById('ce-amount')||{value:0}).value)||0;
+  var desc=(document.getElementById('ce-desc')||{value:''}).value.trim();
+  if(!amount||!desc){toast('Amount and description required','error');return;}
+  DB.cashEntries.push({
+    id:DB.nextCashEntryId++,
+    type:(document.getElementById('ce-type')||{value:'in'}).value,
+    amount:amount,description:desc,
+    method:(document.getElementById('ce-method')||{value:'Cash'}).value,
+    date:(document.getElementById('ce-date')||{value:''}).value,
+    time:new Date().toTimeString().substring(0,5),
+  });
+  saveDB();closeModal();renderCashbook();toast('Cash entry saved','success');
+}
 </script>
 </body>
 </html>
