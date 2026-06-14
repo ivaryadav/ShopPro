@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a2744"/>
+      <stop offset="100%" style="stop-color:#0f1a38"/>
+    </linearGradient>
+    <linearGradient id="acc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f8ef7"/>
+      <stop offset="100%" style="stop-color:#3b6fd4"/>
+    </linearGradient>
+    <linearGradient id="grn" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e"/>
+      <stop offset="100%" style="stop-color:#16a34a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="100" fill="url(#bg)"/>
+  <rect x="90" y="195" width="332" height="228" rx="14" fill="none" stroke="url(#acc)" stroke-width="14"/>
+  <path d="M70 208 L256 108 L442 208 Z" fill="url(#acc)"/>
+  <rect x="205" y="308" width="102" height="115" rx="10" fill="#0a1222"/>
+  <circle cx="298" cy="365" r="8" fill="url(#acc)"/>
+  <rect x="112" y="255" width="74" height="64" rx="8" fill="url(#acc)" opacity="0.25"/>
+  <line x1="149" y1="255" x2="149" y2="319" stroke="url(#acc)" stroke-width="4" opacity="0.6"/>
+  <line x1="112" y1="287" x2="186" y2="287" stroke="url(#acc)" stroke-width="4" opacity="0.6"/>
+  <rect x="326" y="255" width="74" height="64" rx="8" fill="url(#acc)" opacity="0.25"/>
+  <line x1="363" y1="255" x2="363" y2="319" stroke="url(#acc)" stroke-width="4" opacity="0.6"/>
+  <line x1="326" y1="287" x2="400" y2="287" stroke="url(#acc)" stroke-width="4" opacity="0.6"/>
+  <text x="256" y="170" font-family="Arial,sans-serif" font-weight="900" font-size="58"
+        fill="url(#grn)" text-anchor="middle">&#x20B9;</text>
+  <text x="256" y="490" font-family="Arial,sans-serif" font-weight="700" font-size="30"
+        fill="white" text-anchor="middle" opacity="0.55" letter-spacing="2">ShopERP</text>
+</svg>
