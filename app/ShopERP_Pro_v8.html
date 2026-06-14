@@ -1922,48 +1922,83 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
      WEB LOGIN SCREEN  (shown only in hosted/web mode)
      Hidden in Electron mode (SHOPERPRO_API_URL is empty)
      ═══════════════════════════════════════════════════════ -->
-<div id="web-login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);align-items:center;justify-content:center;z-index:9999">
-  <div style="width:100%;max-width:400px;padding:24px">
+<!-- WEB LOGIN SCREEN — 21st.dev inspired -->
+<style>
+.wl-bg{position:fixed;inset:0;background:#07070F;overflow:hidden;pointer-events:none}
+.wl-bg::before{content:'';position:absolute;width:900px;height:600px;top:50%;left:50%;transform:translate(-50%,-60%);background:radial-gradient(ellipse,rgba(59,130,246,.13) 0%,transparent 70%);pointer-events:none}
+.wl-bg::after{content:'';position:absolute;width:600px;height:400px;bottom:-10%;right:-10%;background:radial-gradient(ellipse,rgba(139,92,246,.08) 0%,transparent 70%);pointer-events:none}
+.wl-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:36px 32px;width:100%;max-width:420px;position:relative;backdrop-filter:blur(20px);box-shadow:0 0 0 1px rgba(255,255,255,.03),0 32px 64px rgba(0,0,0,.4)}
+.wl-logo-text{font-size:26px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#5B8EF9 0%,#A78BFA 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.wl-input{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 14px;color:#fff;font-size:13px;font-family:inherit;outline:none;transition:.2s;box-sizing:border-box}
+.wl-input:focus{border-color:rgba(91,142,249,.6);background:rgba(91,142,249,.05);box-shadow:0 0 0 3px rgba(91,142,249,.12)}
+.wl-input::placeholder{color:rgba(255,255,255,.2)}
+.wl-label{display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:6px;letter-spacing:.3px;text-transform:uppercase}
+.wl-btn{width:100%;padding:13px;border:none;border-radius:10px;background:linear-gradient(135deg,#3B6FE8,#7C3AED);color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:.2s;letter-spacing:.2px;position:relative;overflow:hidden}
+.wl-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(59,111,232,.35)}
+.wl-btn:active{transform:translateY(0)}
+.wl-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.wl-divider{display:flex;align-items:center;gap:10px;margin:18px 0;color:rgba(255,255,255,.15);font-size:11px}
+.wl-divider::before,.wl-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.07)}
+.wl-tab{flex:1;padding:9px;background:transparent;border:none;color:rgba(255,255,255,.35);font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:.2s}
+.wl-tab.active{color:#fff;border-bottom-color:#5B8EF9}
+</style>
+<div id="web-login-screen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:9999">
+  <div class="wl-bg"></div>
+  <div class="wl-card">
+    <!-- Logo -->
     <div style="text-align:center;margin-bottom:28px">
-      <div style="font-size:32px;font-weight:900;color:var(--accent);letter-spacing:-1px">ShopERP Pro</div>
-      <div style="font-size:13px;color:var(--text3);margin-top:4px">Sign in to your shop account</div>
-    </div>
-    <div id="web-login-error" style="display:none;background:rgba(239,68,68,.12);border:1px solid var(--red);color:var(--red);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px"></div>
-    <div class="form-group" style="margin-bottom:12px">
-      <label class="form-label">Shop Name <span style="color:var(--text3);font-size:11px">(optional if username is unique)</span></label>
-      <input class="form-control" id="wl-shop" placeholder="e.g. Ravi Mobiles" autocomplete="organization">
-    </div>
-    <div class="form-group" style="margin-bottom:12px">
-      <label class="form-label">Username *</label>
-      <input class="form-control" id="wl-user" placeholder="Your username" autocomplete="username" onkeydown="if(event.key==='Enter')webLogin()">
-    </div>
-    <div class="form-group" style="margin-bottom:20px">
-      <label class="form-label">Password *</label>
-      <input class="form-control" id="wl-pass" type="password" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter')webLogin()">
-    </div>
-    <button class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;font-weight:700" onclick="webLogin()" id="wl-btn">Sign In</button>
-    <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--text3)">
-      New shop? <a href="#" style="color:var(--accent)" onclick="showWebRegister()">Register here</a>
-    </div>
-    <div id="web-register-form" style="display:none;margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
-      <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text)">Create New Shop Account</div>
-      <div class="form-group" style="margin-bottom:10px">
-        <label class="form-label">Shop Name *</label>
-        <input class="form-control" id="wr-shop" placeholder="e.g. Ravi Mobile Shop">
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;background:linear-gradient(135deg,rgba(91,142,249,.2),rgba(167,139,250,.2));border:1px solid rgba(91,142,249,.3);border-radius:12px;margin-bottom:14px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="url(#wlg)" stroke-width="2.2" stroke-linecap="round"><defs><linearGradient id="wlg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5B8EF9"/><stop offset="100%" stop-color="#A78BFA"/></linearGradient></defs><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </div>
-      <div class="form-group" style="margin-bottom:10px">
-        <label class="form-label">Owner Username *</label>
-        <input class="form-control" id="wr-user" placeholder="Choose a username">
+      <div class="wl-logo-text">ShopERP Pro</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.3);margin-top:5px">Mobile Shop Management Platform</div>
+    </div>
+    <!-- Tabs -->
+    <div style="display:flex;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:22px">
+      <button class="wl-tab active" id="wl-tab-login" onclick="wlSwitchTab('login')">Sign In</button>
+      <button class="wl-tab" id="wl-tab-register" onclick="wlSwitchTab('register')">New Shop</button>
+    </div>
+    <!-- Error -->
+    <div id="web-login-error" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#FCA5A5;padding:10px 14px;border-radius:10px;font-size:12px;margin-bottom:16px"></div>
+    <!-- Sign In Form -->
+    <div id="wl-login-form">
+      <div style="margin-bottom:14px">
+        <label class="wl-label">Shop Name <span style="text-transform:none;font-weight:400;opacity:.6">(optional)</span></label>
+        <input class="wl-input" id="wl-shop" placeholder="e.g. Kumar Mobiles" autocomplete="organization">
       </div>
-      <div class="form-group" style="margin-bottom:10px">
-        <label class="form-label">Password *</label>
-        <input class="form-control" id="wr-pass" type="password" placeholder="Min 6 characters">
+      <div style="margin-bottom:14px">
+        <label class="wl-label">Username</label>
+        <input class="wl-input" id="wl-user" placeholder="Your username" autocomplete="username" onkeydown="if(event.key==='Enter')webLogin()">
       </div>
-      <div class="form-group" style="margin-bottom:14px">
-        <label class="form-label">Email <span style="color:var(--text3)">(optional)</span></label>
-        <input class="form-control" id="wr-email" type="email" placeholder="For account recovery">
+      <div style="margin-bottom:22px">
+        <label class="wl-label">Password</label>
+        <input class="wl-input" id="wl-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')webLogin()">
       </div>
-      <button class="btn btn-success" style="width:100%;padding:11px;font-weight:700" onclick="webRegister()" id="wr-btn">Create Shop</button>
+      <button class="wl-btn" onclick="webLogin()" id="wl-btn">Sign In →</button>
+    </div>
+    <!-- Register Form -->
+    <div id="wl-register-form" style="display:none">
+      <div style="margin-bottom:14px">
+        <label class="wl-label">Shop Name *</label>
+        <input class="wl-input" id="wr-shop" placeholder="e.g. Ravi Mobile Shop">
+      </div>
+      <div style="margin-bottom:14px">
+        <label class="wl-label">Owner Username *</label>
+        <input class="wl-input" id="wr-user" placeholder="Choose a username">
+      </div>
+      <div style="margin-bottom:14px">
+        <label class="wl-label">Password *</label>
+        <input class="wl-input" id="wr-pass" type="password" placeholder="Min 6 characters">
+      </div>
+      <div style="margin-bottom:22px">
+        <label class="wl-label">Email <span style="text-transform:none;font-weight:400;opacity:.6">(optional)</span></label>
+        <input class="wl-input" id="wr-email" type="email" placeholder="For account recovery">
+      </div>
+      <button class="wl-btn" style="background:linear-gradient(135deg,#059669,#10B981)" onclick="webRegister()" id="wr-btn">Create Shop →</button>
+    </div>
+    <!-- Footer -->
+    <div style="text-align:center;margin-top:20px">
+      <a href="#" onclick="showPortalSelect()" style="font-size:11px;color:rgba(255,255,255,.2);text-decoration:none">← Back to portal</a>
     </div>
   </div>
 </div>
@@ -1973,35 +2008,166 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
      Two choices: Super Admin  |  Shop Login
      Download links for Windows & Mac desktop app
      ═══════════════════════════════════════════════════════════ -->
-<div id="portal-select-screen" style="display:none;position:fixed;inset:0;background:var(--bg);align-items:center;justify-content:center;z-index:9990;flex-direction:column;gap:0">
-  <div style="width:100%;max-width:440px;padding:28px 24px">
-    <div style="text-align:center;margin-bottom:32px">
-      <div style="font-size:34px;font-weight:900;color:var(--accent);letter-spacing:-1.5px">ShopERP Pro</div>
-      <div style="font-size:12px;color:var(--text3);margin-top:5px">Mobile Shop ERP · Billing · Repairs · Inventory</div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px">
-      <button onclick="selectPortal('admin')" style="padding:20px 12px;background:var(--bg2);border:2px solid var(--border2);border-radius:12px;cursor:pointer;transition:.18s;color:var(--text)" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border2)'">
-        <div style="font-size:28px;margin-bottom:8px">🛡️</div>
-        <div style="font-size:13px;font-weight:700;color:var(--text)">Super Admin</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:3px">License & tenant control</div>
-      </button>
-      <button onclick="selectPortal('user')" style="padding:20px 12px;background:var(--bg2);border:2px solid var(--border2);border-radius:12px;cursor:pointer;transition:.18s;color:var(--text)" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
-        <div style="font-size:28px;margin-bottom:8px">🏪</div>
-        <div style="font-size:13px;font-weight:700;color:var(--text)">Shop Login</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:3px">Sign in to your shop</div>
-      </button>
-    </div>
-    <div style="border-top:1px solid var(--border);padding-top:20px;text-align:center">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">📥 Download Desktop App</div>
-      <div style="display:flex;gap:10px;justify-content:center">
-        <a id="dl-win-link" href="#" style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--bg3);border:1.5px solid var(--border2);border-radius:9px;color:var(--text);font-size:12px;font-weight:600;text-decoration:none;transition:.15s" onmouseover="if(this.href!=='#'&&!this.getAttribute('data-disabled'))this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor=''" title="Download for Windows">
-          🪟 Windows (.exe)
-        </a>
-        <a id="dl-mac-link" href="#" style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--bg3);border:1.5px solid var(--border2);border-radius:9px;color:var(--text);font-size:12px;font-weight:600;text-decoration:none;transition:.15s" onmouseover="if(this.href!=='#'&&!this.getAttribute('data-disabled'))this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor=''" title="Download for Mac">
-          🍎 macOS (.dmg)
-        </a>
+<!-- WELCOME BACK SCREEN — shown when user already has valid session -->
+<style>
+.wb-bg{position:fixed;inset:0;background:#07070F;overflow:hidden;pointer-events:none}
+.wb-bg::before{content:'';position:absolute;width:1000px;height:700px;top:50%;left:50%;transform:translate(-50%,-55%);background:radial-gradient(ellipse,rgba(59,130,246,.14) 0%,transparent 65%);pointer-events:none}
+.wb-bg::after{content:'';position:absolute;width:500px;height:500px;bottom:-15%;right:-5%;background:radial-gradient(ellipse,rgba(16,185,129,.07) 0%,transparent 70%);pointer-events:none}
+.wb-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:40px 36px;width:100%;max-width:460px;backdrop-filter:blur(20px);box-shadow:0 32px 80px rgba(0,0,0,.5);position:relative}
+.wb-shop-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:100px;font-size:11px;font-weight:700;color:#34D399;letter-spacing:.3px;margin-bottom:20px}
+.wb-action-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.2px}
+.wb-action-btn.primary{background:linear-gradient(135deg,#3B6FE8,#7C3AED);color:#fff}
+.wb-action-btn.primary:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(59,111,232,.35)}
+.wb-action-btn.secondary{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7)}
+.wb-action-btn.secondary:hover{background:rgba(255,255,255,.07);color:#fff}
+.wb-dl-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:11px;color:rgba(255,255,255,.6);font-size:12px;font-weight:600;text-decoration:none;transition:.2s;cursor:pointer}
+.wb-dl-btn:hover:not([data-disabled]){border-color:rgba(91,142,249,.4);color:#fff;background:rgba(91,142,249,.07)}
+.wb-dl-btn[data-disabled]{opacity:.3;cursor:not-allowed;pointer-events:none}
+</style>
+<div id="welcome-back-screen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:9988;flex-direction:column">
+  <div class="wb-bg"></div>
+  <div class="wb-card">
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;background:linear-gradient(135deg,rgba(91,142,249,.2),rgba(167,139,250,.2));border:1px solid rgba(91,142,249,.25);border-radius:13px;margin-bottom:14px">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="url(#wbg)" stroke-width="2.2" stroke-linecap="round"><defs><linearGradient id="wbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5B8EF9"/><stop offset="100%" stop-color="#A78BFA"/></linearGradient></defs><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </div>
-      <div id="dl-status-msg" style="font-size:10px;color:var(--text3);margin-top:10px">Use the desktop app for the best offline experience</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.3);font-weight:500">Welcome back to</div>
+      <div style="font-size:26px;font-weight:900;letter-spacing:-.8px;background:linear-gradient(135deg,#5B8EF9,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-top:2px">ShopERP Pro</div>
+    </div>
+    <!-- Shop Info -->
+    <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;margin-bottom:24px;text-align:center">
+      <div class="wb-shop-badge">● Active Session</div>
+      <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px" id="wb-shop-name">My Shop</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:4px">Logged in as <span id="wb-user-name" style="color:rgba(255,255,255,.6);font-weight:600">User</span></div>
+    </div>
+    <!-- Actions -->
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px">
+      <button class="wb-action-btn primary" onclick="wbContinue()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        Continue to My Shop
+      </button>
+      <button class="wb-action-btn secondary" onclick="wbSwitchAccount()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        Sign in as Different User
+      </button>
+    </div>
+    <!-- Download Desktop -->
+    <div style="padding-top:20px;border-top:1px solid rgba(255,255,255,.06)">
+      <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.25);letter-spacing:.8px;text-transform:uppercase;text-align:center;margin-bottom:10px">Run Offline — Download Desktop App</div>
+      <div style="display:flex;gap:10px">
+        <a id="wb-dl-win" href="#" class="wb-dl-btn" data-disabled="true">🪟 Windows .exe</a>
+        <a id="wb-dl-mac" href="#" class="wb-dl-btn" data-disabled="true">🍎 macOS .dmg</a>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,.18);text-align:center;margin-top:8px">Desktop app works fully offline with all your data</div>
+    </div>
+  </div>
+</div>
+
+<!-- PORTAL SELECT SCREEN — 21st.dev inspired -->
+<style>
+.ps-bg{position:fixed;inset:0;background:#07070F;overflow:hidden;pointer-events:none}
+.ps-bg::before{content:'';position:absolute;width:1000px;height:700px;top:50%;left:50%;transform:translate(-50%,-55%);background:radial-gradient(ellipse,rgba(59,130,246,.12) 0%,transparent 65%);pointer-events:none}
+.ps-bg::after{content:'';position:absolute;width:500px;height:500px;bottom:-15%;left:-10%;background:radial-gradient(ellipse,rgba(139,92,246,.07) 0%,transparent 70%);pointer-events:none}
+.ps-portal-card{flex:1;padding:22px 14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;cursor:pointer;transition:all .22s;text-align:center;position:relative}
+.ps-portal-card:hover{transform:translateY(-3px)}
+.ps-portal-card.admin-card:hover{border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.05);box-shadow:0 12px 32px rgba(248,113,113,.12)}
+.ps-portal-card.shop-card:hover{border-color:rgba(91,142,249,.45);background:rgba(91,142,249,.05);box-shadow:0 12px 32px rgba(91,142,249,.12)}
+.ps-portal-card.new-card:hover{border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.05);box-shadow:0 12px 32px rgba(16,185,129,.12)}
+.ps-icon-ring{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:20px}
+.ps-dl-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;color:rgba(255,255,255,.6);font-size:12px;font-weight:600;text-decoration:none;transition:.2s;cursor:pointer}
+.ps-dl-btn:hover:not([data-disabled]){border-color:rgba(91,142,249,.4);color:#fff;background:rgba(91,142,249,.07)}
+.ps-dl-btn[data-disabled]{opacity:.35;cursor:not-allowed}
+</style>
+<div id="portal-select-screen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:9990;flex-direction:column">
+  <div class="ps-bg"></div>
+  <div style="width:100%;max-width:520px;padding:20px;position:relative">
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;background:linear-gradient(135deg,rgba(91,142,249,.2),rgba(167,139,250,.2));border:1px solid rgba(91,142,249,.25);border-radius:14px;margin-bottom:16px">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#psg)" stroke-width="2" stroke-linecap="round"><defs><linearGradient id="psg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5B8EF9"/><stop offset="100%" stop-color="#A78BFA"/></linearGradient></defs><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </div>
+      <div style="font-size:28px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#5B8EF9 0%,#A78BFA 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">ShopERP Pro</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.3);margin-top:6px;letter-spacing:.3px">Mobile Shop ERP · Billing · Repairs · Inventory</div>
+    </div>
+    <!-- Portal Cards — 3 options -->
+    <div style="display:flex;gap:12px;margin-bottom:28px">
+      <div class="ps-portal-card admin-card" onclick="selectPortal('admin')">
+        <div class="ps-icon-ring" style="background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.2)">🛡️</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px">Super Admin</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.35);line-height:1.5">License & tenant<br>management</div>
+      </div>
+      <div class="ps-portal-card shop-card" onclick="selectPortal('user')">
+        <div class="ps-icon-ring" style="background:rgba(91,142,249,.12);border:1px solid rgba(91,142,249,.2)">🏪</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px">Shop Login</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.35);line-height:1.5">Sign in to your<br>existing shop</div>
+      </div>
+      <div class="ps-portal-card new-card" onclick="showNewUserScreen()">
+        <div class="ps-icon-ring" style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.2)">✨</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px">New User</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.35);line-height:1.5">Get your shop<br>registered</div>
+      </div>
+    </div>
+    <!-- Download Row -->
+    <div style="padding-top:20px;border-top:1px solid rgba(255,255,255,.06);text-align:center">
+      <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.25);letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px">Download Desktop App — Run Offline</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <a id="dl-win-link" href="#" class="ps-dl-btn" title="Download for Windows">🪟 Windows .exe</a>
+        <a id="dl-mac-link" href="#" class="ps-dl-btn" title="Download for macOS">🍎 macOS .dmg</a>
+      </div>
+      <div id="dl-status-msg" style="font-size:10px;color:rgba(255,255,255,.2);margin-top:10px">Use the desktop app for the best offline experience</div>
+    </div>
+  </div>
+</div>
+
+<!-- NEW USER SCREEN — 16-digit registration code -->
+<style>
+.nu-code-box{background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.2);border-radius:14px;padding:22px;text-align:center;margin-bottom:20px}
+.nu-code{font-size:22px;font-weight:900;letter-spacing:4px;color:#34D399;font-family:monospace}
+.nu-copy-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:8px;color:#34D399;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;margin-top:12px}
+.nu-copy-btn:hover{background:rgba(16,185,129,.2)}
+.nu-step{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.nu-step:last-child{border-bottom:none}
+.nu-step-num{width:24px;height:24px;border-radius:50%;background:rgba(91,142,249,.15);border:1px solid rgba(91,142,249,.3);color:#5B8EF9;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+</style>
+<div id="new-user-screen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:9989;flex-direction:column">
+  <div class="ps-bg"></div>
+  <div class="wl-card" style="max-width:440px">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);border-radius:13px;margin-bottom:14px;font-size:22px">✨</div>
+      <div style="font-size:20px;font-weight:900;color:#fff;letter-spacing:-.5px">New Shop Registration</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.3);margin-top:5px">Share your code with admin to get started</div>
+    </div>
+    <!-- Registration Code -->
+    <div class="nu-code-box">
+      <div style="font-size:10px;font-weight:700;color:rgba(52,211,153,.6);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">Your Registration Code</div>
+      <div class="nu-code" id="nu-reg-code">---- ---- ---- ----</div>
+      <button class="nu-copy-btn" onclick="nuCopyCode()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Copy Code
+      </button>
+    </div>
+    <!-- Steps -->
+    <div style="margin-bottom:20px">
+      <div class="nu-step">
+        <div class="nu-step-num">1</div>
+        <div><div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:2px">Copy your code above</div><div style="font-size:11px;color:rgba(255,255,255,.35)">This is your unique device registration code</div></div>
+      </div>
+      <div class="nu-step">
+        <div class="nu-step-num">2</div>
+        <div><div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:2px">Contact Admin via WhatsApp</div><div style="font-size:11px;color:rgba(255,255,255,.35)">Share the code and your shop name with the admin</div></div>
+      </div>
+      <div class="nu-step">
+        <div class="nu-step-num">3</div>
+        <div><div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:2px">Receive your login credentials</div><div style="font-size:11px;color:rgba(255,255,255,.35)">Admin will send your username & password via WhatsApp</div></div>
+      </div>
+    </div>
+    <!-- WhatsApp button -->
+    <button class="wl-btn" style="background:linear-gradient(135deg,#25D366,#128C7E);margin-bottom:10px" onclick="nuContactAdmin()">
+      📲 Contact Admin on WhatsApp
+    </button>
+    <div style="text-align:center">
+      <a href="#" onclick="showPortalSelect()" style="font-size:11px;color:rgba(255,255,255,.25);text-decoration:none">← Already have credentials? Sign In</a>
     </div>
   </div>
 </div>
@@ -2009,21 +2175,29 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
 <!-- ═══════════════════════════════════════════════════════════
      ADMIN LOGIN SCREEN
      ═══════════════════════════════════════════════════════════ -->
-<div id="admin-login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);align-items:center;justify-content:center;z-index:9991">
-  <div style="width:100%;max-width:380px;padding:28px 24px">
+<!-- ADMIN LOGIN SCREEN — 21st.dev inspired -->
+<style>
+.al-bg{position:fixed;inset:0;background:#07070F;overflow:hidden;pointer-events:none}
+.al-bg::before{content:'';position:absolute;width:700px;height:500px;top:50%;left:50%;transform:translate(-50%,-55%);background:radial-gradient(ellipse,rgba(239,68,68,.1) 0%,transparent 65%);pointer-events:none}
+</style>
+<div id="admin-login-screen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:9991">
+  <div class="al-bg"></div>
+  <div class="wl-card" style="max-width:380px">
     <div style="text-align:center;margin-bottom:28px">
-      <div style="font-size:28px;margin-bottom:6px">🛡️</div>
-      <div style="font-size:18px;font-weight:900;color:var(--red)">Admin Console</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:3px">Developer & License Management</div>
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);border-radius:14px;margin-bottom:14px;font-size:22px">🛡️</div>
+      <div style="font-size:20px;font-weight:900;background:linear-gradient(135deg,#F87171,#EF4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.5px">Admin Console</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:5px">Developer & License Management</div>
     </div>
-    <div id="admin-login-error" style="display:none;background:rgba(239,68,68,.12);border:1px solid var(--red);color:var(--red);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:14px"></div>
-    <div class="form-group" style="margin-bottom:12px">
-      <label class="form-label">Admin Password</label>
-      <input class="form-control" id="adm-pass" type="password" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')adminLogin()">
+    <!-- Warning badge -->
+    <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.18);border-radius:10px;padding:9px 14px;margin-bottom:20px;text-align:center;font-size:11px;color:rgba(248,113,113,.9);font-weight:600;letter-spacing:.2px">⚠️ Authorized personnel only</div>
+    <div id="admin-login-error" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#FCA5A5;padding:10px 14px;border-radius:10px;font-size:12px;margin-bottom:16px"></div>
+    <div style="margin-bottom:22px">
+      <label class="wl-label">Admin Password</label>
+      <input class="wl-input" id="adm-pass" type="password" placeholder="••••••••••••" onkeydown="if(event.key==='Enter')adminLogin()">
     </div>
-    <button class="btn btn-danger" style="width:100%;padding:12px;font-size:14px;font-weight:700;justify-content:center" onclick="adminLogin()">🛡️ Enter Admin Console</button>
-    <div style="text-align:center;margin-top:16px">
-      <a href="#" style="font-size:12px;color:var(--text3)" onclick="showPortalSelect()">← Back to portal selection</a>
+    <button class="wl-btn" style="background:linear-gradient(135deg,#DC2626,#991B1B)" onclick="adminLogin()">Enter Admin Console →</button>
+    <div style="text-align:center;margin-top:20px">
+      <a href="#" onclick="showPortalSelect()" style="font-size:11px;color:rgba(255,255,255,.2);text-decoration:none">← Back to portal</a>
     </div>
   </div>
 </div>
@@ -3391,6 +3565,91 @@ function updateRepairBadge(){
 }
 
 // ============================================================
+// WELCOME BACK SCREEN
+// ============================================================
+function showWelcomeBack(){
+  loadAdminDB();
+  var shopName=localStorage.getItem('shoperpro_last_shop')||(DB.settings&&DB.settings.shopName)||'My Shop';
+  var userName=localStorage.getItem('shoperpro_last_user')||'User';
+  var el=document.getElementById('welcome-back-screen');
+  if(!el){continueBootApp();return;}
+  document.getElementById('wb-shop-name').textContent=shopName;
+  document.getElementById('wb-user-name').textContent=userName;
+  // Populate download links
+  var winUrl=(ADMIN_DB.settings&&ADMIN_DB.settings.downloadWin)||'';
+  var macUrl=(ADMIN_DB.settings&&ADMIN_DB.settings.downloadMac)||'';
+  var wbWin=document.getElementById('wb-dl-win');
+  var wbMac=document.getElementById('wb-dl-mac');
+  if(wbWin){if(winUrl){wbWin.href=winUrl;wbWin.removeAttribute('data-disabled');}else{wbWin.href='#';wbWin.setAttribute('data-disabled','true');}}
+  if(wbMac){if(macUrl){wbMac.href=macUrl;wbMac.removeAttribute('data-disabled');}else{wbMac.href='#';wbMac.setAttribute('data-disabled','true');}}
+  ['web-login-screen','portal-select-screen','admin-login-screen','new-user-screen'].forEach(function(id){
+    var e=document.getElementById(id);if(e)e.style.display='none';
+  });
+  el.style.display='flex';
+}
+function wbContinue(){
+  var el=document.getElementById('welcome-back-screen');if(el)el.style.display='none';
+  // Check suspended status
+  var shopName=localStorage.getItem('shoperpro_last_shop')||(DB.settings&&DB.settings.shopName)||'';
+  var shopLower=shopName.toLowerCase();
+  var rec=ADMIN_DB.customers&&ADMIN_DB.customers.find(function(c){return(c.shopName||'').toLowerCase()===shopLower;});
+  if(rec&&(rec.status==='paused'||rec.status==='terminated')){showSuspendedScreen(rec.status,rec.suspendReason||'');return;}
+  continueBootApp();
+}
+function wbSwitchAccount(){
+  _api.clearToken();
+  localStorage.removeItem('shoperpro_last_shop');
+  localStorage.removeItem('shoperpro_last_user');
+  var el=document.getElementById('welcome-back-screen');if(el)el.style.display='none';
+  showPortalSelect();
+}
+
+// ============================================================
+// NEW USER SCREEN
+// ============================================================
+function getRegCode(){
+  var key='shoperpro_reg_code_v1';
+  var code=localStorage.getItem(key);
+  if(!code){
+    var chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var raw='';
+    for(var i=0;i<16;i++) raw+=chars[Math.floor(Math.random()*chars.length)];
+    code=raw.slice(0,4)+'-'+raw.slice(4,8)+'-'+raw.slice(8,12)+'-'+raw.slice(12,16);
+    localStorage.setItem(key,code);
+  }
+  return code;
+}
+function showNewUserScreen(){
+  ['portal-select-screen','web-login-screen','admin-login-screen','welcome-back-screen'].forEach(function(id){
+    var e=document.getElementById(id);if(e)e.style.display='none';
+  });
+  var el=document.getElementById('new-user-screen');
+  if(!el){showPortalSelect();return;}
+  document.getElementById('nu-reg-code').textContent=getRegCode();
+  el.style.display='flex';
+}
+function nuCopyCode(){
+  var code=document.getElementById('nu-reg-code').textContent;
+  navigator.clipboard&&navigator.clipboard.writeText(code).then(function(){
+    var btn=document.querySelector('.nu-copy-btn');
+    if(btn){btn.innerHTML='✓ Copied!';setTimeout(function(){btn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy Code';},2000);}
+  });
+}
+function nuContactAdmin(){
+  loadAdminDB();
+  var adminPhone=(ADMIN_DB.settings&&(ADMIN_DB.settings.devPhone||ADMIN_DB.settings.supportPhone||''))||'';
+  var code=getRegCode();
+  var msg='🆕 *New Shop Registration Request*\n\n*Registration Code:* '+code+'\n\nPlease set up my ShopERP Pro account.\n\n_Sent from ShopERP Pro login page_';
+  if(adminPhone){
+    var clean=adminPhone.replace(/\D/g,'');
+    if(!clean.startsWith('91')&&clean.length===10)clean='91'+clean;
+    window.open('https://wa.me/'+clean+'?text='+encodeURIComponent(msg),'_blank');
+  } else {
+    window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+  }
+}
+
+// ============================================================
 // WEB LOGIN — shown only when SHOPERPRO_API_URL is set
 // ============================================================
 function showWebLoginScreen(){
@@ -3401,7 +3660,14 @@ function showWebLoginScreen(){
   if(el)el.style.display='flex';
 }
 function showWebRegister(){
-  document.getElementById('web-register-form').style.display='block';
+  wlSwitchTab('register');
+}
+function wlSwitchTab(tab){
+  var isLogin=tab==='login';
+  document.getElementById('wl-login-form').style.display=isLogin?'block':'none';
+  document.getElementById('wl-register-form').style.display=isLogin?'none':'block';
+  document.getElementById('wl-tab-login').className='wl-tab'+(isLogin?' active':'');
+  document.getElementById('wl-tab-register').className='wl-tab'+(isLogin?'':' active');
 }
 function webLogin(){
   var shop=document.getElementById('wl-shop').value.trim();
@@ -3413,8 +3679,11 @@ function webLogin(){
   btn.disabled=true;btn.textContent='Signing in…';errEl.style.display='none';
   _api.post('/api/auth/login',{username:user,password:pass,shopName:shop||undefined})
     .then(function(res){
-      if(res.error){errEl.textContent=res.error;errEl.style.display='block';btn.disabled=false;btn.textContent='Sign In';return;}
+      if(res.error){errEl.textContent=res.error;errEl.style.display='block';btn.disabled=false;btn.textContent='Sign In →';return;}
       _api.setToken(res.token);
+      // Store for welcome-back screen
+      localStorage.setItem('shoperpro_last_shop', res.shopName||shop||'My Shop');
+      localStorage.setItem('shoperpro_last_user', user);
       // Load this shop's data from server
       return _api.get('/api/data').then(function(d){
         if(d.data&&Object.keys(d.data).length>0){
@@ -3439,7 +3708,7 @@ function webLogin(){
     .catch(function(e){
       errEl.textContent='Connection error. Check your internet.';
       errEl.style.display='block';
-      btn.disabled=false;btn.textContent='Sign In';
+      btn.disabled=false;btn.textContent='Sign In →';
     });
 }
 function webRegister(){
@@ -3453,14 +3722,14 @@ function webRegister(){
   btn.disabled=true;btn.textContent='Creating…';errEl.style.display='none';
   _api.post('/api/auth/register',{shopName:shop,username:user,password:pass,email:email||undefined})
     .then(function(res){
-      if(res.error){errEl.textContent=res.error;errEl.style.display='block';btn.disabled=false;btn.textContent='Create Shop';return;}
+      if(res.error){errEl.textContent=res.error;errEl.style.display='block';btn.disabled=false;btn.textContent='Create Shop →';return;}
       _api.setToken(res.token);
       document.getElementById('web-login-screen').style.display='none';
       continueBootApp();
     })
     .catch(function(){
       errEl.textContent='Connection error.';errEl.style.display='block';
-      btn.disabled=false;btn.textContent='Create Shop';
+      btn.disabled=false;btn.textContent='Create Shop →';
     });
 }
 
@@ -3496,7 +3765,7 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 
 // ── Portal selection ──
 function showPortalSelect(){
-  ['web-login-screen','admin-login-screen','admin-panel','suspended-screen'].forEach(function(id){
+  ['web-login-screen','admin-login-screen','admin-panel','suspended-screen','welcome-back-screen','new-user-screen'].forEach(function(id){
     var el=document.getElementById(id); if(el)el.style.display='none';
   });
   // Update download links from admin settings
@@ -3962,27 +4231,29 @@ function bootApp(){
   // Web/hosted mode: require login first, then load data from server
   if(SHOPERPRO_API_URL){
     initTheme();
-    loadAdminDB(); // populate download links for portal select screen
+    loadAdminDB();
     document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
     if(_api.token()){
-      // Token exists — try to restore session from server
+      // Token exists — validate with server and show welcome-back screen
       _api.get('/api/data').then(function(d){
         if(d.data&&Object.keys(d.data).length>0){
           DB=d.data;
           localStorage.setItem(DB_KEY,JSON.stringify(DB));
         }
         loadDB();
-        continueBootApp();
+        showWelcomeBack();
       }).catch(function(){
         // Token invalid/expired — show portal selection
         _api.clearToken();
-        loadDB(); // fallback to localStorage
+        localStorage.removeItem('shoperpro_last_shop');
+        localStorage.removeItem('shoperpro_last_user');
+        loadDB();
         var lastMode=localStorage.getItem('shoperpro_portal_mode');
         if(lastMode==='admin'){ var el=document.getElementById('admin-login-screen'); if(el)el.style.display='flex'; }
         else showPortalSelect();
       });
     } else {
-      loadDB(); // load from localStorage as fallback while offline
+      loadDB();
       var lastMode=localStorage.getItem('shoperpro_portal_mode');
       if(lastMode==='admin'){ var el=document.getElementById('admin-login-screen'); if(el)el.style.display='flex'; }
       else showPortalSelect();
@@ -4144,6 +4415,20 @@ document.addEventListener('wheel', function(e){
 }, {passive:false});
 
 bootApp();
+
+// Ctrl+Shift+A anywhere opens admin portal (works in both local and web mode)
+document.addEventListener('keydown',function(e){
+  if(e.ctrlKey&&e.shiftKey&&e.key==='A'){
+    e.preventDefault();
+    showPortalSelect();
+    // Pre-select admin login directly
+    var ps=document.getElementById('portal-select-screen');
+    if(ps)ps.style.display='none';
+    var al=document.getElementById('admin-login-screen');
+    if(al){al.style.display='flex';setTimeout(function(){var p=document.getElementById('adm-pass');if(p)p.focus();},50);}
+  }
+});
+
 // Force Machine ID into the activation screen immediately after bootApp
 // (bootApp may navigate away before initMachineId updates the DOM element)
 (function fixMachineId(){
