@@ -6037,8 +6037,14 @@ function pagePOS(){
 
     <!-- Order header -->
     <div class="pos-order-header">
-      <div class="pos-order-title">Current Order</div>
-      <div id="pos-order-count" class="pos-order-count" style="display:none">0</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="pos-order-title">Current Order</div>
+        <div id="pos-order-count" class="pos-order-count" style="display:none">0</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button onclick="newJob()" title="New Repair Job" style="padding:4px 10px;background:rgba(245,158,11,.12);border:1.5px solid rgba(245,158,11,.35);border-radius:7px;color:var(--orange);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">🔧 New Job</button>
+        <button onclick="showPage('repairs')" title="All Repair Jobs" style="padding:4px 10px;background:var(--bg3);border:1.5px solid var(--border2);border-radius:7px;color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">All Jobs</button>
+      </div>
     </div>
 
     <!-- Customer -->
@@ -6120,13 +6126,11 @@ function pagePOS(){
       </button>
     </div>
 
-    <!-- Bottom strip -->
+    <!-- Bottom strip — status only -->
     <div class="pos-strip">
-      ${readyJobs.length>0?`<div class="pos-strip-item green" onclick="posShowReady()">${_ic('bell')} ${readyJobs.length} Ready</div>`:''}
-      ${dueTotal>0?`<div class="pos-strip-item red" onclick="posShowDues()">${_ic('money')} ${cur}${dueTotal.toLocaleString('en-IN')} Due</div>`:''}
-      ${overdueJobs.length>0?`<div class="pos-strip-item orange" onclick="showPage('repairs')">${_ic('dues')} ${overdueJobs.length} Overdue</div>`:''}
-      <div class="pos-strip-item blue" onclick="newJob()">${_ic('repairs')} New Job</div>
-      <div class="pos-strip-item blue" onclick="showPage('repairs')">${_ic('dues')} All Jobs</div>
+      ${readyJobs.length>0?`<div class="pos-strip-item green" onclick="posShowReady()">${_ic('bell')} <strong>${readyJobs.length}</strong>&nbsp;Ready Pickup</div>`:'<div class="pos-strip-item" style="color:var(--text3);cursor:default">${_ic('bell')} No pickups</div>'}
+      ${dueTotal>0?`<div class="pos-strip-item red" onclick="posShowDues()">${_ic('money')} <strong>${cur}${dueTotal.toLocaleString('en-IN')}</strong>&nbsp;Due</div>`:''}
+      ${overdueJobs.length>0?`<div class="pos-strip-item orange" onclick="showPage('repairs')">${_ic('dues')} <strong>${overdueJobs.length}</strong>&nbsp;Overdue</div>`:''}
     </div>
   </div>
 </div>`;
