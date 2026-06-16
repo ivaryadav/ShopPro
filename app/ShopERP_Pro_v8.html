@@ -4731,7 +4731,7 @@ function admRenderCustomers(list){
           c.status==='terminated'?`<button class="btn btn-xs" style="background:var(--orange);color:#000;font-size:11px;padding:3px 8px;border:none;border-radius:5px;cursor:pointer" onclick="admRestoreCustomer(${c.id})">♻ Restore</button>`:
           `<button class="btn btn-xs btn-ghost" onclick="admPauseCustomer(${c.id})" title="Pause" style="color:var(--orange);border-color:var(--orange)">⏸ Pause</button>
            <button class="btn btn-xs btn-danger" onclick="admTerminateCustomer(${c.id})" title="Terminate">🚫 Stop</button>`}
-        <button class="btn btn-xs btn-ghost" onclick="navigator.clipboard.writeText('${c.key}').then(()=>toast('Copied!','success'))" title="Copy key">📋</button>
+        <button class="btn btn-xs btn-ghost" onclick="admShowKey(${c.id})" title="View / Share Key" style="color:var(--accent);border-color:var(--accent)">🔑 Key</button>
         <button class="btn btn-xs btn-danger" onclick="admDeleteCustomer(${c.id})" title="Delete">🗑</button>
       </td></tr>`;
   }).join('');
@@ -4774,6 +4774,36 @@ function admDeleteCustomer(id){
   var c=ADMIN_DB.customers.find(x=>x.id===id); if(!c)return;
   if(!confirm('Delete '+c.shopName+'? This cannot be undone.'))return;
   ADMIN_DB.customers=ADMIN_DB.customers.filter(x=>x.id!==id); saveAdminDB(); showAdminPage('adm-customers'); toast('Deleted','info');
+}
+
+function admShowKey(id){
+  var c=ADMIN_DB.customers.find(function(x){return x.id===id;}); if(!c||!c.key)return;
+  var key=c.key;
+  var phone=(c.phone||'').replace(/\D/g,'');
+  var waMsg=encodeURIComponent('Hi '+c.ownerName+', your ShopERP Pro activation key is:\n\n'+key+'\n\nUse this key to activate your software or reset your PIN.\n\nSupport: +91 94511 00556');
+  var waUrl='https://wa.me/'+(phone?('91'+phone):'')+'?text='+waMsg;
+
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;display:flex;align-items:center;justify-content:center';
+  ov.innerHTML=`
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:28px 28px 22px;max-width:420px;width:92%;box-shadow:0 24px 60px rgba(0,0,0,.5)">
+      <div style="font-size:13px;font-weight:700;color:var(--text3);letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px">Activation Key</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px">${esc(c.shopName)} &nbsp;·&nbsp; ${esc(c.ownerName)}</div>
+
+      <div style="background:var(--bg);border:1.5px solid var(--accent);border-radius:12px;padding:18px 16px;text-align:center;margin-bottom:16px">
+        <div style="font-family:var(--mono);font-size:22px;font-weight:800;letter-spacing:6px;color:var(--accent);word-break:break-all" id="adm-key-display">${esc(key)}</div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button onclick="navigator.clipboard.writeText('${key.replace(/'/g,"\\'")}').then(function(){toast('Key copied!','success');})" style="flex:1;padding:10px;background:var(--accent);color:#000;font-weight:700;font-size:13px;border:none;border-radius:10px;cursor:pointer">📋 Copy Key</button>
+        ${phone?`<button onclick="window.open('${waUrl}','_blank')" style="flex:1;padding:10px;background:#25D366;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:10px;cursor:pointer">💬 Send via WhatsApp</button>`:'<button disabled style="flex:1;padding:10px;background:var(--bg);color:var(--text3);font-size:13px;border:1px solid var(--border);border-radius:10px;cursor:not-allowed">💬 No phone on file</button>'}
+      </div>
+      <div style="font-size:10px;color:var(--text3);text-align:center;margin-bottom:14px">Plan: <strong>${PLANS[c.plan]?.label||c.plan}</strong> &nbsp;·&nbsp; Expiry: <strong>${c.plan==='lifetime'?'Lifetime':c.expiryDate||'—'}</strong></div>
+
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;padding:9px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer">Close</button>
+    </div>`;
+  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
 }
 
 // ── Expiring Soon Page ──
