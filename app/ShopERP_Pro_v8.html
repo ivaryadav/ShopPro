@@ -1615,21 +1615,23 @@ body.light-mode .ls-name{color:#0F172A}
 body.light-mode .qa-item{background:linear-gradient(135deg,#fff,#EEF2FF);border-color:#D1DAFB;color:#475569}
 body.light-mode .qa-item:hover{border-color:#3B6FE8;color:#1E40AF;background:rgba(37,99,235,.06)}
 body.light-mode .mini-bar{background:#3B6FE8}
-body.light-mode .pos-product-tile{background:linear-gradient(135deg,#fff,#EEF2FF);border:1px solid #D1DAFB}
-body.light-mode .pos-product-tile:hover{border-color:#3B6FE8;background:linear-gradient(135deg,#EEF2FF,#E4EAFC)}
+body.light-mode .pos-product-tile{background:linear-gradient(135deg,#fff,#EEF2FF);border:1.5px solid #D1DAFB}
+body.light-mode .pos-product-tile:hover:not(.out){border-color:#3B6FE8;background:linear-gradient(135deg,#EEF2FF,#E4EAFC);box-shadow:0 4px 14px rgba(59,111,232,.12)}
 body.light-mode .pos-product-name{color:#0F172A}
 body.light-mode .pos-product-stock{color:#64748B}
 body.light-mode .pos-cat-btn{background:#fff;border-color:#C0CEEF;color:#475569}
 body.light-mode .pos-cart-item{background:#F8FAFF;border-color:#D1DAFB}
-body.light-mode .pos-right{background:#fff;border-left:1px solid #D1DAFB}
+body.light-mode .pos-right{background:#fff;border-left:1.5px solid #D1DAFB}
+body.light-mode .pos-totals{background:#F0F4FF;border-color:#D1DAFB}
 body.light-mode .pos-pay-btn{background:#F8FAFF;border-color:#C0CEEF;color:#334155}
 body.light-mode .pos-pay-btn:hover{border-color:#3B6FE8;color:#1E40AF;background:#EEF2FF}
 body.light-mode .pos-pay-btn.active{border-color:#16A34A;background:rgba(22,163,74,.1);color:#16A34A}
 body.light-mode .pos-cash-input{background:#fff;border-color:#C0CEEF;color:#0F172A}
 body.light-mode .pos-cash-input:focus{border-color:#3B6FE8}
-body.light-mode .pos-totals{background:#F0F4FF;border-color:#D1DAFB}
-body.light-mode .pos-pay-area{background:#fff}
-body.light-mode .pos-change-box{background:#F0F4FF}
+body.light-mode .pos-change-box{background:#ECFDF5;border-color:#86EFAC}
+body.light-mode .pos-cust-input{background:#fff;border-color:#C0CEEF;color:#0F172A}
+body.light-mode .pos-exact-btn{background:#fff;border-color:#C0CEEF;color:#475569}
+body.light-mode .pos-strip{background:#F8FAFF;border-top-color:#D1DAFB}
 body.light-mode .btn-ghost{background:rgba(0,0,0,.04);border-color:#C0CEEF;color:#475569}
 body.light-mode .btn-ghost:hover{background:rgba(37,99,235,.06);color:#1E40AF;border-color:rgba(37,99,235,.3)}
 body.light-mode .btn-icon{background:rgba(0,0,0,.04);border-color:#C0CEEF;color:#334155}
@@ -5908,86 +5910,117 @@ function pagePOS(){
 
   return`
 <style>
-.pos-wrap{display:flex;gap:0;height:calc(100vh - 56px);overflow:hidden;margin:-20px}
-.pos-left{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;min-width:0}
-.pos-right{width:380px;flex-shrink:0;display:flex;flex-direction:column;background:var(--bg2);overflow:hidden}
-.pos-search-bar{padding:12px 14px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0}
-.pos-search{width:100%;padding:10px 14px;background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--r-sm);color:var(--text);font-size:14px;outline:none;transition:.2s}
-.pos-search:focus{border-color:var(--accent);background:var(--bg4)}
-.pos-cats{display:flex;gap:6px;padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none}
-.pos-cats::-webkit-scrollbar{display:none}
-.pos-cat-btn{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text2);white-space:nowrap;transition:.15s;flex-shrink:0}
-.pos-cat-btn:hover,.pos-cat-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.pos-products{flex:1;overflow-y:auto;padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;align-content:start}
-.pos-product-tile{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);padding:12px;cursor:pointer;transition:.15s;position:relative;overflow:hidden}
-.pos-product-tile:hover{border-color:var(--accent);background:var(--bg3);transform:translateY(-1px)}
-.pos-product-tile.out{opacity:.5;cursor:not-allowed}
-.pos-product-name{font-size:12px;font-weight:700;margin-bottom:4px;line-height:1.3}
-.pos-product-price{font-size:15px;font-weight:900;color:var(--green);font-family:var(--mono)}
-.pos-product-stock{font-size:10px;color:var(--text3);margin-top:3px}
-.pos-out-badge{position:absolute;top:6px;right:6px;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px}
-.pos-low-badge{position:absolute;top:6px;right:6px;background:var(--orange);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px}
+/* ── POS Layout ── */
+.pos-wrap{display:flex;height:calc(100vh - 56px);overflow:hidden;margin:-20px;background:var(--bg)}
+.pos-left{flex:1;display:flex;flex-direction:column;border-right:1.5px solid var(--border);overflow:hidden;min-width:0;background:var(--bg)}
+.pos-right{width:360px;flex-shrink:0;display:flex;flex-direction:column;background:var(--bg2);overflow:hidden}
 
-/* Right panel */
-.pos-right-header{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
-.pos-cust-row{display:flex;gap:8px;margin-bottom:8px;position:relative}
-.pos-cust-input{flex:1;padding:8px 12px;background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--r-sm);color:var(--text);font-size:13px;outline:none}
+/* Search + categories */
+.pos-search-bar{padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0}
+.pos-search{width:100%;padding:9px 14px 9px 36px;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text);font-size:13px;outline:none;transition:.2s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:10px center}
+.pos-search:focus{border-color:var(--accent)}
+.pos-cats{display:flex;gap:6px;padding:7px 12px;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none;background:var(--bg)}
+.pos-cats::-webkit-scrollbar{display:none}
+.pos-cat-btn{padding:4px 13px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--border2);background:transparent;color:var(--text2);white-space:nowrap;transition:.15s;flex-shrink:0;letter-spacing:.2px}
+.pos-cat-btn:hover{border-color:var(--accent);color:var(--accent)}
+.pos-cat-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* Product grid */
+.pos-products{flex:1;overflow-y:auto;padding:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;align-content:start}
+.pos-product-tile{background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;padding:14px 12px 12px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.pos-product-tile:hover:not(.out){border-color:var(--accent);box-shadow:0 4px 16px rgba(79,142,247,.14);transform:translateY(-2px)}
+.pos-product-tile.out{opacity:.45;cursor:not-allowed}
+.pos-product-name{font-size:12px;font-weight:700;line-height:1.35;color:var(--text);margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:32px}
+.pos-product-price{font-size:17px;font-weight:900;color:var(--green);font-family:var(--mono);letter-spacing:-.3px;margin-top:auto}
+.pos-product-stock{font-size:10px;color:var(--text3);margin-top:3px;font-weight:600}
+.pos-out-badge{position:absolute;top:8px;right:8px;background:var(--red);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;letter-spacing:.3px}
+.pos-low-badge{position:absolute;top:8px;right:8px;background:var(--orange);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;letter-spacing:.3px}
+
+/* Right panel — Order */
+.pos-order-header{padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.pos-order-title{font-size:13px;font-weight:800;color:var(--text);letter-spacing:-.2px}
+.pos-order-count{background:var(--accent);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;min-width:22px;text-align:center}
+
+/* Customer row */
+.pos-cust-row{padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative}
+.pos-cust-input-wrap{display:flex;gap:6px;align-items:center}
+.pos-cust-input{flex:1;padding:8px 12px 8px 32px;background:var(--bg3);border:1.5px solid var(--border2);border-radius:9px;color:var(--text);font-size:13px;outline:none;transition:.2s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:9px center;min-width:0}
 .pos-cust-input:focus{border-color:var(--accent)}
-.pos-cust-dd{position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:0 0 var(--r-sm) var(--r-sm);z-index:100;max-height:180px;overflow-y:auto;box-shadow:var(--shadow);display:none}
+.pos-cust-add{width:32px;height:34px;border-radius:9px;border:1.5px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s;line-height:1}
+.pos-cust-add:hover{border-color:var(--accent);color:var(--accent)}
+.pos-cust-dd{position:absolute;top:100%;left:12px;right:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:0 0 10px 10px;z-index:100;max-height:180px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.2);display:none}
 .pos-cust-item{padding:8px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border)}
 .pos-cust-item:hover{background:var(--bg3)}
-.pos-cart{flex:1;overflow-y:auto;padding:10px 14px}
-.pos-cart-empty{text-align:center;padding:40px 20px;color:var(--text3)}
-.pos-cart-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border-radius:var(--r-sm);margin-bottom:6px;border:1px solid var(--border)}
-.pos-cart-name{flex:1;font-size:12px;font-weight:600;min-width:0}
-.pos-cart-price{font-size:12px;font-family:var(--mono);color:var(--green);font-weight:700;flex-shrink:0}
-.pos-qty-ctrl{display:flex;align-items:center;gap:4px;flex-shrink:0}
-.pos-qty-btn{width:22px;height:22px;border-radius:4px;border:1px solid var(--border2);background:var(--bg4);color:var(--text);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.pos-cust-chip{display:none;align-items:center;gap:8px;padding:6px 10px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;margin-top:6px}
+.pos-cust-chip-name{flex:1;font-size:12px;font-weight:700;color:var(--green);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pos-cust-chip-clear{background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;padding:0;flex-shrink:0}
+
+/* Cart */
+.pos-cart{flex:1;overflow-y:auto;padding:8px 12px}
+.pos-cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text3);gap:6px}
+.pos-cart-empty-icon{font-size:36px;opacity:.5}
+.pos-cart-item{display:flex;align-items:center;gap:8px;padding:9px 10px;background:var(--bg3);border-radius:10px;margin-bottom:7px;border:1px solid var(--border);transition:.15s}
+.pos-cart-item:hover{border-color:var(--border2)}
+.pos-cart-name{flex:1;font-size:12px;font-weight:600;min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35}
+.pos-cart-price{font-size:13px;font-family:var(--mono);color:var(--green);font-weight:800;flex-shrink:0;white-space:nowrap}
+.pos-qty-ctrl{display:flex;align-items:center;gap:3px;flex-shrink:0}
+.pos-qty-btn{width:24px;height:24px;border-radius:6px;border:1.5px solid var(--border2);background:var(--bg4);color:var(--text);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:.15s;flex-shrink:0}
 .pos-qty-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
-.pos-qty-val{width:24px;text-align:center;font-size:12px;font-weight:700;font-family:var(--mono)}
-.pos-remove-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px;line-height:1}
+.pos-qty-val{width:26px;text-align:center;font-size:13px;font-weight:800;font-family:var(--mono)}
+.pos-remove-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:2px;line-height:1;flex-shrink:0}
 .pos-remove-btn:hover{color:var(--red)}
 
 /* Totals */
-.pos-totals{padding:10px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg3);flex-shrink:0}
-.pos-total-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;color:var(--text2)}
-.pos-total-big{display:flex;justify-content:space-between;font-size:20px;font-weight:900;margin-top:6px}
-.pos-disc-row{display:flex;align-items:center;gap:6px;margin-top:4px}
-.pos-disc-input{width:90px;padding:4px 8px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r-xs);color:var(--text);font-size:13px;font-family:var(--mono);outline:none}
+.pos-totals{padding:10px 12px;border-top:1px solid var(--border);background:var(--bg3);flex-shrink:0}
+.pos-total-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:5px;color:var(--text2)}
+.pos-disc-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.pos-disc-label{font-size:12px;color:var(--text2);flex-shrink:0}
+.pos-disc-input{width:80px;padding:4px 8px;background:var(--bg4);border:1.5px solid var(--border2);border-radius:7px;color:var(--text);font-size:13px;font-family:var(--mono);font-weight:700;outline:none;transition:.15s}
+.pos-disc-input:focus{border-color:var(--accent)}
+.pos-disc-cur{font-size:11px;color:var(--text3);flex-shrink:0}
+.pos-total-divider{height:1px;background:var(--border2);margin:6px 0}
+.pos-total-big{display:flex;justify-content:space-between;align-items:center;font-size:22px;font-weight:900;color:var(--text)}
+.pos-total-amt{color:var(--green);font-family:var(--mono);letter-spacing:-.5px}
 
 /* Payment */
-.pos-pay-area{padding:10px 14px;flex-shrink:0;border-bottom:1px solid var(--border)}
-.pos-pay-methods{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
-.pos-pay-btn{padding:10px 4px;border-radius:var(--r-sm);border:1.5px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:.15s;pointer-events:auto;position:relative;z-index:1}
-.pos-pay-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
-.pos-pay-btn.active{border-color:var(--green);background:rgba(34,197,94,.12);color:var(--green);box-shadow:0 0 0 2px rgba(16,217,121,.18)}
+.pos-pay-area{padding:10px 12px;flex-shrink:0}
+.pos-pay-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:7px}
+.pos-pay-methods{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:9px}
+.pos-pay-btn{padding:10px 6px 9px;border-radius:10px;border:2px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;transition:all .15s;position:relative;z-index:1;letter-spacing:.2px}
+.pos-pay-btn:hover{border-color:var(--accent);color:var(--accent)}
+.pos-pay-btn.active{border-color:var(--green);background:rgba(34,197,94,.1);color:var(--green)}
+.pos-pay-btn.active::after{content:'✓';position:absolute;top:5px;right:7px;font-size:9px;font-weight:900;color:var(--green)}
 .pos-pay-icon{font-size:20px;display:block;line-height:1}
-.pos-upi-qr{text-align:center;background:var(--bg4);border-radius:var(--r-sm);padding:10px;margin-bottom:8px;border:1px solid rgba(79,142,247,.3)}
-.pos-cash-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
-.pos-cash-input{flex:1;padding:8px 12px;background:var(--bg4);border:1.5px solid var(--border2);border-radius:var(--r-sm);color:var(--text);font-size:15px;font-weight:700;font-family:var(--mono);outline:none}
+.pos-upi-qr{text-align:center;background:var(--bg4);border-radius:10px;padding:12px 10px;margin-bottom:9px;border:1px solid rgba(79,142,247,.25)}
+.pos-cash-row{display:flex;gap:6px;align-items:center;margin-bottom:7px}
+.pos-cash-input{flex:1;padding:9px 12px;background:var(--bg4);border:2px solid var(--border2);border-radius:10px;color:var(--text);font-size:16px;font-weight:800;font-family:var(--mono);outline:none;min-width:0;transition:.15s}
 .pos-cash-input:focus{border-color:var(--accent)}
-.pos-change-box{display:flex;justify-content:space-between;padding:6px 10px;background:var(--bg4);border-radius:var(--r-xs);font-size:13px;font-weight:700;margin-bottom:6px}
-.pos-charge-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--r-sm);color:#fff;font-size:15px;font-weight:800;cursor:pointer;transition:.15s;letter-spacing:.3px}
-.pos-charge-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(79,142,247,.35)}
-.pos-charge-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.pos-exact-btn{padding:9px 12px;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:.15s}
+.pos-exact-btn:hover{border-color:var(--accent);color:var(--accent)}
+.pos-change-box{display:flex;justify-content:space-between;align-items:center;padding:7px 11px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:8px;font-size:13px;font-weight:700;margin-bottom:8px}
+.pos-charge-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:800;cursor:pointer;transition:all .15s;letter-spacing:.3px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(79,142,247,.3)}
+.pos-charge-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(79,142,247,.4)}
+.pos-charge-btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.pos-charge-btn svg{width:16px!important;height:16px!important}
 
 /* Bottom strip */
-.pos-strip{background:var(--bg2);border-top:1px solid var(--border);padding:8px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;-ms-overflow-style:none}
-.pos-strip-item{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;transition:.15s;border:1px solid transparent}
+.pos-strip{background:var(--bg);border-top:1px solid var(--border);padding:6px 10px;display:flex;gap:6px;align-items:center;flex-shrink:0;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;-ms-overflow-style:none}
+.pos-strip::-webkit-scrollbar{display:none}
+.pos-strip-item{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;transition:.15s;border:1.5px solid transparent;white-space:nowrap;flex-shrink:0}
 .pos-strip-item:hover{background:var(--bg3)}
 .pos-strip-item.green{color:var(--green);border-color:rgba(34,197,94,.3)}
 .pos-strip-item.red{color:var(--red);border-color:rgba(239,68,68,.3)}
 .pos-strip-item.orange{color:var(--orange);border-color:rgba(245,158,11,.3)}
 .pos-strip-item.blue{color:var(--accent);border-color:rgba(79,142,247,.3)}
-.pos-strip-item svg{width:13px!important;height:13px!important;flex-shrink:0}
-.pos-charge-btn svg{width:15px!important;height:15px!important;vertical-align:middle;margin-right:4px}
+.pos-strip-item svg{width:12px!important;height:12px!important;flex-shrink:0}
 </style>
 
 <div class="pos-wrap">
+
   <!-- LEFT: Products -->
   <div class="pos-left">
     <div class="pos-search-bar">
-      <input class="pos-search" id="pos-search" placeholder="🔍 Search product, IMEI, SKU..." 
+      <input class="pos-search" id="pos-search" placeholder="Search product, IMEI, SKU…"
         oninput="posSearchProducts(this.value)" autocomplete="off">
     </div>
     <div class="pos-cats">
@@ -5999,48 +6032,59 @@ function pagePOS(){
     </div>
   </div>
 
-  <!-- RIGHT: Cart + Payment -->
+  <!-- RIGHT: Order panel -->
   <div class="pos-right">
+
+    <!-- Order header -->
+    <div class="pos-order-header">
+      <div class="pos-order-title">Current Order</div>
+      <div id="pos-order-count" class="pos-order-count" style="display:none">0</div>
+    </div>
+
     <!-- Customer -->
-    <div class="pos-right-header">
-      <div class="pos-cust-row">
-        <input class="pos-cust-input" id="pos-cust-search" placeholder="👤 Customer name or phone..."
+    <div class="pos-cust-row">
+      <div class="pos-cust-input-wrap">
+        <input class="pos-cust-input" id="pos-cust-search" placeholder="Customer name or phone…"
           oninput="posCustInput(this)" autocomplete="off" maxlength="80">
-        <button class="btn btn-ghost btn-sm" onclick="posQuickAddCust()" title="Add new customer">+</button>
-        <div class="pos-cust-dd" id="pos-cust-dd"></div>
+        <button class="pos-cust-add" onclick="posQuickAddCust()" title="Add new customer">+</button>
       </div>
-      <div id="pos-cust-selected" style="display:none;padding:6px 10px;background:var(--green-d);border:1px solid rgba(34,197,94,.3);border-radius:var(--r-sm);font-size:12px;display:flex;justify-content:space-between;align-items:center">
-        <span id="pos-cust-name" style="color:var(--green);font-weight:700"></span>
-        <button onclick="posClearCust()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px">✕</button>
+      <div class="pos-cust-dd" id="pos-cust-dd"></div>
+      <div class="pos-cust-chip" id="pos-cust-selected">
+        <span class="pos-cust-chip-name" id="pos-cust-name"></span>
+        <button class="pos-cust-chip-clear" onclick="posClearCust()">✕</button>
       </div>
     </div>
 
     <!-- Cart -->
     <div class="pos-cart" id="pos-cart">
       <div class="pos-cart-empty">
-        <div style="font-size:32px;margin-bottom:8px">🛒</div>
-        <div style="font-size:13px">Tap a product to add to cart</div>
-        <div style="font-size:11px;margin-top:4px;color:var(--text3)">or search by name / IMEI</div>
+        <div class="pos-cart-empty-icon">🛒</div>
+        <div style="font-size:13px;font-weight:600">Cart is empty</div>
+        <div style="font-size:11px;color:var(--text3)">Tap a product to add it</div>
       </div>
     </div>
 
     <!-- Totals -->
     <div class="pos-totals">
-      <div class="pos-total-row"><span>Subtotal:</span><span id="pos-subtotal">${cur}0</span></div>
+      <div class="pos-total-row">
+        <span>Subtotal</span><span id="pos-subtotal">${cur}0</span>
+      </div>
       <div class="pos-disc-row">
-        <span style="font-size:12px;color:var(--text2)">Discount:</span>
+        <span class="pos-disc-label">Discount</span>
         <input class="pos-disc-input" id="pos-disc" type="number" placeholder="0" min="0" value="0"
           oninput="numInput(this);posUpdateTotals()">
-        <span style="font-size:11px;color:var(--text3)">${cur}</span>
+        <span class="pos-disc-cur">${cur}</span>
       </div>
+      <div class="pos-total-divider"></div>
       <div class="pos-total-big">
-        <span>Total:</span>
-        <span id="pos-total" style="color:var(--green)">${cur}0</span>
+        <span>Total</span>
+        <span class="pos-total-amt" id="pos-total">${cur}0</span>
       </div>
     </div>
 
     <!-- Payment -->
     <div class="pos-pay-area">
+      <div class="pos-pay-label">Payment Method</div>
       <div class="pos-pay-methods">
         <button class="pos-pay-btn active" id="pos-pm-Cash" onclick="posSelectPay('Cash')" type="button">
           <i class="bi bi-cash-stack pos-pay-icon" style="pointer-events:none"></i>Cash
@@ -6055,15 +6099,15 @@ function pagePOS(){
 
       <!-- UPI QR -->
       <div id="pos-upi-area" style="display:none" class="pos-upi-qr">
-        ${DB.settings.upiQR?'<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px">📲 Show QR — Customer Scans</div><img src="'+DB.settings.upiQR+'" style="width:160px;height:160px;object-fit:contain;border-radius:8px">':'<div style="font-size:12px;color:var(--text3);padding:10px">No UPI QR. Upload in Settings.</div>'}
+        ${DB.settings.upiQR?'<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px">📲 Show QR to customer</div><img src="'+DB.settings.upiQR+'" style="width:150px;height:150px;object-fit:contain;border-radius:8px">':'<div style="font-size:11px;color:var(--text3);padding:8px">No UPI QR — upload in Settings</div>'}
       </div>
 
-      <!-- Cash -->
+      <!-- Cash input -->
       <div id="pos-cash-area">
         <div class="pos-cash-row">
           <input class="pos-cash-input" id="pos-cash" type="number" inputmode="decimal"
-            placeholder="Cash received..." oninput="numInput(this);posCalcChange()">
-          <button class="btn btn-ghost btn-sm" onclick="posExactCash()">Exact</button>
+            placeholder="Cash received…" oninput="numInput(this);posCalcChange()">
+          <button class="pos-exact-btn" onclick="posExactCash()">Exact</button>
         </div>
         <div id="pos-change-box" style="display:none" class="pos-change-box">
           <span id="pos-change-label" style="color:var(--text2)">Change to Return</span>
@@ -6078,7 +6122,7 @@ function pagePOS(){
 
     <!-- Bottom strip -->
     <div class="pos-strip">
-      ${readyJobs.length>0?`<div class="pos-strip-item green" onclick="posShowReady()">${_ic('bell')} ${readyJobs.length} Ready Pickup</div>`:''}
+      ${readyJobs.length>0?`<div class="pos-strip-item green" onclick="posShowReady()">${_ic('bell')} ${readyJobs.length} Ready</div>`:''}
       ${dueTotal>0?`<div class="pos-strip-item red" onclick="posShowDues()">${_ic('money')} ${cur}${dueTotal.toLocaleString('en-IN')} Due</div>`:''}
       ${overdueJobs.length>0?`<div class="pos-strip-item orange" onclick="showPage('repairs')">${_ic('dues')} ${overdueJobs.length} Overdue</div>`:''}
       <div class="pos-strip-item blue" onclick="newJob()">${_ic('repairs')} New Job</div>
@@ -6152,8 +6196,12 @@ function posChangeQty(productId,delta){
 function posRenderCart(){
   const cur=DB.settings.currency||'₹';
   const cartEl=document.getElementById('pos-cart');if(!cartEl)return;
+  // Update order count badge
+  const badge=document.getElementById('pos-order-count');
+  const totalQty=posCart.reduce((a,i)=>a+i.qty,0);
+  if(badge){badge.textContent=totalQty;badge.style.display=totalQty?'block':'none';}
   if(!posCart.length){
-    cartEl.innerHTML='<div class="pos-cart-empty"><div style="font-size:32px;margin-bottom:8px">🛒</div><div style="font-size:13px">Tap a product to add to cart</div></div>';
+    cartEl.innerHTML='<div class="pos-cart-empty"><div class="pos-cart-empty-icon">🛒</div><div style="font-size:13px;font-weight:600">Cart is empty</div><div style="font-size:11px;color:var(--text3)">Tap a product to add it</div></div>';
     posUpdateChargeBtn();return;
   }
   cartEl.innerHTML=posCart.map(item=>`
@@ -6215,8 +6263,8 @@ function posCustSearch(q){
 }
 function posSelectCust(id,name,phone){
   posCustomerId=id;posCustomerName=name;
-  const inp=document.getElementById('pos-cust-search');
-  if(inp)inp.style.display='none';
+  const wrap=document.getElementById('pos-cust-search')?.parentElement;
+  if(wrap)wrap.style.display='none';
   const dd=document.getElementById('pos-cust-dd');
   if(dd)dd.style.display='none';
   const sel=document.getElementById('pos-cust-selected');
@@ -6227,7 +6275,9 @@ function posSelectCust(id,name,phone){
 function posClearCust(){
   posCustomerId=0;posCustomerName='';
   const inp=document.getElementById('pos-cust-search');
-  if(inp){inp.style.display='block';inp.value='';}
+  if(inp){inp.value='';}
+  const wrap=inp?.parentElement;
+  if(wrap)wrap.style.display='flex';
   const sel=document.getElementById('pos-cust-selected');
   if(sel)sel.style.display='none';
 }
