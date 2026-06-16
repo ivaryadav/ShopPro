@@ -10416,6 +10416,7 @@ function pageReports(){
         ${fyOptions.map(f=>`<option${f===fy?' selected':''}>${f}</option>`).join('')}
       </select>
       <button class="btn btn-ghost btn-sm" onclick="exportReport()">⬇ Export CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="showGSTRModal()" style="color:var(--green);border-color:var(--green)">📤 GSTR Export</button>
       <button class="btn btn-primary btn-sm" onclick="printCAReport()">🖨 CA Report</button>
     </div>
   </div>
@@ -10738,6 +10739,43 @@ function buildReportContent(fy){
           <tr><td style="font-size:11px">Composition Scheme (&le;&#x20b9;1.5Cr)</td><td style="font-size:11px;color:${salesRev>15000000?"var(--red)":"var(--green)"}">${salesRev>15000000?"Not eligible":"Eligible"}</td></tr>
           <tr><td style="font-size:11px">HSN Summary (&gt;&#x20b9;5Cr)</td><td style="font-size:11px">${salesRev>50000000?"Mandatory":"Not required"}</td></tr>
         </tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="card-title" style="margin-bottom:0">📤 GSTR Filing Export &mdash; ${fyLabel}</div>
+      <button class="btn btn-ghost btn-sm" style="color:var(--green);border-color:var(--green)" onclick="showGSTRModal()">Open GSTR Export</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px">
+      JSON files ready for direct upload to the <strong>GST Portal (gst.gov.in)</strong>. Assumes 18% GST (9% CGST + 9% SGST intra-state). Verify all figures with your CA before filing.
+      ${!shop.gstNo?'<span style="color:var(--red);font-weight:700"> ⚠ GSTIN not set — add it in Settings first.</span>':''}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:14px">
+        <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:4px">GSTR-1</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px;line-height:1.5">Outward supplies (B2CS + HSN summary). Filed by <strong>11th of next month</strong>.</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:10px">
+          <span style="color:var(--green);font-weight:700">₹${salesRev.toLocaleString('en-IN')}</span> total sales · ${fySales.length} invoices
+        </div>
+        <button class="btn btn-sm" style="width:100%;justify-content:center;background:var(--accent);color:#fff;border:none" onclick="showGSTRModal('gstr1')">📥 Download GSTR-1</button>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:14px">
+        <div style="font-size:12px;font-weight:800;color:var(--orange);margin-bottom:4px">GSTR-3B</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px;line-height:1.5">Monthly tax summary return. Filed by <strong>20th of next month</strong>.</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:10px">
+          GST payable: <span style="color:var(--orange);font-weight:700">₹${Math.round(salesRev*18/118+repairRev*18/118).toLocaleString('en-IN')}</span> (FY total est.)
+        </div>
+        <button class="btn btn-sm" style="width:100%;justify-content:center;background:var(--orange);color:#fff;border:none" onclick="showGSTRModal('gstr3b')">📥 Download GSTR-3B</button>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:14px">
+        <div style="font-size:12px;font-weight:800;color:var(--green);margin-bottom:4px">GSTR-9</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px;line-height:1.5">Annual return for full FY. Due <strong>31 Dec ${fyStart+1}</strong>.</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:10px">
+          FY turnover: <span style="color:var(--green);font-weight:700">₹${totalRev.toLocaleString('en-IN')}</span>
+        </div>
+        <button class="btn btn-sm" style="width:100%;justify-content:center;background:var(--green);color:#fff;border:none" onclick="exportGSTR9('${fy}')">📥 Download GSTR-9</button>
       </div>
     </div>
   </div>
@@ -11227,6 +11265,314 @@ function exportReport(){
   const a=document.createElement('a');a.href=url;a.download='CA_Report_FY'+fy+'_'+localDateStr()+'.csv';a.click();URL.revokeObjectURL(url);
   toast('CA Report exported — open in Excel for full breakdown','success');
 }
+// ============================================================
+// GSTR FILING EXPORT
+// ============================================================
+function _gstrStateCode(){
+  var gstin=DB.settings.gstNo||'';
+  return gstin.length>=2?gstin.substring(0,2):'09';
+}
+function _gstrTaxable(total){return Math.round(total*100/118);}
+function _gstrCGST(total){return Math.round(total*9/118);}
+function _gstrSGST(total){return Math.round(total*9/118);}
+
+function showGSTRModal(defaultTab){
+  var fy=window._reportFY||getCurrentFY();
+  var fyParts=fy.split('-');var fyStart=parseInt(fyParts[0]);
+  var gstin=DB.settings.gstNo||'';
+  var months=[
+    {label:'April '+fyStart,    val:(fyStart)+'04'},
+    {label:'May '+fyStart,      val:(fyStart)+'05'},
+    {label:'June '+fyStart,     val:(fyStart)+'06'},
+    {label:'July '+fyStart,     val:(fyStart)+'07'},
+    {label:'August '+fyStart,   val:(fyStart)+'08'},
+    {label:'September '+fyStart,val:(fyStart)+'09'},
+    {label:'October '+fyStart,  val:(fyStart)+'10'},
+    {label:'November '+fyStart, val:(fyStart)+'11'},
+    {label:'December '+fyStart, val:(fyStart)+'12'},
+    {label:'January '+(fyStart+1),  val:(fyStart+1)+'01'},
+    {label:'February '+(fyStart+1), val:(fyStart+1)+'02'},
+    {label:'March '+(fyStart+1),    val:(fyStart+1)+'03'},
+  ];
+  var now=new Date();
+  var curMM=String(now.getMonth()+1).padStart(2,'0');
+  var curYY=now.getFullYear();
+  var defaultPeriod=curYY+''+curMM;
+  var opts=months.map(function(m){return'<option value="'+m.val+'"'+(m.val===defaultPeriod?' selected':'')+'>'+m.label+'</option>';}).join('');
+
+  var tab=defaultTab||'gstr1';
+  var body=
+    '<div style="margin-bottom:14px">'+
+      (gstin?'<div style="font-size:11px;background:var(--bg3);border-radius:8px;padding:8px 12px;margin-bottom:12px">GSTIN: <strong style="font-family:var(--mono)">'+gstin+'</strong> &nbsp;|&nbsp; State Code: <strong>'+_gstrStateCode()+'</strong></div>'
+            :'<div class="alert alert-danger" style="font-size:11px;margin-bottom:12px">⚠ GSTIN not set. Add it in <strong>Settings → Shop Info</strong> before filing.</div>')+
+    '</div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:16px">'+
+      '<button id="gtab-gstr1" class="btn btn-sm'+(tab==='gstr1'?' btn-primary':' btn-ghost')+'" onclick="gstrTab(\'gstr1\')">GSTR-1</button>'+
+      '<button id="gtab-gstr3b" class="btn btn-sm'+(tab==='gstr3b'?' btn-primary':' btn-ghost')+'" onclick="gstrTab(\'gstr3b\')">GSTR-3B</button>'+
+      '<button id="gtab-gstr9" class="btn btn-sm'+(tab==='gstr9'?' btn-primary':' btn-ghost')+'" onclick="gstrTab(\'gstr9\')">GSTR-9 Annual</button>'+
+    '</div>'+
+    '<div id="gstr-tab-gstr1" style="display:'+(tab==='gstr1'?'block':'none')+'">'+
+      '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">Outward supplies return. Covers B2CS (B2C small invoices) + HSN summary for selected month. Due <strong>11th of next month</strong>.</div>'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
+        '<label style="font-size:12px;font-weight:600;white-space:nowrap">Select Month:</label>'+
+        '<select id="gstr1-period" class="form-control" style="flex:1">'+opts+'</select>'+
+      '</div>'+
+      '<div id="gstr1-preview" style="font-size:11px;color:var(--text3);min-height:40px"></div>'+
+    '</div>'+
+    '<div id="gstr-tab-gstr3b" style="display:'+(tab==='gstr3b'?'block':'none')+'">'+
+      '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">Monthly tax summary. Covers outward taxable supplies (Table 3.1a). ITC left as zero — add manually if you have purchase invoices. Due <strong>20th of next month</strong>.</div>'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
+        '<label style="font-size:12px;font-weight:600;white-space:nowrap">Select Month:</label>'+
+        '<select id="gstr3b-period" class="form-control" style="flex:1">'+opts+'</select>'+
+      '</div>'+
+      '<div id="gstr3b-preview" style="font-size:11px;color:var(--text3);min-height:40px"></div>'+
+    '</div>'+
+    '<div id="gstr-tab-gstr9" style="display:'+(tab==='gstr9'?'block':'none')+'">'+
+      '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">Annual consolidated return for full FY <strong>'+fy+'</strong>. Covers Table 4 (outward supplies) + HSN summary. Due <strong>31 Dec '+(fyStart+1)+'</strong>.</div>'+
+      '<div style="background:var(--bg3);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:11px">'+
+        'Turnover: <strong>FY '+fy+'</strong> | File: GSTR-9 via GST portal Offline Tool'+
+      '</div>'+
+    '</div>';
+
+  var footer=
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'+
+    '<button id="gstr-dl-btn" class="btn btn-primary" onclick="gstrDownload()">📥 Download JSON</button>';
+
+  openModal('GSTR Export — FY '+fy, body, footer);
+  window._gstrActiveFY=fy;
+  window._gstrActiveTab=tab;
+}
+
+function gstrTab(tab){
+  ['gstr1','gstr3b','gstr9'].forEach(function(t){
+    var el=document.getElementById('gstr-tab-'+t);
+    if(el)el.style.display=t===tab?'block':'none';
+    var btn=document.getElementById('gtab-'+t);
+    if(btn){btn.className='btn btn-sm '+(t===tab?'btn-primary':'btn-ghost');}
+  });
+  window._gstrActiveTab=tab;
+}
+
+function gstrDownload(){
+  var tab=window._gstrActiveTab||'gstr1';
+  var fy=window._gstrActiveFY||getCurrentFY();
+  if(tab==='gstr1'){
+    var period=document.getElementById('gstr1-period').value;
+    exportGSTR1(period,fy);
+  } else if(tab==='gstr3b'){
+    var period=document.getElementById('gstr3b-period').value;
+    exportGSTR3B(period,fy);
+  } else {
+    exportGSTR9(fy);
+  }
+}
+
+function exportGSTR1(period,fy){
+  var gstin=DB.settings.gstNo||'';
+  var stateCode=_gstrStateCode();
+  var mm=period.slice(-2);
+  var yyyy=period.slice(0,4);
+  var fp=mm+yyyy;
+
+  var monthSales=DB.sales.filter(function(s){
+    return s.date&&s.date.startsWith(yyyy+'-'+mm);
+  });
+  var monthRepairs=DB.repairs.filter(function(r){
+    return r.received&&r.received.startsWith(yyyy+'-'+mm)&&(r.paidAmount||0)>0;
+  });
+
+  var salesTotRaw=monthSales.reduce(function(a,s){return a+s.total;},0);
+  var repairTotRaw=monthRepairs.reduce(function(a,r){return a+(r.paidAmount||0);},0);
+
+  var salesTxval=_gstrTaxable(salesTotRaw);
+  var salesCGST=_gstrCGST(salesTotRaw);
+  var salesSGST=_gstrSGST(salesTotRaw);
+
+  var repairTxval=_gstrTaxable(repairTotRaw);
+  var repairCGST=_gstrCGST(repairTotRaw);
+  var repairSGST=_gstrSGST(repairTotRaw);
+
+  var totTxval=salesTxval+repairTxval;
+  var totCGST=salesCGST+repairCGST;
+  var totSGST=salesSGST+repairSGST;
+  var grossTurnover=salesTotRaw+repairTotRaw;
+
+  var b2cs=[];
+  if(totTxval>0){
+    b2cs.push({
+      sply_ty:'INTRA',pos:stateCode,typ:'OE',rt:18,
+      txval:totTxval,iamt:0,camt:salesCGST+repairCGST,samt:salesSGST+repairSGST,csamt:0
+    });
+  }
+
+  var hsnData=[];
+  if(salesTxval>0){
+    hsnData.push({
+      num:1,hsn_sc:'8517',desc:'Mobile Phones and Accessories',uqc:'NOS',
+      qty:monthSales.reduce(function(a,s){return a+s.items.reduce(function(b,i){return b+i.qty;},0);},0),
+      val:salesTotRaw,txval:salesTxval,iamt:0,camt:salesCGST,samt:salesSGST,csamt:0
+    });
+  }
+  if(repairTxval>0){
+    hsnData.push({
+      num:hsnData.length+1,hsn_sc:'998519',desc:'Mobile Repair and Maintenance Services',uqc:'NOS',
+      qty:monthRepairs.length,
+      val:repairTotRaw,txval:repairTxval,iamt:0,camt:repairCGST,samt:repairSGST,csamt:0
+    });
+  }
+
+  var invoiceNos=monthSales.map(function(s){return s.invoiceNo;}).filter(Boolean).sort();
+  var docFrom=invoiceNos[0]||'';
+  var docTo=invoiceNos[invoiceNos.length-1]||'';
+
+  var json={
+    gstin:gstin,fp:fp,gt:grossTurnover,cur_gt:grossTurnover,
+    b2b:[],b2cs:b2cs,b2cl:[],cdnr:[],exp:[],at:[],txpd:[],
+    nil:{inv:[]},
+    hsn:{data:hsnData},
+    doc_issue:{doc_det:[{doc_num:1,docs:[{num:1,from:docFrom,to:docTo,totnum:monthSales.length,cancel:0,net_issue:monthSales.length}]}]}
+  };
+
+  _downloadGSTRJson(json,'GSTR1_'+fp+'_'+gstin+'.json');
+  toast('GSTR-1 JSON downloaded for '+fp,'success');
+  closeModal();
+}
+
+function exportGSTR3B(period,fy){
+  var gstin=DB.settings.gstNo||'';
+  var mm=period.slice(-2);
+  var yyyy=period.slice(0,4);
+  var ret_period=mm+yyyy;
+
+  var monthSales=DB.sales.filter(function(s){return s.date&&s.date.startsWith(yyyy+'-'+mm);});
+  var monthRepairs=DB.repairs.filter(function(r){return r.received&&r.received.startsWith(yyyy+'-'+mm)&&(r.paidAmount||0)>0;});
+
+  var salesTot=monthSales.reduce(function(a,s){return a+s.total;},0);
+  var repairTot=monthRepairs.reduce(function(a,r){return a+(r.paidAmount||0);},0);
+  var grandTot=salesTot+repairTot;
+
+  var txval=_gstrTaxable(grandTot);
+  var cgst=_gstrCGST(grandTot);
+  var sgst=_gstrSGST(grandTot);
+
+  var json={
+    gstin:gstin,ret_period:ret_period,
+    sup_details:{
+      osup_det:{txval:txval,iamt:0,camt:cgst,samt:sgst,csamt:0},
+      osup_zero:{txval:0,iamt:0,camt:0,samt:0,csamt:0},
+      osup_nil_exmp:{txval:0},
+      isup_rev:{txval:0,iamt:0,camt:0,samt:0,csamt:0},
+      osup_nongst:{txval:0}
+    },
+    itc_elg:{
+      itc_avl:[
+        {ty:'IMPG',iamt:0,camt:0,samt:0,csamt:0},
+        {ty:'IMPS',iamt:0,camt:0,samt:0,csamt:0},
+        {ty:'ISRC',iamt:0,camt:0,samt:0,csamt:0},
+        {ty:'ISD',iamt:0,camt:0,samt:0,csamt:0},
+        {ty:'OTH',iamt:0,camt:0,samt:0,csamt:0}
+      ],
+      itc_rev:[
+        {ty:'RUL',iamt:0,camt:0,samt:0,csamt:0},
+        {ty:'OTH',iamt:0,camt:0,samt:0,csamt:0}
+      ],
+      itc_net:{iamt:0,camt:0,samt:0,csamt:0},
+      itc_inelg:[
+        {ty:'RUL',iamt:0,camt:0,samt:0,csamt:0},
+        {ty:'OTH',iamt:0,camt:0,samt:0,csamt:0}
+      ]
+    },
+    intr_ltfee:{
+      intr_details:{iamt:0,camt:0,samt:0,csamt:0},
+      ltfee_details:{camt:0,samt:0}
+    },
+    inward_sup:{
+      isup_details:[
+        {ty:'GST',inter:0,intra:0},
+        {ty:'NONGST',inter:0,intra:0}
+      ]
+    },
+    pdng_itc_ltfee:{itc_lt_fee:{iamt:0,camt:0,samt:0,csamt:0}}
+  };
+
+  _downloadGSTRJson(json,'GSTR3B_'+ret_period+'_'+gstin+'.json');
+  toast('GSTR-3B JSON downloaded for '+ret_period,'success');
+  closeModal();
+}
+
+function exportGSTR9(fy){
+  var gstin=DB.settings.gstNo||'';
+  var fyParts=fy.split('-');var fyStart=parseInt(fyParts[0]);
+  var fyLabel=(fyStart)+'-'+String(fyStart+1).slice(2);
+
+  var fySales=DB.sales.filter(function(s){return s.date&&inFY(s.date,fy);});
+  var fyRepairs=DB.repairs.filter(function(r){return r.received&&inFY(r.received,fy)&&(r.paidAmount||0)>0;});
+
+  var salesTot=fySales.reduce(function(a,s){return a+s.total;},0);
+  var repairTot=fyRepairs.reduce(function(a,r){return a+(r.paidAmount||0);},0);
+  var grandTot=salesTot+repairTot;
+
+  var salesTxval=_gstrTaxable(salesTot);
+  var salesCGST=_gstrCGST(salesTot);
+  var salesSGST=_gstrSGST(salesTot);
+  var repairTxval=_gstrTaxable(repairTot);
+  var repairCGST=_gstrCGST(repairTot);
+  var repairSGST=_gstrSGST(repairTot);
+  var totTxval=salesTxval+repairTxval;
+  var totCGST=salesCGST+repairCGST;
+  var totSGST=salesSGST+repairSGST;
+
+  var json={
+    gstin:gstin,fy:fyLabel,
+    pt4:{
+      A_TO_E:{
+        '4A':{txval:0,iamt:0,camt:0,samt:0,csamt:0},
+        '4B':{txval:0,iamt:0,camt:0,samt:0,csamt:0},
+        '4C':{txval:0,iamt:0,camt:0,samt:0,csamt:0},
+        '4D':{txval:0,iamt:0,camt:0,samt:0,csamt:0},
+        '4E':{txval:totTxval,iamt:0,camt:totCGST,samt:totSGST,csamt:0}
+      }
+    },
+    pt5:{
+      '5A':{txval:0,iamt:0,camt:0,samt:0,csamt:0},
+      '5B':{txval:0,iamt:0,camt:0,samt:0,csamt:0},
+      '5C':{txval:0,iamt:0,camt:0,samt:0,csamt:0},
+      '5D':{txval:0},
+      '5E':{txval:0},
+      '5F':{txval:0}
+    },
+    pt6:{
+      '6A':{iamt:0,camt:0,samt:0,csamt:0},
+      '6B':{iamt:0,camt:0,samt:0,csamt:0},
+      '6C':{iamt:0,camt:0,samt:0,csamt:0},
+      '6D':{iamt:0,camt:0,samt:0,csamt:0},
+      '6E':{iamt:0,camt:0,samt:0,csamt:0},
+      '6F':{iamt:0,camt:0,samt:0,csamt:0},
+      '6G':{iamt:0,camt:0,samt:0,csamt:0},
+      '6H':{iamt:0,camt:0,samt:0,csamt:0}
+    },
+    hsn:{
+      data:[
+        salesTxval>0?{num:1,hsn_sc:'8517',desc:'Mobile Phones and Accessories',uqc:'NOS',
+          qty:fySales.reduce(function(a,s){return a+s.items.reduce(function(b,i){return b+i.qty;},0);},0),
+          val:salesTot,txval:salesTxval,iamt:0,camt:salesCGST,samt:salesSGST,csamt:0}:null,
+        repairTxval>0?{num:2,hsn_sc:'998519',desc:'Mobile Repair and Maintenance Services',uqc:'NOS',
+          qty:fyRepairs.length,val:repairTot,txval:repairTxval,iamt:0,camt:repairCGST,samt:repairSGST,csamt:0}:null
+      ].filter(Boolean)
+    }
+  };
+
+  _downloadGSTRJson(json,'GSTR9_FY'+fy+'_'+gstin+'.json');
+  toast('GSTR-9 JSON downloaded for FY '+fy,'success');
+  closeModal();
+}
+
+function _downloadGSTRJson(obj,filename){
+  var blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
+}
+
 // ============================================================
 // ENGAGE
 // ============================================================
