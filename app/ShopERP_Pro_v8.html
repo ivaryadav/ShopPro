@@ -2745,6 +2745,7 @@ spline-viewer{width:100%;height:100%;border:none}
       <div class="nav-item" onclick="showPage('repairs')"><span class="nav-icon"><i class="bi bi-tools"></i></span><span>Repairs</span><span class="nav-badge" id="repair-badge" style="display:none">0</span></div>
       <div class="nav-item" onclick="showPage('customers')"><span class="nav-icon"><i class="bi bi-people-fill"></i></span><span>Customers</span></div>
       <div class="nav-item" onclick="showPage('expenses')"><span class="nav-icon"><i class="bi bi-wallet2"></i></span><span>Expenses</span></div>
+      <div class="nav-item owner-only" onclick="showPage('recurring')"><span class="nav-icon"><i class="bi bi-arrow-repeat"></i></span><span>Recurring</span></div>
       <div class="nav-section owner-only" id="owner-nav-section">Analytics & Tools</div>
       <div class="nav-item owner-only" onclick="showPage('reports')"><span class="nav-icon"><i class="bi bi-bar-chart-line-fill"></i></span><span>Reports</span></div>
       <div class="nav-item" onclick="showPage('engage')"><span class="nav-icon"><i class="bi bi-whatsapp"></i></span><span>WhatsApp</span></div>
@@ -5237,6 +5238,7 @@ function showPage(page){
     repairs:['Repair Jobs','Job cards & repair tracking'],
     customers:['Customers','Customer records & history'],
     expenses:['Expenses','Cost tracking & categories'],
+    recurring:['Recurring Expenses','Monthly fixed costs — rent, salary, subscriptions'],
     reports:['Reports','Business analytics & insights'],
     engage:['WhatsApp','Customer engagement & messaging'],
     settings:['Settings','Shop configuration & branding'],
@@ -5246,7 +5248,7 @@ function showPage(page){
   const t=titles[page]||['',''];
   document.getElementById('page-title').textContent=t[0];
   document.getElementById('page-sub').textContent=t[1];
-  const fns={pos:pagePOS,dashboard:()=>{const r=pageDashboard();setTimeout(dashRenderCashbook,100);return r;},inventory:pageInventory,sales:pageSales,repairs:pageRepairs,customers:pageCustomers,expenses:pageExpenses,reports:pageReports,engage:pageEngage,settings:pageSettings,superadmin:pageSuperAdmin,support:pageSupport};
+  const fns={pos:pagePOS,dashboard:()=>{const r=pageDashboard();setTimeout(dashRenderCashbook,100);return r;},inventory:pageInventory,sales:pageSales,repairs:pageRepairs,customers:pageCustomers,expenses:pageExpenses,recurring:pageRecurring,reports:pageReports,engage:pageEngage,settings:pageSettings,superadmin:pageSuperAdmin,support:pageSupport};
   const c=document.getElementById('content');
   // Hide FAB on POS (it covers the payment panel); show on all other pages
   const fabWrap=document.getElementById('fab-wrap');
@@ -10038,7 +10040,7 @@ function pageRecurring(){
 function toggleRecurring(id,active){
   const re=DB.recurringExpenses?.find(x=>x.id===id);
   if(re){re.active=active;saveDB();}
-  showPage('expenses');
+  showPage('recurring');
 }
 function addRecurring(){
   openModal('Add Recurring Expense',`
@@ -10071,7 +10073,7 @@ function saveRecurring(){
     active:document.getElementById('re-active').checked,
     lastApplied:''
   });
-  saveDB();closeModal();showPage('expenses');toast('Recurring expense added','success');
+  saveDB();closeModal();showPage('recurring');toast('Recurring expense added','success');
 }
 function editRecurring(id){
   const re=DB.recurringExpenses?.find(x=>x.id===id);if(!re)return;
@@ -10093,12 +10095,12 @@ function updateRecurring(id){
   re.category=document.getElementById('re-cat').value;
   re.amount=parseFloat(document.getElementById('re-amt').value)||0;
   re.note=document.getElementById('re-note').value;
-  saveDB();closeModal();showPage('expenses');toast('Updated','success');
+  saveDB();closeModal();showPage('recurring');toast('Updated','success');
 }
 function deleteRecurring(id){
   showConfirm('Delete this recurring expense?',()=>{
     DB.recurringExpenses=DB.recurringExpenses.filter(x=>+(x.id)!==+(id));
-    saveDB();showPage('expenses','recurring');toast('Deleted','info');
+    saveDB();showPage('recurring');toast('Deleted','info');
   });
 }
 function pageExpenses(activeTab,sortDir){
@@ -11059,13 +11061,111 @@ function printCAReport(){
 function exportReport(){
   const fy=window._reportFY||getCurrentFY();
   const cur=DB.settings.currency||'₹';
+  const shop=DB.settings;
+  const fyParts=fy.split('-');const fyStart=parseInt(fyParts[0]);
+  const ayLabel='AY '+(fyStart+1)+'-'+String(fyStart+2).slice(2);
+
   const fySales=DB.sales.filter(s=>s.date&&inFY(s.date,fy));
-  const rows=[['Invoice No','Date','Customer','Items','Total','Paid','Due','Payment','FY'],
-    ...fySales.sort((a,b)=>a.date>b.date?1:-1).map(s=>[s.invoiceNo,s.date,s.customerName,s.items.map(i=>i.name+'x'+i.qty).join(';'),s.total,s.paid,Math.max(0,s.total-s.paid),formatPayments(s,''),fy])];
-  const csv=rows.map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
-  const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=`sales_FY${fy}_${localDateStr()}.csv`;a.click();URL.revokeObjectURL(url);
-  toast('Report exported','success');
+  const fyRepairs=DB.repairs.filter(r=>r.received&&inFY(r.received,fy));
+  const fyExp=DB.expenses.filter(e=>e.date&&inFY(e.date,fy));
+
+  const salesRev=fySales.reduce((a,s)=>a+s.total,0);
+  const repairRev=fyRepairs.reduce((a,r)=>a+(r.finalCost||0),0);
+  const totalRev=salesRev+repairRev;
+  const cogs=fySales.reduce((a,s)=>a+s.items.reduce((b,i)=>{const p=DB.inventory.find(x=>x.id===i.productId);return b+(p?p.costPrice*i.qty:0);},0),0);
+  const grossProfit=totalRev-cogs;
+  const totalExp=fyExp.reduce((a,e)=>a+e.amount,0);
+  const netProfit=grossProfit-totalExp;
+  const totalDues=fySales.reduce((a,s)=>a+Math.max(0,s.total-s.paid),0);
+  const closingStock=DB.inventory.reduce((a,p)=>a+p.costPrice*p.stock,0);
+
+  const cashRec=fySales.reduce((a,s)=>a+getSaleCashAmount(s),0);
+  const repairCash=fyRepairs.filter(r=>!r.payMethod||r.payMethod==='Cash').reduce((a,r)=>a+(r.finalCost||0),0);
+  const totalCash=cashRec+repairCash;
+  const totalCollected=fySales.reduce((a,s)=>a+s.paid,0)+repairRev;
+  const cashPct=totalCollected>0?Math.round(totalCash/totalCollected*100):0;
+  const presumptiveRate=(totalCollected>0&&totalCash/totalCollected<=0.05)?6:8;
+  const presumptiveIncome=Math.round(totalRev*presumptiveRate/100);
+
+  const expByCat={};fyExp.forEach(e=>{expByCat[e.category]=(expByCat[e.category]||0)+e.amount;});
+
+  const monthly={};MONTHS_ORDER.forEach(m=>monthly[m]={rev:0,repair:0,exp:0,cash:0});
+  fySales.forEach(s=>{const mk=MONTHS_ORDER[((new Date(s.date).getMonth()-3+12)%12)];if(monthly[mk]){monthly[mk].rev+=s.total;monthly[mk].cash+=getSaleCashAmount(s);}});
+  fyRepairs.forEach(r=>{const mk=MONTHS_ORDER[((new Date(r.received).getMonth()-3+12)%12)];if(monthly[mk])monthly[mk].repair+=(r.finalCost||0);});
+  fyExp.forEach(e=>{const mk=MONTHS_ORDER[((new Date(e.date).getMonth()-3+12)%12)];if(monthly[mk])monthly[mk].exp+=e.amount;});
+
+  function q(v){return'"'+String(v===null||v===undefined?'':v).replace(/"/g,'""')+'"';}
+  function row(...cells){return cells.map(q).join(',');}
+
+  const sections=[];
+
+  // ── Section 1: Business Info ──
+  sections.push(row('CA / ITR-4 REPORT — '+ayLabel,'','','','',''));
+  sections.push(row('Shop','Owner','Phone','GSTIN','FY','Generated'));
+  sections.push(row(shop.shopName||'',shop.ownerName||'',shop.phone||'',shop.gstNo||'No GST','FY '+fy,new Date().toLocaleDateString('en-IN')));
+  sections.push('');
+
+  // ── Section 2: P&L Summary ──
+  sections.push(row('--- PROFIT & LOSS SUMMARY ---','','','','',''));
+  sections.push(row('Description','Amount ('+cur+')','','','',''));
+  sections.push(row('Sales Revenue',salesRev));
+  sections.push(row('Service / Repair Revenue',repairRev));
+  sections.push(row('Total Gross Turnover',totalRev));
+  sections.push(row('Cost of Goods Sold (COGS)',cogs));
+  sections.push(row('Gross Profit',grossProfit));
+  sections.push(row('Total Expenses',totalExp));
+  sections.push(row('NET PROFIT / (LOSS)',netProfit));
+  sections.push(row('Closing Stock Value',closingStock));
+  sections.push(row('Balance Receivable (Dues)',totalDues));
+  sections.push('');
+
+  // ── Section 3: Section 44AD ──
+  sections.push(row('--- SECTION 44AD — PRESUMPTIVE TAXATION ---','','','','',''));
+  sections.push(row('Gross Turnover',totalRev));
+  sections.push(row('Cash Receipts',totalCash,'('+cashPct+'%)','','',''));
+  sections.push(row('Digital Receipts',totalCollected-totalCash,'('+(100-cashPct)+'%)','','',''));
+  sections.push(row('Applicable Rate (%)',presumptiveRate+'%','('+((cashPct<=5)?'≤5% cash → 6%':'>5% cash → 8%')+')','','',''));
+  sections.push(row('Presumptive Income to Declare',presumptiveIncome));
+  sections.push(row('Advance Tax Due By','15 March '+( fyStart+1)));
+  sections.push(row('ITR Filing Deadline','31 July '+(fyStart+1)));
+  sections.push('');
+
+  // ── Section 4: Expenses by Category ──
+  sections.push(row('--- EXPENSES BY CATEGORY ---','','','','',''));
+  sections.push(row('Category','Amount ('+cur+')','','','',''));
+  Object.entries(expByCat).sort((a,b)=>b[1]-a[1]).forEach(([cat,amt])=>sections.push(row(cat,amt)));
+  sections.push(row('TOTAL EXPENSES',totalExp));
+  sections.push('');
+
+  // ── Section 5: Monthly Breakdown ──
+  sections.push(row('--- MONTHLY REVENUE & EXPENSE BREAKDOWN ---','','','','',''));
+  sections.push(row('Month','Sales Rev','Repair Rev','Total Rev','Cash','Expenses','Net'));
+  MONTHS_ORDER.forEach(m=>{const d=monthly[m];const tot=d.rev+d.repair;sections.push(row(m,d.rev,d.repair,tot,d.cash,d.exp,tot-d.exp));});
+  sections.push(row('TOTAL',salesRev,repairRev,totalRev,totalCash,totalExp,netProfit));
+  sections.push('');
+
+  // ── Section 6: Invoice Register ──
+  sections.push(row('--- INVOICE REGISTER ('+fySales.length+' invoices) ---','','','','',''));
+  sections.push(row('Invoice No','Date','Customer','Items','Total','Paid','Due','Payment Mode'));
+  fySales.sort((a,b)=>a.date>b.date?1:-1).forEach(s=>sections.push(row(s.invoiceNo,s.date,s.customerName,s.items.map(i=>i.name+'×'+i.qty).join('; '),s.total,s.paid,Math.max(0,s.total-s.paid),formatPayments(s,''))));
+  sections.push('');
+
+  // ── Section 7: Repair Register ──
+  if(fyRepairs.length){
+    sections.push(row('--- REPAIR / SERVICE REGISTER ('+fyRepairs.length+' jobs) ---','','','','',''));
+    sections.push(row('Job No','Date','Customer','Device','Issue','Status','Amount'));
+    fyRepairs.sort((a,b)=>a.received>b.received?1:-1).forEach(r=>sections.push(row(r.jobNo,r.received,r.customerName,r.device||'',r.issue||'',r.status||'',(r.finalCost||0))));
+    sections.push(row('TOTAL SERVICE REVENUE','','','','','',repairRev));
+    sections.push('');
+  }
+
+  sections.push(row('NOTE: This export is for CA / ITR-4 reference only. Verify all figures before filing. Prepared by ShopERP Pro.'));
+
+  const csv=sections.join('\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='CA_Report_FY'+fy+'_'+localDateStr()+'.csv';a.click();URL.revokeObjectURL(url);
+  toast('CA Report exported — open in Excel for full breakdown','success');
 }
 // ============================================================
 // ENGAGE
