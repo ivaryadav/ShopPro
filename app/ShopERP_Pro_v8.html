@@ -980,7 +980,6 @@ body.light-mode .fab:hover{box-shadow:0 6px 20px rgba(37,99,235,.3)}
 }
 .sb-logo-img{
   background:linear-gradient(135deg,#3B6FE8,#7C3AED);
-  box-shadow:0 4px 16px rgba(91,142,249,.35);
 }
 .sb-name{font-size:15px;font-weight:800;letter-spacing:-.3px;color:#EDF2FF}
 .sb-tagline{font-size:9px;color:var(--text3);font-weight:600;letter-spacing:1.5px;text-transform:uppercase}
@@ -3706,7 +3705,7 @@ function applyAuthBranding(target){
 function _sproLogoSVG(w,h){
   w=w||36;h=h||34;
   var id='sl'+Math.random().toString(36).slice(2,7);
-  return`<svg viewBox="0 0 92 88" width="${w}" height="${h}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;overflow:visible">
+  return`<svg viewBox="0 0 92 88" width="${w}" height="${h}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;overflow:hidden">
     <defs>
       <linearGradient id="${id}-bg" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
         <stop offset="0%" stop-color="#1e3a6e"/><stop offset="100%" stop-color="#0a1628"/>
