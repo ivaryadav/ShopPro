@@ -1,4 +1,62 @@
-# ShopERP Pro — Deployment Guide (IntraServer DirectAdmin)
+# ShopERP Pro — Deployment Guide
+
+---
+
+## ⭐ Option A — Local WiFi Server (FREE, recommended for single shop)
+
+Run the server on your main billing PC. Every phone, tablet, or other PC
+on the **same WiFi** can then open the live app and see real-time data.
+
+**Requirements:** Node.js installed on the main PC  
+**Cost:** ₹0
+
+### One-time setup
+
+```bash
+# From the project root folder:
+cd server
+npm install
+```
+
+### Start the server (do this every time you open the shop)
+
+**Mac — double-click:** `START_LOCAL_SERVER.command`  
+**Windows — double-click:** `START_LOCAL_SERVER.bat`
+
+Or from terminal:
+```bash
+cd server
+node local.js
+```
+
+### What you'll see when it starts
+
+```
+╔════════════════════════════════════════════════════╗
+║   ShopERP Pro — Local Server  ✅ Running           ║
+╠════════════════════════════════════════════════════╣
+║  This PC  →  http://localhost:3000               ║
+║  Phone / Tablet / Other PC on WiFi →               ║
+║             http://192.168.1.5:3000               ║
+╚════════════════════════════════════════════════════╝
+```
+
+### On other devices (phone / tablet / second PC)
+
+1. Connect to the **same WiFi** as the main PC
+2. Open browser → go to the URL shown (`http://192.168.x.x:3000`)
+3. First time: click **Register** → enter Shop Name + Username + Password
+4. Every device that logs in sees the **same live inventory, sales, repairs**
+
+### How data is stored
+
+- Single file: `server/shoperpro.db` (SQLite)
+- Backup by copying this one file
+- All your sales, inventory, repairs, customers — everything in one file
+
+---
+
+## Option B — Cloud Server (access from anywhere, small cost)
 
 ## Architecture
 ```
