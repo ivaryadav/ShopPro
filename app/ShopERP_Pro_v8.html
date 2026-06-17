@@ -442,6 +442,10 @@ nav{flex:1;padding:8px;overflow-y:auto}
 .sb-bottom{padding:10px 14px;border-top:1px solid var(--border)}
 .logout-btn{width:100%;padding:7px;background:transparent;border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--text2);font-size:12px;cursor:pointer;transition:.15s;text-align:center}
 .logout-btn:hover{border-color:var(--red);color:var(--red)}
+.sb-footer{padding:10px 14px 6px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px}
+.sb-footer-name{font-size:10px;font-weight:800;color:rgba(255,255,255,.55);letter-spacing:.5px}
+.sb-footer-name span{color:#2ED4C4}
+.sb-footer-ver{font-size:9px;color:rgba(255,255,255,.28);letter-spacing:.3px}
 
 /* ── MAIN ── */
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden}
@@ -1559,6 +1563,10 @@ body.light-mode .nav-item:hover{background:rgba(37,99,235,.06);color:#1E40AF}
 body.light-mode .nav-item.active{background:rgba(37,99,235,.1);color:#1E40AF;border:1px solid rgba(37,99,235,.2)}
 body.light-mode .nav-item.active::before{background:linear-gradient(180deg,#3B6FE8,#7C3AED)}
 body.light-mode .logout-btn{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.2);color:#EF4444}
+body.light-mode .sb-footer{border-top-color:#D1DAFB}
+body.light-mode .sb-footer-name{color:#374151}
+body.light-mode .sb-footer-name span{color:#2563EB}
+body.light-mode .sb-footer-ver{color:#94A3B8}
 body.light-mode .topbar{background:rgba(255,255,255,.97);border-bottom:1px solid #D1DAFB;box-shadow:0 1px 8px rgba(0,0,0,.06)}
 body.light-mode .topbar-title{color:#0F172A}
 body.light-mode .topbar-sub{color:#64748B}
@@ -2855,7 +2863,7 @@ spline-viewer{width:100%;height:100%;border:none}
       <div class="nav-item superadmin-only" onclick="showPage('superadmin')" id="sa-nav-item" style="display:none"><span class="nav-icon"><i class="bi bi-shield-fill"></i></span><span>Super Admin</span></div>
     </nav>
     <!-- ShopPro brand watermark — always visible -->
-    <div style="padding:10px 14px 6px;border-top:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:8px">
+    <div class="sb-footer">
       <svg viewBox="0 0 92 88" width="22" height="20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;overflow:hidden">
         <defs>
           <linearGradient id="sf-tri-bg" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
@@ -2871,8 +2879,8 @@ spline-viewer{width:100%;height:100%;border:none}
         <circle r="2.5" fill="#2ED4C4" clip-path="url(#sf-tri-clip)"><animateMotion dur="2.4s" begin="0" repeatCount="indefinite" calcMode="linear" path="M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z"/></circle>
       </svg>
       <div>
-        <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.5);letter-spacing:.5px">Shop<span style="color:#2ED4C4">ERP</span> Pro</div>
-        <div style="font-size:9px;color:rgba(255,255,255,.2);letter-spacing:.3px">v8.2 · Licensed</div>
+        <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
+        <div class="sb-footer-ver">v8.3 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
