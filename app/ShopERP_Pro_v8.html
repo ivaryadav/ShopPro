@@ -186,10 +186,10 @@ button,input,select,textarea{font-family:var(--font)}
   border-radius:10px;
 }
 .al-support-dot{
-  position:relative;width:8px;height:8px;flex-shrink:0;overflow:hidden;
+  width:8px;height:8px;flex-shrink:0;background:#25D366;border-radius:50%;
 }
-.al-support-dot::before{content:'';position:absolute;inset:0;background:#25D366;border-radius:50%;}
-.al-support-dot::after{content:'';position:absolute;inset:-6px;background:rgba(37,211,102,.25);border-radius:50%;animation:pingDot 2s ease infinite;}
+.al-support-dot::before{display:none}
+.al-support-dot::after{display:none}
 .al-support-text{font-size:11px;color:rgba(255,255,255,.6);line-height:1.5}
 .al-support-text strong{color:#fff;display:block;font-size:12px;font-weight:700}
 
@@ -716,7 +716,7 @@ input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 
 /* ── SCREEN TRANSITIONS ── */
 .screen{animation:fadeInScale .4s cubic-bezier(.16,1,.3,1)!important}
-.screen.hidden{animation:fadeOut .3s cubic-bezier(.4,0,1,1) forwards!important}
+.screen.hidden{display:none!important;animation:none!important}
 @keyframes fadeOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.98)}}
 
 /* ── ENHANCED CARDS ── */
@@ -12399,7 +12399,7 @@ function pageSupport(){
   .sup-info-val{font-size:18px;font-weight:800;color:var(--text);font-family:var(--mono);letter-spacing:1px}
   .sup-info-sub{font-size:11px;color:var(--green);margin-top:3px;display:flex;align-items:center;gap:5px}
   .sup-ping{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;position:relative}
-  .sup-ping::after{content:'';position:absolute;inset:-3px;border-radius:50%;background:rgba(34,197,94,.3);animation:pingDot 2s ease infinite}
+  .sup-ping::after{display:none}
   .sup-chat-btn{background:#25D366;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:800;padding:12px 20px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:7px;flex-shrink:0;white-space:nowrap}
   .sup-chat-btn:hover{background:#20b358;transform:translateY(-1px)}
   .sup-copy-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;color:var(--text2);font-size:13px;font-weight:700;padding:12px 18px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:7px;flex-shrink:0;white-space:nowrap}
