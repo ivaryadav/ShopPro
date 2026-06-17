@@ -2857,12 +2857,19 @@ spline-viewer{width:100%;height:100%;border:none}
     </nav>
     <!-- ShopPro brand watermark — always visible -->
     <div style="padding:10px 14px 6px;border-top:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:8px">
-      <svg viewBox="0 0 92 88" width="22" height="20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-        <path d="M 51,6 L 84,68 A 10,10 0 0,0 78,76 L 14,76 A 10,10 0 0,0 8,68 L 41,6 A 10,10 0 0,0 51,6 Z" fill="url(#spro-tri-bg)"/>
-        <path d="M 51,6 L 84,68 A 10,10 0 0,0 78,76 L 14,76 A 10,10 0 0,0 8,68 L 41,6 A 10,10 0 0,0 51,6 Z" fill="none" stroke="#2ED4C4" stroke-width="2.5"><animate attributeName="opacity" values="0.15;0.65;0.15" dur="2.5s" repeatCount="indefinite"/></path>
-        <path d="M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z" fill="none" stroke="rgba(46,212,196,0.16)" stroke-width="3.5" stroke-linecap="round"/>
-        <circle r="3" fill="white"><animateMotion dur="2.4s" begin="0" repeatCount="indefinite" calcMode="linear" path="M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z"/></circle>
-        <circle r="6" fill="rgba(46,212,196,0.25)"><animateMotion dur="2.4s" begin="0" repeatCount="indefinite" calcMode="linear" path="M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z"/></circle>
+      <svg viewBox="0 0 92 88" width="22" height="20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;overflow:hidden">
+        <defs>
+          <linearGradient id="sf-tri-bg" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+            <stop offset="0%" stop-color="#1e3a6e"/><stop offset="100%" stop-color="#0a1628"/>
+          </linearGradient>
+          <clipPath id="sf-tri-clip">
+            <path d="M 51,6 L 84,68 A 10,10 0 0,0 78,76 L 14,76 A 10,10 0 0,0 8,68 L 41,6 A 10,10 0 0,0 51,6 Z"/>
+          </clipPath>
+        </defs>
+        <path d="M 51,6 L 84,68 A 10,10 0 0,0 78,76 L 14,76 A 10,10 0 0,0 8,68 L 41,6 A 10,10 0 0,0 51,6 Z" fill="url(#sf-tri-bg)"/>
+        <path d="M 51,6 L 84,68 A 10,10 0 0,0 78,76 L 14,76 A 10,10 0 0,0 8,68 L 41,6 A 10,10 0 0,0 51,6 Z" fill="none" stroke="#2ED4C4" stroke-width="2"><animate attributeName="opacity" values="0.2;0.7;0.2" dur="2.5s" repeatCount="indefinite"/></path>
+        <path d="M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z" fill="none" stroke="rgba(46,212,196,0.35)" stroke-width="2.5" stroke-linecap="round" clip-path="url(#sf-tri-clip)"/>
+        <circle r="2.5" fill="#2ED4C4" clip-path="url(#sf-tri-clip)"><animateMotion dur="2.4s" begin="0" repeatCount="indefinite" calcMode="linear" path="M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z"/></circle>
       </svg>
       <div>
         <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.5);letter-spacing:.5px">Shop<span style="color:#2ED4C4">ERP</span> Pro</div>
@@ -3698,38 +3705,26 @@ function applyAuthBranding(target){
 }
 function _sproLogoSVG(w,h){
   w=w||36;h=h||34;
-  return`<svg viewBox="0 0 92 88" width="${w}" height="${h}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0">
-    <path d="M 51,6 L 84,68 A 10,10 0 0,0 78,76 L 14,76 A 10,10 0 0,0 8,68 L 41,6 A 10,10 0 0,0 51,6 Z" fill="url(#spro-tri-bg)"/>
-    <g clip-path="url(#spro-tri-clip)">
-      <rect x="-200" y="-5" width="500" height="100" fill="url(#spro-shine)">
-        <animateTransform attributeName="transform" type="translate" from="-250 0" to="250 0" dur="3.5s" repeatCount="indefinite"/>
-      </rect>
-    </g>
-    <path d="M 51,6 L 84,68 A 10,10 0 0,0 78,76 L 14,76 A 10,10 0 0,0 8,68 L 41,6 A 10,10 0 0,0 51,6 Z" fill="none" stroke="#2ED4C4" stroke-width="2.5" filter="url(#spro-bgl)">
-      <animate attributeName="opacity" values="0.15;0.65;0.15" dur="2.5s" repeatCount="indefinite"/>
+  var id='sl'+Math.random().toString(36).slice(2,7);
+  return`<svg viewBox="0 0 92 88" width="${w}" height="${h}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0;overflow:visible">
+    <defs>
+      <linearGradient id="${id}-bg" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+        <stop offset="0%" stop-color="#1e3a6e"/><stop offset="100%" stop-color="#0a1628"/>
+      </linearGradient>
+      <clipPath id="${id}-clip">
+        <path d="M 51,6 L 84,68 A 10,10 0 0,0 78,76 L 14,76 A 10,10 0 0,0 8,68 L 41,6 A 10,10 0 0,0 51,6 Z"/>
+      </clipPath>
+    </defs>
+    <path d="M 51,6 L 84,68 A 10,10 0 0,0 78,76 L 14,76 A 10,10 0 0,0 8,68 L 41,6 A 10,10 0 0,0 51,6 Z" fill="url(#${id}-bg)"/>
+    <path d="M 51,6 L 84,68 A 10,10 0 0,0 78,76 L 14,76 A 10,10 0 0,0 8,68 L 41,6 A 10,10 0 0,0 51,6 Z" fill="none" stroke="#2ED4C4" stroke-width="2">
+      <animate attributeName="opacity" values="0.2;0.7;0.2" dur="2.5s" repeatCount="indefinite"/>
     </path>
-    <path d="M 51,6 L 84,68 A 10,10 0 0,0 78,76 L 14,76 A 10,10 0 0,0 8,68 L 41,6 A 10,10 0 0,0 51,6 Z" fill="none" stroke="rgba(46,212,196,0.45)" stroke-width="0.8"/>
-    <path d="M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z" fill="none" stroke="rgba(46,212,196,0.16)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle r="2.5" fill="rgba(46,212,196,0.18)">
-      <animateMotion dur="2.4s" begin="-1.8" repeatCount="indefinite" calcMode="linear" path="M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z"/>
-    </circle>
-    <circle r="4" fill="rgba(46,212,196,0.35)">
-      <animateMotion dur="2.4s" begin="-2.2" repeatCount="indefinite" calcMode="linear" path="M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z"/>
-    </circle>
-    <circle r="7" fill="rgba(46,212,196,0.3)">
+    <path d="M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z" fill="none" stroke="rgba(46,212,196,0.35)" stroke-width="2.5" stroke-linecap="round" clip-path="url(#${id}-clip)"/>
+    <circle r="4" fill="rgba(46,212,196,0.5)" clip-path="url(#${id}-clip)">
       <animateMotion dur="2.4s" begin="0" repeatCount="indefinite" calcMode="linear" path="M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z"/>
     </circle>
-    <circle r="3" fill="white">
-      <animateMotion dur="2.4s" begin="0" repeatCount="indefinite" calcMode="linear" path="M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z"/>
-    </circle>
-    <circle cx="46" cy="5" r="2" fill="#2ED4C4">
-      <animate attributeName="opacity" values="0.9;0.1;0.9" dur="2.4s" begin="0s" repeatCount="indefinite"/>
-    </circle>
-    <circle cx="83" cy="74" r="2" fill="#2ED4C4">
-      <animate attributeName="opacity" values="0.9;0.1;0.9" dur="2.4s" begin="0.8s" repeatCount="indefinite"/>
-    </circle>
-    <circle cx="9" cy="74" r="2" fill="#2ED4C4">
-      <animate attributeName="opacity" values="0.9;0.1;0.9" dur="2.4s" begin="1.6s" repeatCount="indefinite"/>
+    <circle r="2.5" fill="#2ED4C4" clip-path="url(#${id}-clip)">
+      <animateMotion dur="2.4s" begin="-1.2" repeatCount="indefinite" calcMode="linear" path="M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z"/>
     </circle>
   </svg>`;
 }
