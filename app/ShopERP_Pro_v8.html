@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.8">
-<title>ShopERP Pro v8.8</title>
+<meta name="shoperpro-version" content="v8.9">
+<title>ShopERP Pro v8.9</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -2935,7 +2935,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.8 · Licensed</div>
+        <div class="sb-footer-ver">v8.9 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -5442,13 +5442,14 @@ function continueBootApp(){
       // Sync admin plan expiry → local DB so countdown timer works
       if(_rec.expiryDate&&_rec.plan!=='lifetime'&&_rec.status==='active'){
         DB.settings.licenseExpiry=_rec.expiryDate;
-        // Set licenseExpiryMs only the first time we see this expiryDate (don't shift on reboot)
-        // Cap to 24h max so countdown never shows more than 24:00:00
-        if(DB.settings._adminExpiryDate!==_rec.expiryDate||!DB.settings.licenseExpiryMs){
+        // Always use the real end-of-expiry-day timestamp — never cap to 24h.
+        // Countdown display is controlled by daysLeft (only starts when daysLeft<=1).
+        // Version updates must NEVER reset this value.
+        var _ep=_rec.expiryDate.split('-');
+        var _expEndMs=new Date(parseInt(_ep[0]),parseInt(_ep[1])-1,parseInt(_ep[2]),23,59,59,999).getTime();
+        if(DB.settings._adminExpiryDate!==_rec.expiryDate||DB.settings.licenseExpiryMs!==_expEndMs){
           DB.settings._adminExpiryDate=_rec.expiryDate;
-          var _ep=_rec.expiryDate.split('-');
-          var _expEndMs=new Date(parseInt(_ep[0]),parseInt(_ep[1])-1,parseInt(_ep[2]),23,59,59,999).getTime();
-          DB.settings.licenseExpiryMs=Math.min(Date.now()+24*3600000,_expEndMs);
+          DB.settings.licenseExpiryMs=_expEndMs;
         }
         saveDB();
       }
