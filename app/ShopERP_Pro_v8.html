@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.6">
-<title>ShopERP Pro v8.6</title>
+<meta name="shoperpro-version" content="v8.7">
+<title>ShopERP Pro v8.7</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -2881,7 +2881,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.6 · Licensed</div>
+        <div class="sb-footer-ver">v8.7 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -4460,7 +4460,7 @@ function webRegister(){
 // ── Admin password: SHA-256 hash only — plaintext never in source ──
 // To change: run   echo -n 'NewPassword' | shasum -a 256
 // paste the result as ADMIN_PWD_HASH below and redeploy.
-const ADMIN_PWD_HASH='a3f3a35fd3a1f5490afb50bbddf6261171bc5961dd0b1aac489c6d19cbb0cdf3';
+const ADMIN_PWD_HASH='2b5877210c3581cccac2431c0a5681ea1c5674ae71dbb5d664eda93e3965a3dd';
 async function _adminHash(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 const _adminGuard={count:0,lockedUntil:0};
 function _adminLockCheck(errFn){const now=Date.now();if(_adminGuard.lockedUntil>now){const m=Math.ceil((_adminGuard.lockedUntil-now)/60000);errFn('Too many attempts. Try again in '+m+' min.');return false;}return true;}
