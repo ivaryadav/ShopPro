@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.13">
-<title>ShopERP Pro v8.13</title>
+<meta name="shoperpro-version" content="v8.14">
+<title>ShopERP Pro v8.14</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -2737,47 +2737,58 @@ spline-viewer{width:100%;height:100%;border:none}
     <div>
       <div class="nus-badge"><div class="nus-badge-dot"></div>New Registration</div>
       <div class="nus-title">Register your<br><span>shop today</span></div>
-      <div class="nus-sub">Share your unique device code with the admin and get your login credentials within minutes - no paperwork needed.</div>
+      <div class="nus-sub">Share your Machine ID with the admin. They generate a license key and send it back — enter it here to activate your shop.</div>
       <div class="nus-steps">
         <div class="nus-step">
           <div class="nus-step-dot">1</div>
           <div>
-            <div class="nus-step-title">Copy your device code</div>
-            <div class="nus-step-sub">This 16-digit code is permanently tied to your device</div>
+            <div class="nus-step-title">Copy your Machine ID</div>
+            <div class="nus-step-sub">This 16-character ID is permanently tied to this device</div>
           </div>
         </div>
         <div class="nus-step">
           <div class="nus-step-dot">2</div>
           <div>
             <div class="nus-step-title">Send to admin via WhatsApp</div>
-            <div class="nus-step-sub">Include your shop name &amp; city in the message</div>
+            <div class="nus-step-sub">Include your shop name &amp; city — admin generates your key</div>
           </div>
         </div>
         <div class="nus-step">
           <div class="nus-step-dot">3</div>
           <div>
-            <div class="nus-step-title">Receive your login PIN</div>
-            <div class="nus-step-sub">Admin activates your account and sends your 6-digit PIN</div>
+            <div class="nus-step-title">Enter your license key</div>
+            <div class="nus-step-sub">Admin sends the 16-char key — paste it below and activate</div>
           </div>
         </div>
       </div>
     </div>
     <!-- Right: Code Panel -->
     <div class="nus-panel">
-      <div class="nus-code-label">Your Device Registration Code</div>
+      <div class="nus-code-label">Your Machine ID</div>
       <div class="nus-code-box">
         <div class="nus-code" id="nu-reg-code">---- ---- ---- ----</div>
       </div>
-      <button class="nus-copy-btn" onclick="nuCopyCode()">
+      <button class="nus-copy-btn" id="nu-copy-btn" onclick="nuCopyCode()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-        Copy Code to Clipboard
+        Copy Machine ID
       </button>
-      <div class="nus-divider"><span>NEXT STEP</span></div>
       <button class="nus-wa-btn" onclick="nuContactAdmin()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
         Contact Admin on WhatsApp
       </button>
-      <div style="text-align:center">
+      <div class="nus-divider"><span>GOT YOUR KEY?</span></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="nu-key-input" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19"
+          style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);border-radius:10px;color:#fff;padding:11px 14px;font-size:14px;letter-spacing:2px;font-family:var(--mono);text-transform:uppercase;outline:none;transition:border-color .2s"
+          oninput="formatActKey(this)" onkeydown="if(event.key==='Enter')nuActivateKey()"
+          onfocus="this.style.borderColor='rgba(46,212,196,.45)'" onblur="this.style.borderColor='rgba(255,255,255,.13)'">
+        <button onclick="nuActivateKey()"
+          style="background:linear-gradient(135deg,#2ed4c4,#5b8ef9);color:#fff;border:none;padding:11px 18px;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap;flex-shrink:0">
+          Activate &#8250;
+        </button>
+      </div>
+      <div id="nu-key-err" style="font-size:11px;color:#f87171;min-height:16px;margin-top:6px;text-align:center"></div>
+      <div style="text-align:center;margin-top:14px">
         <a href="#" onclick="showPortalSelect()" class="auth-back-link">&#8592; Back to portal</a>
       </div>
     </div>
@@ -2935,7 +2946,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.13 · Licensed</div>
+        <div class="sb-footer-ver">v8.14 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3393,20 +3404,21 @@ function migrateDB(){
   if(!DB.nextCashEntryId||DB.nextCashEntryId<1)DB.nextCashEntryId=(DB.cashEntries.reduce(function(m,x){return Math.max(m,parseInt(x.id)||0);},0))+1;
   if(!DB.nextRecurringId||DB.nextRecurringId<1)DB.nextRecurringId=(DB.recurringExpenses.reduce(function(m,x){return Math.max(m,parseInt(x.id)||0);},0))+1;
 
-  // ── ACTIVATION FIX: always unlock if valid license key present ──
+  // ── LICENSE GATE: only restore activated=true if a key is already stored ──
   var _validKeys=['M0B1-SH0P-ER9A-FR33','L1F3-T1M3-0NC3-PR0X','SH0P-3RP0-PR0X-2025','D3M0-K3Y0-0000-0001','SADM-9999-PROX-0001'];
   var _ckFmt=(s.licenseKey||'').replace(/-/g,'').toUpperCase();
   var _isRealKey=_ckFmt.length===16&&/^[A-Z0-9]+$/.test(_ckFmt);
-  if(_validKeys.indexOf(s.licenseKey)>=0||!s.licenseKey){
-    // Demo/hardcoded key or fresh install - always active
+  if(_validKeys.indexOf(s.licenseKey)>=0){
+    // Backward-compat legacy key previously activated
     s.activated=true;
     if(!s.licenseExpiry||s.licenseExpiry==='')s.licenseExpiry='2099-12-31';
-    if(!s.licenseKey)s.licenseKey='M0B1-SH0P-ER9A-FR33';
   } else if(_isRealKey){
-    // Real paid key from previous activation - restore activated=true
-    // licenseExpiry from doActivation() is authoritative; expiry check in continueBootApp() handles blocking
+    // Crypto-generated key from previous activation - restore activated=true
     s.activated=true;
     if(!s.licenseExpiry||s.licenseExpiry==='')s.licenseExpiry='2099-12-31';
+  } else {
+    // No key present: fresh install must enter a license key
+    s.activated=false;
   }
   // ── SETUP FIX: if setupDone:true but NO user has a PIN, reset to setup ──
   if(s.setupDone&&DB.users.length){
@@ -3699,8 +3711,16 @@ function doActivation(){
       DB.settings.licenseExpiryMs=new Date(parseInt(_actEp[0]),parseInt(_actEp[1])-1,parseInt(_actEp[2]),23,59,59,999).getTime();
       DB.settings.licensePlan=r.plan;DB.settings.licenseMachineId=machineId;
       DB.settings.activated=true;saveDB();
-      applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin('owner-initial');
-      err.textContent='';toast('✓ Activated - '+r.message,'success');return;
+      err.textContent='';
+      // Key verified once - existing users go straight to PIN, new users set up PIN first
+      if(DB.settings.setupDone&&DB.users.some(function(u){return u.pinSet;})){
+        toast('License verified - welcome back!','success');
+        initAutoBackupTimer();showUserSelectScreen();
+      } else {
+        applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin('owner-initial');
+        toast('✓ Activated - '+r.message,'success');
+      }
+      return;
     } else if(r.valid&&r.expired){
       err.style.color='var(--orange)';
       err.textContent='⚠ This key has expired. Contact your software provider to renew.';return;
@@ -3710,8 +3730,14 @@ function doActivation(){
         DB.settings.licenseKey=raw;
         DB.settings.licenseExpiry=new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0];
         DB.settings.activated=true;saveDB();
-        applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin('owner-initial');
-        err.textContent='';return;
+        err.textContent='';
+        if(DB.settings.setupDone&&DB.users.some(function(u){return u.pinSet;})){
+          toast('License verified - welcome back!','success');
+          initAutoBackupTimer();showUserSelectScreen();
+        } else {
+          applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin('owner-initial');
+        }
+        return;
       }
       err.style.color='var(--red)';
       err.textContent='✕ Invalid key or wrong machine. Keys are tied to this specific computer.';
@@ -3725,8 +3751,13 @@ function doActivation(){
     DB.settings.licenseKey=raw;
     DB.settings.licenseExpiry=new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0];
     DB.settings.activated=true;saveDB();
-    applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin('owner-initial');
     err.textContent='';
+    if(DB.settings.setupDone&&DB.users.some(function(u){return u.pinSet;})){
+      toast('License verified - welcome back!','success');
+      initAutoBackupTimer();showUserSelectScreen();
+    } else {
+      applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin('owner-initial');
+    }
   } else {
     err.style.color='var(--red)';
     err.textContent='✕ Invalid activation key. Contact your software provider.';
@@ -4401,21 +4432,26 @@ function showNewUserScreen(){
   });
   var el=document.getElementById('new-user-screen');
   if(!el){showPortalSelect();return;}
-  document.getElementById('nu-reg-code').textContent=getRegCode();
+  var mid=getAppMachineId();
+  document.getElementById('nu-reg-code').textContent=mid||'---- ---- ---- ----';
+  var ki=document.getElementById('nu-key-input');if(ki)ki.value='';
+  var ke=document.getElementById('nu-key-err');if(ke)ke.textContent='';
   el.style.display='flex';
 }
 function nuCopyCode(){
-  var code=document.getElementById('nu-reg-code').textContent;
-  navigator.clipboard&&navigator.clipboard.writeText(code).then(function(){
-    var btn=document.querySelector('.nu-copy-btn');
-    if(btn){btn.innerHTML='✓ Copied!';setTimeout(function(){btn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy Code';},2000);}
-  });
+  var mid=getAppMachineId();
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(mid).then(function(){
+      var btn=document.getElementById('nu-copy-btn');
+      if(btn){btn.innerHTML='&#10003; Copied!';setTimeout(function(){btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy Machine ID';},2000);}
+    });
+  }
 }
 function nuContactAdmin(){
   loadAdminDB();
   var adminPhone=(ADMIN_DB.settings&&(ADMIN_DB.settings.devPhone||ADMIN_DB.settings.supportPhone||''))||'';
-  var code=getRegCode();
-  var msg='🆕 *New Shop Registration Request*\n\n*Registration Code:* '+code+'\n\nPlease set up my ShopERP Pro account.\n\n_Sent from ShopERP Pro login page_';
+  var mid=getAppMachineId();
+  var msg='🆕 *New ShopERP Pro Registration*\n\n*Machine ID:* '+mid+'\n\nPlease generate a license key for my shop.\nShop name & city: [add yours here]\n\n_Sent from ShopERP Pro_';
   if(adminPhone){
     var clean=adminPhone.replace(/\D/g,'');
     if(!clean.startsWith('91')&&clean.length===10)clean='91'+clean;
@@ -4423,6 +4459,21 @@ function nuContactAdmin(){
   } else {
     window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
   }
+}
+function nuActivateKey(){
+  var nuInp=document.getElementById('nu-key-input');
+  var nuErr=document.getElementById('nu-key-err');
+  if(!nuInp)return;
+  var v=nuInp.value.trim();
+  if(!v){if(nuErr)nuErr.textContent='Please enter your license key.';return;}
+  if(nuErr)nuErr.textContent='';
+  // Transfer to activation input, hide this screen, process key
+  var actInp=document.getElementById('act-input');
+  if(actInp)actInp.value=v;
+  var nus=document.getElementById('new-user-screen');
+  if(nus)nus.style.display='none';
+  showScreen('activation-screen');
+  doActivation();
 }
 
 // ============================================================
@@ -4603,7 +4654,7 @@ function showPortalSelect(){
   if(dlMsg)dlMsg.textContent=anyAvail?'Click to download the desktop version for the best offline experience':'Desktop downloads coming soon - contact your admin for the latest installer.';
   var el=document.getElementById('portal-select-screen'); if(el)el.style.display='flex';
   var desc=document.getElementById('pss-existing-desc');
-  if(desc)desc.textContent=SHOPERPRO_API_URL?'Sign in with your username and password':'Sign in with your 6-digit PIN';
+  if(desc)desc.textContent=SHOPERPRO_API_URL?'Sign in with your username and password':'Enter your license key to continue';
   setTimeout(function(){if(window._hideSplineBadge)window._hideSplineBadge();},800);
 }
 function selectPortal(mode){
@@ -5304,7 +5355,14 @@ function contactSupportWA(){
 // ── Portal inline panel functions ──────────────────────────────────────────
 function pssClickExisting(){
   if(SHOPERPRO_API_URL) pssOpenPanel('login');
-  else selectPortal('user');
+  else {
+    // License key required - no key means no access (blocks fresh-install bypass)
+    if(!DB.settings.activated || !DB.settings.licenseKey){
+      showScreen('activation-screen');
+    } else {
+      selectPortal('user');
+    }
+  }
 }
 function pssClickNew(){
   if(SHOPERPRO_API_URL) pssOpenPanel('register');
