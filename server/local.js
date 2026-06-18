@@ -19,6 +19,15 @@ const path     = require('path');
 const fs       = require('fs');
 const os       = require('os');
 
+// Load .env file if present (no dotenv dependency needed)
+const envFile = path.join(__dirname, '.env');
+if (fs.existsSync(envFile)) {
+  fs.readFileSync(envFile, 'utf8').split('\n').forEach(line => {
+    const m = line.match(/^([A-Z_]+)\s*=\s*(.+)$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim();
+  });
+}
+
 // ── Config ──────────────────────────────────────────────────────────────────
 const PORT       = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || ('shoperpro-local-' + require('crypto').randomBytes(16).toString('hex'));

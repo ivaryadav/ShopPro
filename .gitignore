@@ -2,3 +2,7 @@ node_modules/
 dist/
 *.DS_Store
 ._*
+server/.env
+server/*.db
+server/*.db-shm
+server/*.db-wal
