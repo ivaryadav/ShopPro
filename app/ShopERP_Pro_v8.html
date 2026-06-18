@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.10">
-<title>ShopERP Pro v8.10</title>
+<meta name="shoperpro-version" content="v8.11">
+<title>ShopERP Pro v8.11</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -2935,7 +2935,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.10 · Licensed</div>
+        <div class="sb-footer-ver">v8.11 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3693,7 +3693,8 @@ function doActivation(){
     const r=validateKey(raw,machineId);
     if(r.valid&&!r.expired){
       DB.settings.licenseKey=raw;DB.settings.licenseExpiry=r.expiryDate;
-      DB.settings.licenseExpiryMs=Date.now()+(r.daysLeft*86400000);
+      var _actEp=r.expiryDate.split('-');
+      DB.settings.licenseExpiryMs=new Date(parseInt(_actEp[0]),parseInt(_actEp[1])-1,parseInt(_actEp[2]),23,59,59,999).getTime();
       DB.settings.licensePlan=r.plan;DB.settings.licenseMachineId=machineId;
       DB.settings.activated=true;saveDB();
       applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin('owner-initial');
@@ -5252,7 +5253,7 @@ function admExportCSV(){
 
 // ── Suspended Screen (shown to terminated/paused users) ──
 function showSuspendedScreen(status, reason){
-  var mid=typeof generateBrowserMachineId==='function'?generateBrowserMachineId():'-';
+  var mid=typeof getAppMachineId==='function'?getAppMachineId():(typeof generateBrowserMachineId==='function'?generateBrowserMachineId():'-');
   window._susMachineId=mid;
   var el=document.getElementById('suspended-screen'); if(!el)return;
   var titleEl=document.getElementById('sus-title');
@@ -13131,7 +13132,7 @@ function renewLicense(){
   if(typeof validateKey==='function'){
     const r=validateKey(key,machineId);
     if(r.valid&&!r.expired){
-      DB.settings.licenseKey=key;DB.settings.licenseExpiry=r.expiryDate;DB.settings.licenseExpiryMs=Date.now()+(r.daysLeft*86400000);DB.settings.licensePlan=r.plan;
+      DB.settings.licenseKey=key;DB.settings.licenseExpiry=r.expiryDate;var _renEp=r.expiryDate.split('-');DB.settings.licenseExpiryMs=new Date(parseInt(_renEp[0]),parseInt(_renEp[1])-1,parseInt(_renEp[2]),23,59,59,999).getTime();DB.settings.licensePlan=r.plan;
       saveDB();toast('License activated: '+r.message,'success');showPage('settings');return;
     } else if(r.valid&&r.expired){
       toast('This key has expired. Please contact your software provider.','error');return;
