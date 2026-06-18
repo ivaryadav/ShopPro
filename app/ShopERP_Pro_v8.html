@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.9">
-<title>ShopERP Pro v8.9</title>
+<meta name="shoperpro-version" content="v8.10">
+<title>ShopERP Pro v8.10</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -78,7 +78,7 @@ body.light-mode td{border-color:var(--border)}
 body.light-mode tr:hover td{background:var(--bg3)}
 body.light-mode .tbl-wrap{border-color:var(--border)}
 body.light-mode ::-webkit-scrollbar-thumb{background:var(--border2)}
-/* al-* left photo panel stays dark in all modes — no color overrides needed */
+/* al-* left photo panel stays dark in all modes - no color overrides needed */
 body.light-mode .login-box{background:#fff;border-color:#D1DAFB;box-shadow:0 4px 24px rgba(0,0,0,.08)}
 body.light-mode .login-shop-name{color:#0F172A}
 body.light-mode .login-shop-tag{color:#64748B}
@@ -110,7 +110,7 @@ button,input,select,textarea{font-family:var(--font)}
 .screen{position:fixed;inset:0;z-index:9000;background:#000;display:flex}
 .screen.hidden{display:none}
 
-/* ── PIXEL-LEVEL AUTH — Full bleed, zero clutter ── */
+/* ── PIXEL-LEVEL AUTH - Full bleed, zero clutter ── */
 @keyframes aIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes imgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:scale(1)}}
 @keyframes lineFill{from{width:0}to{width:100%}}
@@ -119,7 +119,7 @@ button,input,select,textarea{font-family:var(--font)}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 @keyframes pingDot{0%{transform:scale(1);opacity:.8}70%,100%{transform:scale(2.2);opacity:0}}
 
-/* Left — photo panel */
+/* Left - photo panel */
 .al{
   width:44%;flex-shrink:0;position:relative;overflow:hidden;
   background:#080808;
@@ -194,7 +194,7 @@ button,input,select,textarea{font-family:var(--font)}
 .al-support-text{font-size:11px;color:rgba(255,255,255,.6);line-height:1.5}
 .al-support-text strong{color:#fff;display:block;font-size:12px;font-weight:700}
 
-/* Right — action panel */
+/* Right - action panel */
 .ar{
   flex:1;display:flex;align-items:center;justify-content:center;
   background:#000;position:relative;overflow-y:auto;
@@ -311,7 +311,7 @@ button,input,select,textarea{font-family:var(--font)}
 }
 .auth-btn-ghost:hover{background:rgba(255,255,255,.1)}
 
-/* card — used in activation */
+/* card - used in activation */
 .auth-card{
   background:rgba(255,255,255,.03);
   border:1px solid rgba(255,255,255,.08);
@@ -925,7 +925,7 @@ body.light-mode .btn-primary:hover{box-shadow:0 8px 20px rgba(37,99,235,.3)}
 .gauge-value{font-size:24px;font-weight:800;color:var(--text)}
 .gauge-unit{font-size:10px;color:var(--text2);margin-top:2px}
 
-/* ── FLOATING ACTION BUTTON — SPEED DIAL ── */
+/* ── FLOATING ACTION BUTTON - SPEED DIAL ── */
 .fab-wrap{position:fixed;bottom:20px;right:16px;z-index:500;display:flex;flex-direction:column;align-items:flex-end;gap:8px;opacity:.55;transition:opacity .2s}
 .fab-wrap:hover,.fab-wrap:focus-within{opacity:1}
 .fab-actions{display:flex;flex-direction:column-reverse;gap:6px;align-items:flex-end;margin-bottom:2px}
@@ -981,7 +981,7 @@ body.light-mode .fab:hover{box-shadow:0 6px 20px rgba(37,99,235,.3)}
 /* ════════════════════════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════
-   PREMIUM REDESIGN — ShopERP Pro
+   PREMIUM REDESIGN - ShopERP Pro
    ═══════════════════════════════════════════════════════ */
 
 /* ── SIDEBAR PREMIUM ── */
@@ -1511,7 +1511,7 @@ body.light-mode th{background:var(--bg3);color:var(--text2)}
 body.light-mode tbody tr:hover td{background:rgba(37,99,235,.04)}
 
 /* ══════════════════════════════════════════════════════════
-   TABLE ACTION BUTTONS — consistent flex spacing
+   TABLE ACTION BUTTONS - consistent flex spacing
    ══════════════════════════════════════════════════════════ */
 .tbl-actions{display:inline-flex;align-items:center;gap:5px;flex-wrap:nowrap;position:relative;z-index:600}
 td .btn-icon+.btn-icon,td .btn+.btn-icon,td .btn-icon+.btn{margin-left:0}
@@ -1535,7 +1535,7 @@ td .btn-icon+.btn-icon,td .btn+.btn-icon,td .btn-icon+.btn{margin-left:0}
 .btn-icon-user:hover{background:rgba(251,146,60,.14)!important;border-color:#fb923c!important;color:#fb923c!important}
 
 /* ══════════════════════════════════════════════════════════
-   ICON ALIGNMENT — universal fixes
+   ICON ALIGNMENT - universal fixes
    ══════════════════════════════════════════════════════════ */
 .btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;vertical-align:middle}
 .btn-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;vertical-align:middle}
@@ -1559,7 +1559,7 @@ td .btn-icon+.btn-icon,td .btn+.btn-icon,td .btn-icon+.btn{margin-left:0}
 .modal-footer{display:flex!important;align-items:center!important}
 
 /* ══════════════════════════════════════════════════════════
-   LIGHT MODE — COMPREHENSIVE VISIBILITY FIXES
+   LIGHT MODE - COMPREHENSIVE VISIBILITY FIXES
    ══════════════════════════════════════════════════════════ */
 body.light-mode{--bg:#F0F4FF;--bg2:#FFFFFF;--bg3:#EEF2FF;--bg4:#E4EAFC;--bg5:#D8E2F8;--border:#D1DAFB;--border2:#C0CEEF;--text:#0F172A;--text2:#334155;--text3:#64748B}
 body.light-mode .content{background:#F0F4FF}
@@ -1663,7 +1663,7 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
 
 </head>
 <body>
-<!-- Shared ShopPro logo defs — referenced by all logo instances -->
+<!-- Shared ShopPro logo defs - referenced by all logo instances -->
 <svg id="spro-defs" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="spro-tri-bg" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
@@ -1702,7 +1702,7 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
 <div id="toast-container"></div>
 
 <!-- ═══════════════════════════════════════════════
-     SCREEN 1 — FIRST-TIME ACTIVATION
+     SCREEN 1 - FIRST-TIME ACTIVATION
 ═══════════════════════════════════════════════ -->
 
 <!-- ═══════════════════════════════════════════════
@@ -1894,7 +1894,7 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
           <button class="pin-btn" onclick="setupPinPress('0')">0</button>
           <button class="pin-btn pin-btn-ok" onclick="setupPinConfirm()">✓</button>
         </div>
-        <div class="pin-setup-hint" id="setup-hint">This PIN protects all your shop data.<br>Remember it — recovery requires your license key.</div>
+        <div class="pin-setup-hint" id="setup-hint">This PIN protects all your shop data.<br>Remember it - recovery requires your license key.</div>
         <div style="text-align:center;margin-top:16px" id="setup-back-wrap">
           <button onclick="cancelPinSetup()" style="background:none;border:none;color:rgba(255,255,255,.25);font-size:12px;cursor:pointer">← Cancel</button>
         </div>
@@ -2152,7 +2152,7 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
               📲 Request Reset via WhatsApp
             </button>
             <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:8px;line-height:1.5">
-              Sends a request to support — they will help you reset your PIN.
+              Sends a request to support - they will help you reset your PIN.
             </div>
           </div>
 
@@ -2218,7 +2218,7 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
      WEB LOGIN SCREEN  (shown only in hosted/web mode)
      Hidden in Electron mode (SHOPERPRO_API_URL is empty)
      ═══════════════════════════════════════════════════════ -->
-<!-- WEB LOGIN SCREEN — 21st.dev inspired -->
+<!-- WEB LOGIN SCREEN - 21st.dev inspired -->
 <style>
 .wl-bg{position:fixed;inset:0;background:#07070F;overflow:hidden;pointer-events:none}
 .wl-bg::before{content:'';position:absolute;width:900px;height:600px;top:50%;left:50%;transform:translate(-50%,-60%);background:radial-gradient(ellipse,rgba(59,130,246,.13) 0%,transparent 70%);pointer-events:none}
@@ -2299,11 +2299,11 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
-     PORTAL SELECTION — First screen in web mode
+     PORTAL SELECTION - First screen in web mode
      Two choices: Super Admin  |  Shop Login
      Download links for Windows & Mac desktop app
      ═══════════════════════════════════════════════════════════ -->
-<!-- WELCOME BACK SCREEN — shown when user already has valid session -->
+<!-- WELCOME BACK SCREEN - shown when user already has valid session -->
 <style>
 .wb-bg{position:fixed;inset:0;background:#07070F;overflow:hidden;pointer-events:none}
 .wb-bg::before{content:'';position:absolute;width:1000px;height:700px;top:50%;left:50%;transform:translate(-50%,-55%);background:radial-gradient(ellipse,rgba(59,130,246,.14) 0%,transparent 65%);pointer-events:none}
@@ -2349,7 +2349,7 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
     </div>
     <!-- Download Desktop -->
     <div style="padding-top:20px;border-top:1px solid rgba(255,255,255,.06)">
-      <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.25);letter-spacing:.8px;text-transform:uppercase;text-align:center;margin-bottom:10px">Run Offline — Download Desktop App</div>
+      <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.25);letter-spacing:.8px;text-transform:uppercase;text-align:center;margin-bottom:10px">Run Offline - Download Desktop App</div>
       <div style="display:flex;gap:10px">
         <a id="wb-dl-win" href="#" class="wb-dl-btn" data-disabled="true">🪟 Windows .exe</a>
         <a id="wb-dl-mac" href="#" class="wb-dl-btn" data-disabled="true">🍎 macOS .dmg</a>
@@ -2359,7 +2359,7 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
   </div>
 </div>
 
-<!-- PORTAL SELECT SCREEN — Premium redesign -->
+<!-- PORTAL SELECT SCREEN - Premium redesign -->
 <style>
 /* === Animations === */
 @keyframes pss-spotlight{0%{opacity:0;transform:translate(-72%,-62%) scale(.5)}100%{opacity:1;transform:translate(-50%,-40%) scale(1)}}
@@ -2569,7 +2569,7 @@ spline-viewer{width:100%;height:100%;border:none}
       <div id="pss-menu-area">
         <div class="pss-badge"><span class="pss-badge-dot"></span>Enterprise ERP Platform</div>
         <div class="pss-h1">Your shop,<br>fully managed.</div>
-        <div class="pss-sub">Billing, repairs, inventory &amp; customers — all in one place. Choose how you'd like to continue.</div>
+        <div class="pss-sub">Billing, repairs, inventory &amp; customers - all in one place. Choose how you'd like to continue.</div>
 
         <div class="pss-list">
           <div class="pss-item c-user" onclick="pssClickExisting()">
@@ -2595,7 +2595,7 @@ spline-viewer{width:100%;height:100%;border:none}
             </div>
             <div>
               <div class="pss-item-title">New User</div>
-              <div class="pss-item-desc" id="pss-new-desc">First time setup — register your shop</div>
+              <div class="pss-item-desc" id="pss-new-desc">First time setup - register your shop</div>
             </div>
             <div class="pss-item-arr">&#8250;</div>
           </div>
@@ -2687,7 +2687,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </div>
     </div>
 
-    <!-- RIGHT COLUMN — Spline 3D robot -->
+    <!-- RIGHT COLUMN - Spline 3D robot -->
     <div class="pss-right">
       <div class="pss-spline-wrap">
         <spline-viewer id="pss-spline" url="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode" loading="lazy"></spline-viewer>
@@ -2697,7 +2697,7 @@ spline-viewer{width:100%;height:100%;border:none}
   </div>
 </div>
 
-<!-- NEW USER SCREEN — 21st.dev inspired split layout -->
+<!-- NEW USER SCREEN - 21st.dev inspired split layout -->
 <style>
 .nus-bg{position:fixed;inset:0;background:#07070F;pointer-events:none;overflow:hidden}
 .nus-bg::before{content:'';position:absolute;width:900px;height:700px;top:-20%;left:50%;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(16,185,129,.11) 0%,transparent 62%);pointer-events:none}
@@ -2737,7 +2737,7 @@ spline-viewer{width:100%;height:100%;border:none}
     <div>
       <div class="nus-badge"><div class="nus-badge-dot"></div>New Registration</div>
       <div class="nus-title">Register your<br><span>shop today</span></div>
-      <div class="nus-sub">Share your unique device code with the admin and get your login credentials within minutes — no paperwork needed.</div>
+      <div class="nus-sub">Share your unique device code with the admin and get your login credentials within minutes - no paperwork needed.</div>
       <div class="nus-steps">
         <div class="nus-step">
           <div class="nus-step-dot">1</div>
@@ -2787,7 +2787,7 @@ spline-viewer{width:100%;height:100%;border:none}
 <!-- ═══════════════════════════════════════════════════════════
      ADMIN LOGIN SCREEN
      ═══════════════════════════════════════════════════════════ -->
-<!-- ADMIN LOGIN SCREEN — 21st.dev inspired -->
+<!-- ADMIN LOGIN SCREEN - 21st.dev inspired -->
 <style>
 .al-bg{position:fixed;inset:0;background:#07070F;overflow:hidden;pointer-events:none}
 .al-bg::before{content:'';position:absolute;width:700px;height:500px;top:50%;left:50%;transform:translate(-50%,-55%);background:radial-gradient(ellipse,rgba(239,68,68,.1) 0%,transparent 65%);pointer-events:none}
@@ -2859,7 +2859,7 @@ spline-viewer{width:100%;height:100%;border:none}
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
-     SUSPENDED SCREEN — Shown when tenant is paused/terminated
+     SUSPENDED SCREEN - Shown when tenant is paused/terminated
      Data is safe but app is locked
      ═══════════════════════════════════════════════════════════ -->
 <div id="suspended-screen" style="display:none;position:fixed;inset:0;background:var(--bg);align-items:center;justify-content:center;z-index:9993;flex-direction:column">
@@ -2917,7 +2917,7 @@ spline-viewer{width:100%;height:100%;border:none}
       <div class="nav-item" onclick="showPage('support')"><span class="nav-icon"><i class="bi bi-headset"></i></span><span>Support</span></div>
       <div class="nav-item superadmin-only" onclick="showPage('superadmin')" id="sa-nav-item" style="display:none"><span class="nav-icon"><i class="bi bi-shield-fill"></i></span><span>Super Admin</span></div>
     </nav>
-    <!-- ShopPro brand watermark — always visible -->
+    <!-- ShopPro brand watermark - always visible -->
     <div class="sb-footer">
       <svg viewBox="0 0 92 88" width="22" height="20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;overflow:hidden">
         <defs>
@@ -2935,7 +2935,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.9 · Licensed</div>
+        <div class="sb-footer-ver">v8.10 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -2980,19 +2980,19 @@ spline-viewer{width:100%;height:100%;border:none}
 
 <script>
 /**
- * ShopERP Pro — License Crypto Engine v4
+ * ShopERP Pro - License Crypto Engine v4
  * ═══════════════════════════════════════════════════
  * SECURITY: DEVELOPER EYES ONLY
  * Never ship this file to customers.
  * ═══════════════════════════════════════════════════
  *
  * Key encodes:  machineId + plan + expiryDate + MASTER_SECRET
- * custId is admin metadata only — NOT part of the key formula.
+ * custId is admin metadata only - NOT part of the key formula.
  * This guarantees keys always validate regardless of customer number.
  */
 'use strict';
 
-// ── MASTER SECRET — change ONCE before first distribution ─────
+// ── MASTER SECRET - change ONCE before first distribution ─────
 const MASTER_SECRET = 'SH0P3RP0-PR0-M4ST3R-K3Y-D33P4K-2025-X9Z';
 
 // ── PLANS ────────────────────────────────────────────────────
@@ -3057,7 +3057,7 @@ function generateKey(machineId, plan, custId) {
   return segs.join('-');
 }
 
-// ── VALIDATE KEY FOR PIN RESET (wide lookback — accepts expired keys) ──────
+// ── VALIDATE KEY FOR PIN RESET (wide lookback - accepts expired keys) ──────
 // Unlike validateKey(), this checks up to 365 days back so a license that expired
 // days/weeks ago still validates. Used ONLY for forgot-PIN identity check.
 function validateKeyForReset(key, machineId){
@@ -3105,7 +3105,7 @@ function validateKey(key, machineId) {
           message: expired
             ? 'Expired ' + (todayDays - expiryDays) + ' days ago'
             : planId === 'lifetime'
-              ? 'Lifetime — never expires'
+              ? 'Lifetime - never expires'
               : daysLeft + ' day' + (daysLeft !== 1 ? 's' : '') + ' remaining (expires ' + expDate + ')',
         };
       }
@@ -3140,7 +3140,7 @@ function runSelfTest() {
   let pass = 0, fail = 0;
 
   for (const planId of Object.keys(PLANS)) {
-    // Generate with various custIds — should produce SAME key (custId doesn't matter)
+    // Generate with various custIds - should produce SAME key (custId doesn't matter)
     const key1 = generateKey(mid, planId, 'CUST1');
     const key2 = generateKey(mid, planId, 'CUST99');
     const key3 = generateKey(mid, planId, undefined);
@@ -3173,7 +3173,7 @@ function runSelfTest() {
 // ██████╔╝███████╗ ╚████╔╝ ███████╗███████╗╚██████╔╝██║     ███████╗██║  ██║
 // ╚═════╝ ╚══════╝  ╚═══╝  ╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═╝
 //
-// ACTIVATION KEYS — NEVER EXPOSE TO END USERS — DEVELOPER EYES ONLY
+// ACTIVATION KEYS - NEVER EXPOSE TO END USERS - DEVELOPER EYES ONLY
 // These are hardcoded. Users never see this screen logic or these keys.
 // The 16-char alphanumeric keys below are the master activation codes.
 // Format: XXXX-XXXX-XXXX-XXXX  (shown with dashes for readability)
@@ -3184,10 +3184,10 @@ const _AK = [
   'L1F3-T1M3-0NC3-PR0X',   // Lifetime license
   'D3M0-K3Y0-0000-0001',   // Demo key
 ];
-// Super Admin key — grants access to license management panel
+// Super Admin key - grants access to license management panel
 const _SAK = 'SUPR-ADM1-9999-PR0X';
 // ─────────────────────────────────────────────────────────────────
-// LICENSE REGISTRY — Super Admin view of all deployed licenses
+// LICENSE REGISTRY - Super Admin view of all deployed licenses
 const LICENSE_REGISTRY=[
   {id:'L001',key:'SH0P-3RP0-PR0X-2025',shop:'Demo Mobile Store',owner:'Ramesh Kumar',phone:'9876543210',plan:'monthly',status:'active',activated:'2025-01-15',expires:'2025-12-31',amount:299},
   {id:'L002',key:'D3M0-K3Y0-0000-0001',shop:'Mehsana Phone Point',owner:'Suresh Patel',phone:'9988776655',plan:'yearly',status:'active',activated:'2025-02-01',expires:'2026-02-01',amount:2499},
@@ -3198,7 +3198,7 @@ const LICENSE_REGISTRY=[
 
 const DB_KEY='shoperpro_v8';
 const DRAFT_SALE_KEY='shoperpro_draft_sale';
-// Schema versioning — bump CURRENT_SCHEMA whenever you add/change DB fields
+// Schema versioning - bump CURRENT_SCHEMA whenever you add/change DB fields
 const CURRENT_SCHEMA=8;
 // Legacy keys checked in order (newest first) if v8 has no data
 const LEGACY_KEYS=['shoperpro_v7','shoperpro_v6','shoperpro_v5','shoperpro_v4','shoperpro_v3','shoperpro_v2','shoperpro_v1','shopErpData','shopErpPro','showerp_data','shopErpProDB'];
@@ -3282,7 +3282,7 @@ let DB={
 };
 
 function saveDB(){
-  // 1. Save to localStorage — always, instant, critical path
+  // 1. Save to localStorage - always, instant, critical path
   try{
     localStorage.setItem(DB_KEY,JSON.stringify(DB));
     var ind=document.getElementById('autosave-ind');
@@ -3315,7 +3315,7 @@ function saveDB(){
         var ind=document.getElementById('autosave-ind');
         if(ind){ind.textContent='⚠ Cloud sync failed';ind.style.color='var(--orange)';ind.style.opacity='1';}
       });
-    }, 800); // debounce — wait 800ms after last save before syncing
+    }, 800); // debounce - wait 800ms after last save before syncing
   }
 }
 function _importLegacyData(){
@@ -3336,7 +3336,7 @@ function loadDB(){
   // In web mode, data is loaded async from API in bootApp() before this runs
   var d=localStorage.getItem(DB_KEY);
   if(d){try{DB=JSON.parse(d);}catch(e){d=null;}}
-  if(!d) _importLegacyData(); // no v8 data — try older versions
+  if(!d) _importLegacyData(); // no v8 data - try older versions
   migrateDB();
 }
 function migrateDB(){
@@ -3396,12 +3396,12 @@ function migrateDB(){
   var _ckFmt=(s.licenseKey||'').replace(/-/g,'').toUpperCase();
   var _isRealKey=_ckFmt.length===16&&/^[A-Z0-9]+$/.test(_ckFmt);
   if(_validKeys.indexOf(s.licenseKey)>=0||!s.licenseKey){
-    // Demo/hardcoded key or fresh install — always active
+    // Demo/hardcoded key or fresh install - always active
     s.activated=true;
     if(!s.licenseExpiry||s.licenseExpiry==='')s.licenseExpiry='2099-12-31';
     if(!s.licenseKey)s.licenseKey='M0B1-SH0P-ER9A-FR33';
   } else if(_isRealKey){
-    // Real paid key from previous activation — restore activated=true
+    // Real paid key from previous activation - restore activated=true
     // licenseExpiry from doActivation() is authoritative; expiry check in continueBootApp() handles blocking
     s.activated=true;
     if(!s.licenseExpiry||s.licenseExpiry==='')s.licenseExpiry='2099-12-31';
@@ -3550,12 +3550,12 @@ function nextJobNo(){
 function _showMigrationNotice(){
   if(window._migratedFromLegacy){
     setTimeout(function(){
-      toast('Data migrated from previous version — all your records are safe','success');
+      toast('Data migrated from previous version - all your records are safe','success');
     },2000);
     window._migratedFromLegacy=null;
   } else if(window._schemaUpgraded){
     setTimeout(function(){
-      toast('App updated — your data has been upgraded to the latest format','success');
+      toast('App updated - your data has been upgraded to the latest format','success');
     },2000);
     window._schemaUpgraded=false;
   }
@@ -3592,14 +3592,14 @@ function showApp(){
 }
 
 // ============================================================
-// ACTIVATION — 16-DIGIT KEY (first time only)
+// ACTIVATION - 16-DIGIT KEY (first time only)
 // ============================================================
 function formatActKey(el){
   let v=el.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase();
   let out='';for(let i=0;i<v.length&&i<16;i++){if(i>0&&i%4===0)out+='-';out+=v[i];}
   el.value=out;
 }
-// ── Machine ID — computed once at boot, shown on activation screen ──
+// ── Machine ID - computed once at boot, shown on activation screen ──
 window._MACHINE_ID = null;
 
 // generateBrowserMachineId() is defined in the license engine block above
@@ -3610,7 +3610,7 @@ function getAppMachineId(){
 
 var _MID_PERSIST_KEY='shoperpro_device_id';
 function initMachineId(){
-  // Browser mode: check localStorage first — keeps ID stable across browser updates/restarts
+  // Browser mode: check localStorage first - keeps ID stable across browser updates/restarts
   // This ID only resets if the user formats or clears browser storage (intentional)
   var stored=localStorage.getItem(_MID_PERSIST_KEY);
   if(stored&&/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(stored)){
@@ -3660,7 +3660,7 @@ function doActivation(){
   const inp=document.getElementById('act-input');
   err.style.color='';
 
-  // Validate key format — must be exactly 16 alphanumeric characters
+  // Validate key format - must be exactly 16 alphanumeric characters
   const clean=raw.replace(/-/g,'');
   if(!clean){
     err.textContent='Please enter your activation key.';
@@ -3669,7 +3669,7 @@ function doActivation(){
     return;
   }
   if(clean.length<16){
-    err.textContent=`Key is incomplete — ${clean.length}/16 characters entered. Format: XXXX-XXXX-XXXX-XXXX`;
+    err.textContent=`Key is incomplete - ${clean.length}/16 characters entered. Format: XXXX-XXXX-XXXX-XXXX`;
     inp.style.borderColor='var(--orange)';
     setTimeout(()=>{inp.style.borderColor='';},2000);
     return;
@@ -3697,12 +3697,12 @@ function doActivation(){
       DB.settings.licensePlan=r.plan;DB.settings.licenseMachineId=machineId;
       DB.settings.activated=true;saveDB();
       applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin('owner-initial');
-      err.textContent='';toast('✓ Activated — '+r.message,'success');return;
+      err.textContent='';toast('✓ Activated - '+r.message,'success');return;
     } else if(r.valid&&r.expired){
       err.style.color='var(--orange)';
       err.textContent='⚠ This key has expired. Contact your software provider to renew.';return;
     } else {
-      // Crypto engine rejected — try legacy keys as fallback
+      // Crypto engine rejected - try legacy keys as fallback
       if(_AK.includes(raw)){
         DB.settings.licenseKey=raw;
         DB.settings.licenseExpiry=new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0];
@@ -3717,7 +3717,7 @@ function doActivation(){
       return;
     }
   }
-  // No crypto engine — legacy mode
+  // No crypto engine - legacy mode
   if(_AK.includes(raw)){
     DB.settings.licenseKey=raw;
     DB.settings.licenseExpiry=new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0];
@@ -3801,7 +3801,7 @@ function applyAppBranding(){
 }
 
 // ============================================================
-// SETUP PIN — owner/staff first-time PIN creation
+// SETUP PIN - owner/staff first-time PIN creation
 // mode: 'owner-initial' | 'staff-{id}' | 'change-{id}'
 // ============================================================
 let _setupMode='';      // current setup mode
@@ -3938,7 +3938,7 @@ function selectUserForLogin(uid){
   _loginUserId=uid;_loginBuf='';_loginAttempts=0;
   applyAuthBranding('pl');
   const greet=document.getElementById('pl-greeting');
-  if(greet)greet.textContent=`Welcome, ${u.name} — Enter your PIN`;
+  if(greet)greet.textContent=`Welcome, ${u.name} - Enter your PIN`;
   renderLoginDots('');
   if(document.getElementById('login-pin-err'))document.getElementById('login-pin-err').textContent='';
   showScreen('pin-login-screen');
@@ -3979,12 +3979,12 @@ function doForgotPinVerify(){
   }
   const storedClean=(DB.settings.licenseKey||'').replace(/[-\s]/g,'').toUpperCase();
 
-  // Check 1: matches the stored licence key (dash-normalised) — strongest proof of ownership
+  // Check 1: matches the stored licence key (dash-normalised) - strongest proof of ownership
   const isOwnKey=storedClean.length>=12 && clean===storedClean;
   // Check 2: known demo / super-admin hardcoded keys
   const isHardcoded=_AK.map(function(k){return k.replace(/[-\s]/g,'').toUpperCase();}).includes(clean)
                   ||clean===(_SAK||'').replace(/[-\s]/g,'').toUpperCase();
-  // Check 3: crypto engine with 365-day lookback — accepts even expired keys (proves past ownership)
+  // Check 3: crypto engine with 365-day lookback - accepts even expired keys (proves past ownership)
   // Also tries stored machine ID in case fingerprint shifted since activation.
   let isCryptoValid=false;
   if(!isOwnKey&&!isHardcoded&&typeof validateKeyForReset==='function'){
@@ -4121,7 +4121,7 @@ function loginPinSubmit(){
     for(let i=0;i<6;i++){const d=document.getElementById('lp'+i);if(d){d.classList.add('error');setTimeout(()=>d.classList.remove('error'),400);}}
     const rem=3-_loginAttempts;
     if(_loginAttempts>=3){
-      // LOCKOUT — 30 sec countdown
+      // LOCKOUT - 30 sec countdown
       document.querySelectorAll('.pin-btn').forEach(b=>b.disabled=true);
       let secs=30;
       if(err)err.innerHTML=`<span style="color:var(--red);font-weight:700">Too many attempts.<br>Try again in <span id="lock-cd">${secs}</span>s</span>`;
@@ -4185,7 +4185,7 @@ function startApp(user){
     // Show popup modal for 7-day warning (once per day) or critical (every login)
     setTimeout(()=>showExpiryPopup(days,level), 800);
   }
-  // ── License expired — lock to Contact Us only ──────────────
+  // ── License expired - lock to Contact Us only ──────────────
   if(DB._licenseExpiredMode) _applyLicenseExpiredLock();
 }
 
@@ -4233,7 +4233,7 @@ function showExpiryPopup(days, level){
   const c=colors[level]||colors.warn;
   const expiry=DB.settings.licenseExpiry||'';
   const shop=DB.settings.shopName||'Your Shop';
-  const mid=getAppMachineId?getAppMachineId():'—';
+  const mid=getAppMachineId?getAppMachineId():'-';
   const renewMsg=encodeURIComponent(`Hello Ravi! 🙏\nMy *ShopERP Pro* license is expiring soon.\n\nShop: *${shop}*\nMachine ID: *${mid}*\nExpiry Date: ${expiry}\nDays Left: ${days}\n\nPlease help me renew. Thank you!`);
 
   const headLine = days===0
@@ -4242,7 +4242,7 @@ function showExpiryPopup(days, level){
   const subLine = days===0
     ? 'Your access will be locked at midnight. Renew <strong>right now</strong> to avoid losing access.'
     : days<=2
-      ? `Only ${days} day${days!==1?'s':''} left — renew immediately to avoid being locked out.`
+      ? `Only ${days} day${days!==1?'s':''} left - renew immediately to avoid being locked out.`
       : `Your ShopERP Pro license expires on <strong>${expiry}</strong>. Renew before it's too late.`;
 
   const ov=document.createElement('div');
@@ -4423,7 +4423,7 @@ function nuContactAdmin(){
 }
 
 // ============================================================
-// WEB LOGIN — shown only when SHOPERPRO_API_URL is set
+// WEB LOGIN - shown only when SHOPERPRO_API_URL is set
 // ============================================================
 function showWebLoginScreen(){
   ['activation-screen','setup-pin-screen','user-select-screen','pin-login-screen','app'].forEach(function(id){
@@ -4511,14 +4511,14 @@ function webRegister(){
 // PORTAL SELECTION + ADMIN DASHBOARD
 // ════════════════════════════════════════════════════════════════
 
-// ── Admin password: SHA-256 hash only — plaintext never in source ──
+// ── Admin password: SHA-256 hash only - plaintext never in source ──
 // To change: run   echo -n 'NewPassword' | shasum -a 256
 // paste the result as ADMIN_PWD_HASH below and redeploy.
 const ADMIN_PWD_HASH='2b5877210c3581cccac2431c0a5681ea1c5674ae71dbb5d664eda93e3965a3dd';
 async function _adminHash(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 const _adminGuard={count:0,lockedUntil:0};
 function _adminLockCheck(errFn){const now=Date.now();if(_adminGuard.lockedUntil>now){const m=Math.ceil((_adminGuard.lockedUntil-now)/60000);errFn('Too many attempts. Try again in '+m+' min.');return false;}return true;}
-function _adminFailure(errFn){_adminGuard.count++;if(_adminGuard.count>=5){_adminGuard.lockedUntil=Date.now()+15*60*1000;_adminGuard.count=0;errFn('5 failed attempts — locked for 15 minutes.');}else{errFn('Incorrect password. '+(5-_adminGuard.count)+' attempt'+(5-_adminGuard.count===1?'':'s')+' remaining.');}}
+function _adminFailure(errFn){_adminGuard.count++;if(_adminGuard.count>=5){_adminGuard.lockedUntil=Date.now()+15*60*1000;_adminGuard.count=0;errFn('5 failed attempts - locked for 15 minutes.');}else{errFn('Incorrect password. '+(5-_adminGuard.count)+' attempt'+(5-_adminGuard.count===1?'':'s')+' remaining.');}}
 function _adminSuccess(){_adminGuard.count=0;sessionStorage.setItem('_sa',Date.now().toString());}
 
 // ── Admin DB (separate from main app DB) ──
@@ -4686,7 +4686,7 @@ function admPageDashboard(){
       return `<div class="card" style="text-align:center;position:relative;overflow:hidden"><div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${s[0]}</div><div style="font-size:22px;font-weight:800;color:var(--accent)">${s[2]}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">${s[3]}</div></div>`;
     }).join('')}
   </div>
-  ${exp30>0?`<div class="alert alert-warn" style="margin-bottom:16px">⏳ <strong>${exp30} license${exp30>1?'s':''}</strong> expiring within 30 days — <a href="#" onclick="showAdminPage('adm-expiring')" style="color:var(--orange)">view →</a></div>`:''}
+  ${exp30>0?`<div class="alert alert-warn" style="margin-bottom:16px">⏳ <strong>${exp30} license${exp30>1?'s':''}</strong> expiring within 30 days - <a href="#" onclick="showAdminPage('adm-expiring')" style="color:var(--orange)">view →</a></div>`:''}
   <div class="card"><div class="card-header"><div class="card-title">Recent Customers</div><button class="btn btn-ghost btn-sm" onclick="showAdminPage('adm-customers')">View all</button></div>
   ${recent.length===0?'<div style="color:var(--text3);font-size:12px">No customers yet.</div>':`<div class="tbl-wrap"><table><thead><tr><th>Shop</th><th>Plan</th><th>Status</th><th>Days Left</th></tr></thead><tbody>
     ${recent.map(function(c){return`<tr><td><strong style="font-size:12px">${esc(c.shopName)}</strong><br><span style="font-size:10px;color:var(--text3)">${esc(c.ownerName)}</span></td><td><span class="badge ${admPlanBadge(c.plan)}">${PLANS[c.plan]?.label||c.plan}</span></td><td>${admStatusBadge(c)}</td><td style="font-family:var(--mono);font-size:12px">${c.plan==='lifetime'?'∞':admDaysLeft(c)+'d'}</td></tr>`;}).join('')}
@@ -4735,7 +4735,7 @@ function admPageGenerate(){
 function admInitGenerate(){ admUpdatePlanInfo(); }
 function admMachineInput(el){ let v=el.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,16); el.value=v.match(/.{1,4}/g)?.join('-')||v; }
 function admSelectPlan(plan){ _admSelectedPlan=plan; document.querySelectorAll('.adm-plan-card').forEach(c=>c.classList.remove('selected')); var el=document.getElementById('aplan-'+plan); if(el)el.classList.add('selected'); admUpdatePlanInfo(); }
-function admUpdatePlanInfo(){ var info=document.getElementById('adm-plan-info'); if(!info)return; var p=PLANS[_admSelectedPlan]; if(!p)return; var isTest=!!p.testOnly; var expStr=isTest?'⚠ Test plan — expires '+new Date(Date.now()+p.days*86400000).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):_admSelectedPlan==='lifetime'?'✓ Lifetime — never expires':'✓ Valid for '+p.days+' days from today (expires '+new Date(Date.now()+p.days*86400000).toLocaleDateString('en-IN')+')'; info.textContent=expStr; info.style.color=isTest?'var(--orange)':'var(--text3)'; }
+function admUpdatePlanInfo(){ var info=document.getElementById('adm-plan-info'); if(!info)return; var p=PLANS[_admSelectedPlan]; if(!p)return; var isTest=!!p.testOnly; var expStr=isTest?'⚠ Test plan - expires '+new Date(Date.now()+p.days*86400000).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):_admSelectedPlan==='lifetime'?'✓ Lifetime - never expires':'✓ Valid for '+p.days+' days from today (expires '+new Date(Date.now()+p.days*86400000).toLocaleDateString('en-IN')+')'; info.textContent=expStr; info.style.color=isTest?'var(--orange)':'var(--text3)'; }
 function admDoGenerate(){
   var shopName=(document.getElementById('ag-shop')||{value:''}).value.trim();
   var ownerName=(document.getElementById('ag-owner')||{value:''}).value.trim();
@@ -4932,10 +4932,10 @@ function admRenderCustomers(list){
             ${planChip}
           </div>
           <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text2)">
-            <span>👤 ${esc(c.ownerName||'—')}</span>
-            <span>📞 <span style="font-family:var(--mono)">${c.phone||'—'}</span></span>
+            <span>👤 ${esc(c.ownerName||'-')}</span>
+            <span>📞 <span style="font-family:var(--mono)">${c.phone||'-'}</span></span>
             ${c.city?`<span>📍 ${esc(c.city)}</span>`:''}
-            <span>📅 <span style="font-family:var(--mono)">${isLifetime?'∞ Lifetime':(c.expiryDate||'—')}</span></span>
+            <span>📅 <span style="font-family:var(--mono)">${isLifetime?'∞ Lifetime':(c.expiryDate||'-')}</span></span>
           </div>
           ${c.notes?`<div style="margin-top:6px;font-size:11px;color:var(--text3);font-style:italic">${esc(c.notes)}</div>`:''}
           ${barHTML}
@@ -5052,7 +5052,7 @@ function admRenewCustomer(id){
   admSelectPlan(c.plan||'monthly');
   // Show renew context banner
   var titleEl=document.getElementById('adm-page-title');
-  if(titleEl)titleEl.textContent='Renew License — '+c.shopName;
+  if(titleEl)titleEl.textContent='Renew License - '+c.shopName;
   var out=document.getElementById('adm-key-output');
   if(out)out.innerHTML='<div class="alert alert-info" style="font-size:11px">🔄 Renewing <strong>'+esc(c.shopName)+'</strong> (ID #'+c.id+'). Change plan if needed and click Generate to issue a new key.</div>';
 }
@@ -5084,7 +5084,7 @@ function admShowKey(id){
         <button onclick="navigator.clipboard.writeText('${key.replace(/'/g,"\\'")}').then(function(){toast('Key copied!','success');})" style="flex:1;padding:10px;background:var(--accent);color:#000;font-weight:700;font-size:13px;border:none;border-radius:10px;cursor:pointer">📋 Copy Key</button>
         ${phone?`<button onclick="window.open('${waUrl}','_blank')" style="flex:1;padding:10px;background:#25D366;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:10px;cursor:pointer">💬 Send via WhatsApp</button>`:'<button disabled style="flex:1;padding:10px;background:var(--bg);color:var(--text3);font-size:13px;border:1px solid var(--border);border-radius:10px;cursor:not-allowed">💬 No phone on file</button>'}
       </div>
-      <div style="font-size:10px;color:var(--text3);text-align:center;margin-bottom:14px">Plan: <strong>${PLANS[c.plan]?.label||c.plan}</strong> &nbsp;·&nbsp; Expiry: <strong>${c.plan==='lifetime'?'Lifetime':c.expiryDate||'—'}</strong></div>
+      <div style="font-size:10px;color:var(--text3);text-align:center;margin-bottom:14px">Plan: <strong>${PLANS[c.plan]?.label||c.plan}</strong> &nbsp;·&nbsp; Expiry: <strong>${c.plan==='lifetime'?'Lifetime':c.expiryDate||'-'}</strong></div>
 
       <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;padding:9px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer">Close</button>
     </div>`;
@@ -5099,7 +5099,7 @@ function admRenderExpiring(){
   var list=ADMIN_DB.customers.filter(function(c){ if(!admIsActive(c)||c.plan==='lifetime')return false; return admDaysLeft(c)<=30; }).sort(function(a,b){return admDaysLeft(a)-admDaysLeft(b);});
   if(!list.length){el.innerHTML='<div class="alert alert-success">✓ No licenses expiring within 30 days.</div>';return;}
   el.innerHTML='<div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table><thead><tr><th>Shop</th><th>Owner</th><th>Plan</th><th>Expiry</th><th>Days Left</th><th>Actions</th></tr></thead><tbody>'+
-    list.map(function(c){var dl=admDaysLeft(c);var dlColor=dl<=7?'var(--red)':dl<=15?'var(--orange)':'var(--text)';return'<tr><td><strong>'+esc(c.shopName)+'</strong></td><td>'+esc(c.ownerName)+'</td><td><span class="badge '+admPlanBadge(c.plan)+'">'+(PLANS[c.plan]?PLANS[c.plan].label:c.plan)+'</span></td><td style="font-family:var(--mono);font-size:11px">'+(c.expiryDate||'—')+'</td><td style="color:'+dlColor+';font-weight:700">'+dl+'d</td><td><button class="btn btn-xs btn-success" onclick="admRenewCustomer('+c.id+')">🔄 Renew</button><button class="btn btn-xs btn-wa" onclick="admSendWA(\''+c.key+'\',\''+esc(c.shopName)+'\',\''+esc(c.ownerName)+'\',\''+(c.phone||'')+'\',\''+c.plan+'\')" style="margin-left:4px">💬</button></td></tr>';}).join('')+
+    list.map(function(c){var dl=admDaysLeft(c);var dlColor=dl<=7?'var(--red)':dl<=15?'var(--orange)':'var(--text)';return'<tr><td><strong>'+esc(c.shopName)+'</strong></td><td>'+esc(c.ownerName)+'</td><td><span class="badge '+admPlanBadge(c.plan)+'">'+(PLANS[c.plan]?PLANS[c.plan].label:c.plan)+'</span></td><td style="font-family:var(--mono);font-size:11px">'+(c.expiryDate||'-')+'</td><td style="color:'+dlColor+';font-weight:700">'+dl+'d</td><td><button class="btn btn-xs btn-success" onclick="admRenewCustomer('+c.id+')">🔄 Renew</button><button class="btn btn-xs btn-wa" onclick="admSendWA(\''+c.key+'\',\''+esc(c.shopName)+'\',\''+esc(c.ownerName)+'\',\''+(c.phone||'')+'\',\''+c.plan+'\')" style="margin-left:4px">💬</button></td></tr>';}).join('')+
   '</tbody></table></div></div>';
 }
 
@@ -5110,7 +5110,7 @@ function admRenderSuspended(){
   var list=ADMIN_DB.customers.filter(function(c){return c.status==='paused'||c.status==='terminated';});
   if(!list.length){el.innerHTML='<div class="alert alert-success">✓ No suspended accounts.</div>';return;}
   el.innerHTML='<div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table><thead><tr><th>Shop</th><th>Owner</th><th>Status</th><th>Reason</th><th>Actions</th></tr></thead><tbody>'+
-    list.map(function(c){return`<tr><td><strong>${esc(c.shopName)}</strong></td><td>${esc(c.ownerName)}</td><td>${admStatusBadge(c)}</td><td style="font-size:11px;color:var(--text3)">${esc(c.suspendReason||'—')}</td><td><button class="btn btn-xs btn-success" onclick="admRestoreCustomer(${c.id})">✅ Restore</button></td></tr>`;}).join('')+
+    list.map(function(c){return`<tr><td><strong>${esc(c.shopName)}</strong></td><td>${esc(c.ownerName)}</td><td>${admStatusBadge(c)}</td><td style="font-size:11px;color:var(--text3)">${esc(c.suspendReason||'-')}</td><td><button class="btn btn-xs btn-success" onclick="admRestoreCustomer(${c.id})">✅ Restore</button></td></tr>`;}).join('')+
   '</tbody></table></div></div>';
 }
 
@@ -5136,13 +5136,13 @@ function admPagePins(){
           '<button class="btn btn-xs btn-ghost" onclick="admClearPin('+u.id+')" title="Force user to create a new PIN on next use">Clear</button>'+
         '</div>'+
         '<div id="pin-result-'+u.id+'" style="display:none;margin-top:8px;padding:10px 14px;background:var(--bg3);border:1.5px solid var(--green);border-radius:8px;font-size:13px">'+
-          '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">New PIN for <strong>'+esc(u.name)+'</strong> — share this securely:</div>'+
+          '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">New PIN for <strong>'+esc(u.name)+'</strong> - share this securely:</div>'+
           '<div style="display:flex;align-items:center;gap:10px">'+
             '<span id="pin-show-'+u.id+'" style="font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:6px;color:var(--green)"></span>'+
             '<button class="btn btn-xs btn-ghost" onclick="admCopyPin(\'pin-show-'+u.id+'\')" title="Copy PIN">📋 Copy</button>'+
             '<button class="btn btn-xs btn-wa" onclick="admSharePinWA('+u.id+')" title="Send PIN to user\'s registered WhatsApp">💬 Send to User</button>'+
           '</div>'+
-          (phone?'':'<div style="font-size:10px;color:var(--orange);margin-top:5px">⚠ No WhatsApp number on file — ask user to add it in Settings → Users.</div>')+
+          (phone?'':'<div style="font-size:10px;color:var(--orange);margin-top:5px">⚠ No WhatsApp number on file - ask user to add it in Settings → Users.</div>')+
           '<div style="font-size:10px;color:var(--text3);margin-top:4px">User should change their PIN after first login.</div>'+
         '</div>'+
       '</td>'+
@@ -5171,7 +5171,7 @@ function admResetPin(userId){
   var resDiv=document.getElementById('pin-result-'+userId);
   var showEl=document.getElementById('pin-show-'+userId);
   if(resDiv&&showEl){ showEl.textContent=newPin; resDiv.style.display='block'; }
-  toast('PIN reset for '+esc(u.name)+' — share the new PIN with them','success');
+  toast('PIN reset for '+esc(u.name)+' - share the new PIN with them','success');
 }
 function admCopyPin(elId){
   var el=document.getElementById(elId);
@@ -5188,13 +5188,13 @@ function admSharePinWA(userId){
     +'Your login PIN for *'+shopName+'* has been reset by the administrator.\n\n'
     +'🔐 Your new PIN is:\n\n*'+pin+'*\n\n'
     +'Please use this to log in. You can change your PIN anytime from Settings → Users.\n\n'
-    +'— ShopERP Support';
+    +'- ShopERP Support';
   var phone=(u.phone||'').replace(/\D/g,'');
   if(phone&&phone.length>=10){
     if(!phone.startsWith('91')&&phone.length===10)phone='91'+phone;
     window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg),'_blank');
   } else {
-    // No registered phone — open general WhatsApp so admin can pick contact
+    // No registered phone - open general WhatsApp so admin can pick contact
     window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
     toast('No phone stored for '+esc(u.name)+'. Add it in Settings → Users, then try again.','info');
   }
@@ -5229,7 +5229,7 @@ function admPageSettings(){
   <div class="card" style="margin-bottom:16px">
     <div class="card-title">Plan Prices (${cur})</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      ${Object.entries(PLANS).map(function([id,p]){var isTest=!!p.testOnly;return`<div class="form-group"><label class="form-label">${p.label} (${p.days===36500?'Lifetime':p.days+'d'})${isTest?' <span style="font-size:9px;background:var(--orange);color:#fff;border-radius:3px;padding:1px 4px">TEST</span>':''}</label><input class="form-control" id="as-price-${id}" type="number" value="${s.plans[id]!==undefined?s.plans[id]:p.price}" ${isTest?'placeholder="0 — testing only"':''}></div>`;}).join('')}
+      ${Object.entries(PLANS).map(function([id,p]){var isTest=!!p.testOnly;return`<div class="form-group"><label class="form-label">${p.label} (${p.days===36500?'Lifetime':p.days+'d'})${isTest?' <span style="font-size:9px;background:var(--orange);color:#fff;border-radius:3px;padding:1px 4px">TEST</span>':''}</label><input class="form-control" id="as-price-${id}" type="number" value="${s.plans[id]!==undefined?s.plans[id]:p.price}" ${isTest?'placeholder="0 - testing only"':''}></div>`;}).join('')}
     </div>
   </div>
   <button class="btn btn-primary" onclick="admSaveSettings()">💾 Save Settings</button></div>`;
@@ -5252,7 +5252,7 @@ function admExportCSV(){
 
 // ── Suspended Screen (shown to terminated/paused users) ──
 function showSuspendedScreen(status, reason){
-  var mid=typeof generateBrowserMachineId==='function'?generateBrowserMachineId():'—';
+  var mid=typeof generateBrowserMachineId==='function'?generateBrowserMachineId():'-';
   window._susMachineId=mid;
   var el=document.getElementById('suspended-screen'); if(!el)return;
   var titleEl=document.getElementById('sus-title');
@@ -5280,7 +5280,7 @@ function contactSupportWA(){
 }
 
 // ════════════════════════════════════════════════════════════════
-// BOOT — decide which screen to show on load
+// BOOT - decide which screen to show on load
 // ════════════════════════════════════════════════════════════════
 // ── Portal inline panel functions ──────────────────────────────────────────
 function pssClickExisting(){
@@ -5390,7 +5390,7 @@ function bootApp(){
     loadAdminDB();
     document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
     if(_api.token()){
-      // Token exists — validate with server and show welcome-back screen
+      // Token exists - validate with server and show welcome-back screen
       _api.get('/api/data').then(function(d){
         if(d.data&&Object.keys(d.data).length>0){
           DB=d.data;
@@ -5399,7 +5399,7 @@ function bootApp(){
         loadDB();
         showWelcomeBack();
       }).catch(function(){
-        // Token invalid/expired — always show portal selection in web mode
+        // Token invalid/expired - always show portal selection in web mode
         _api.clearToken();
         localStorage.removeItem('shoperpro_last_shop');
         localStorage.removeItem('shoperpro_last_user');
@@ -5414,7 +5414,7 @@ function bootApp(){
     }
     return;
   }
-  // Electron / local mode — show portal first, then boot on user selection
+  // Electron / local mode - show portal first, then boot on user selection
   initMachineId();
   initTheme();
   loadAdminDB();
@@ -5427,7 +5427,7 @@ function continueBootApp(){
   initTheme();
   document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
 
-  // 0. Check admin controls — paused/terminated + sync plan expiry for countdown
+  // 0. Check admin controls - paused/terminated + sync plan expiry for countdown
   loadAdminDB();
   var _shopName=(DB.settings&&DB.settings.shopName)||'';
   if(_shopName){
@@ -5442,7 +5442,7 @@ function continueBootApp(){
       // Sync admin plan expiry → local DB so countdown timer works
       if(_rec.expiryDate&&_rec.plan!=='lifetime'&&_rec.status==='active'){
         DB.settings.licenseExpiry=_rec.expiryDate;
-        // Always use the real end-of-expiry-day timestamp — never cap to 24h.
+        // Always use the real end-of-expiry-day timestamp - never cap to 24h.
         // Countdown display is controlled by daysLeft (only starts when daysLeft<=1).
         // Version updates must NEVER reset this value.
         var _ep=_rec.expiryDate.split('-');
@@ -5464,7 +5464,7 @@ function continueBootApp(){
     startApp({id:0,name:'Super Admin',role:'superadmin',pin:'',pinSet:true});return;
   }
 
-  // 3. Check license expiry — block from the day AFTER expiry date
+  // 3. Check license expiry - block from the day AFTER expiry date
   const expiry=DB.settings.licenseExpiry;
   
   // If activated but licenseExpiry is not properly set, treat as invalid
@@ -5483,7 +5483,7 @@ function continueBootApp(){
     const daysLeft=Math.round((expiryDate-today)/(1000*60*60*24));
 
     if(daysLeft<0){
-      // EXPIRED — allow login but lock app to Contact Us page only
+      // EXPIRED - allow login but lock app to Contact Us page only
       DB._licenseExpiredMode=true;
       DB._licenseExpiredDays=Math.abs(daysLeft);
     }
@@ -5567,12 +5567,12 @@ function showAdminExpiredScreen(){
       </a>
     </div>
     <div class="auth-footer" style="margin-top:8px;font-size:11px;color:var(--text3)">
-      ShopERP Pro — ${shop}
+      ShopERP Pro - ${shop}
     </div>`;
   showScreen('activation-screen');
 }
 
-// ── License Expired Lock — called after login when license has expired ──
+// ── License Expired Lock - called after login when license has expired ──
 // Hides all navigation except Support and forces user to Contact Us page.
 function _applyLicenseExpiredLock(){
   window._licenseExpiredMode=true;
@@ -5580,7 +5580,7 @@ function _applyLicenseExpiredLock(){
   const expiry=DB.settings.licenseExpiry||'';
   const plan=(DB.settings.licensePlan||'').replace(/^\w/,c=>c.toUpperCase());
   const shop=DB.settings.shopName||'Your Shop';
-  const mid=getAppMachineId?getAppMachineId():'—';
+  const mid=getAppMachineId?getAppMachineId():'-';
 
   // Hide all navigation items except Support
   document.querySelectorAll('.nav-item').forEach(el=>{
@@ -5671,7 +5671,7 @@ document.addEventListener('keydown',function(e){
 function showPage(page){
   // If license is expired, only the Support/Contact Us page is accessible
   if(window._licenseExpiredMode && page!=='support'){
-    toast('License expired — please contact us to renew.','error');
+    toast('License expired - please contact us to renew.','error');
     page='support';
   }
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
@@ -5679,14 +5679,14 @@ function showPage(page){
     if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes(`'${page}'`))el.classList.add('active');
   });
   const titles={
-    pos:['POS — Sell',['Quick sale, repairs & payments']],
+    pos:['POS - Sell',['Quick sale, repairs & payments']],
     dashboard:['Dashboard','Today\'s overview'],
     inventory:['Inventory','Products & stock management'],
     sales:['Sales & Billing','Invoices and payment tracking'],
     repairs:['Repair Jobs','Job cards & repair tracking'],
     customers:['Customers','Customer records & history'],
     expenses:['Expenses','Cost tracking & categories'],
-    recurring:['Recurring Expenses','Monthly fixed costs — rent, salary, subscriptions'],
+    recurring:['Recurring Expenses','Monthly fixed costs - rent, salary, subscriptions'],
     reports:['Reports','Business analytics & insights'],
     engage:['WhatsApp','Customer engagement & messaging'],
     settings:['Settings','Shop configuration & branding'],
@@ -5707,7 +5707,7 @@ function showPage(page){
 
   if(fns[page]){
     c.innerHTML=fns[page]();
-    // Post-render hooks — called AFTER innerHTML is set so DOM exists
+    // Post-render hooks - called AFTER innerHTML is set so DOM exists
     const postRender={
       sales:()=>{filterSalesTable();},
       repairs:()=>{filterRepairsTable();},
@@ -5750,7 +5750,7 @@ function bulkReadyWA(){
 }
 
 // ══════════════════════════════════════════════════════════════
-// POS — POINT OF SALE — MAIN SCREEN
+// POS - POINT OF SALE - MAIN SCREEN
 // ══════════════════════════════════════════════════════════════
 
 // POS state
@@ -5909,14 +5909,14 @@ function waJobReceiptMsg(id){
 
 window._paySplits={};
 // ═══════════════════════════════════════════════════════════════
-// PAYMENT UI — Professional ERP Flow
+// PAYMENT UI - Professional ERP Flow
 // Data store: window._paySplits[cid] = [{method, amount}]
 // cid: 'ns-pay' (new sale), 'es-pay' (edit sale),
 //      'rp'+id (record payment), 'crp'+id (collect repair)
 // ═══════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════
-// PAYMENT ENGINE v2 — Professional ERP Flow
+// PAYMENT ENGINE v2 - Professional ERP Flow
 // 
 // Data: window._paySplits[cid] = [{method, amount}]
 // cid keys: 'ns-pay' | 'es-pay' | 'rp'+id | 'crp'+id
@@ -5924,7 +5924,7 @@ window._paySplits={};
 // Rules:
 // 1. Primary method selected by tapping method button
 // 2. Amount Received = bill amount (pre-filled, editable)
-// 3. Cash Given = blank until shopkeeper types — shows change live
+// 3. Cash Given = blank until shopkeeper types - shows change live
 // 4. Split: primary amount + remaining auto-fills in second row
 // 5. Changing a split method resets that row's amount to 0
 // 6. Credit = ₹0 collected, full amount as due
@@ -6063,7 +6063,7 @@ function paySelectMethod(cid, method, due) {
   payRefreshSummary(cid, due);
 }
 
-// ── Cash input handler — show change live ─────────────────────
+// ── Cash input handler - show change live ─────────────────────
 function payOnCashInput(cid, due) {
   var cur = DB.settings.currency || '₹';
   var splits = window._paySplits[cid] || [];
@@ -6189,7 +6189,7 @@ function payRenderSplitRows(cid, due) {
       // Update primary amount display
       var primaryInp = document.getElementById(cid + '-cashinp');
       if (primaryInp && window._paySplits[cid][0].method === 'Cash') {
-        // Don't touch cash given — that's what customer hands over
+        // Don't touch cash given - that's what customer hands over
       }
       payRefreshSummary(cid, due);
     };
@@ -6318,7 +6318,7 @@ function collectRepairPayment(id){
   if(due<=0){toast('This job is fully paid','info');return;}
   const qr=DB.settings.upiQR;const cid='crp'+id;
   window._activeRepairId=id;window._activeFinalAmt=finalAmt;window._activeRepairDue=due;window._activeRepairCid=cid;
-  openModal('Collect Payment — '+r.jobNo,
+  openModal('Collect Payment - '+r.jobNo,
     '<div style="background:var(--bg3);border-radius:var(--r-sm);padding:12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">'+
     '<div><div style="font-size:11px;color:var(--text3)">'+r.jobNo+' · '+escHtml(r.device)+'</div><div style="font-size:11px;color:var(--text3)">'+escHtml(r.customerName)+'</div></div>'+
     '<div><div style="font-size:20px;font-weight:900;color:var(--green);font-family:var(--mono)">'+cur+finalAmt.toLocaleString('en-IN')+'</div><div style="font-size:10px;color:var(--text3)">Final Amount</div></div></div>'+
@@ -6382,7 +6382,7 @@ function pagePOS(){
 .pos-out-badge{position:absolute;top:8px;right:8px;background:var(--red);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;letter-spacing:.3px}
 .pos-low-badge{position:absolute;top:8px;right:8px;background:var(--orange);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;letter-spacing:.3px}
 
-/* Right panel — Order */
+/* Right panel - Order */
 .pos-order-header{padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
 .pos-order-title{font-size:13px;font-weight:800;color:var(--text);letter-spacing:-.2px}
 .pos-order-count{background:var(--accent);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;min-width:22px;text-align:center}
@@ -6551,7 +6551,7 @@ function pagePOS(){
 
       <!-- UPI QR -->
       <div id="pos-upi-area" style="display:none" class="pos-upi-qr">
-        ${DB.settings.upiQR?'<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px">📲 Show QR to customer</div><img src="'+DB.settings.upiQR+'" style="width:150px;height:150px;object-fit:contain;border-radius:8px">':'<div style="font-size:11px;color:var(--text3);padding:8px">No UPI QR — upload in Settings</div>'}
+        ${DB.settings.upiQR?'<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px">📲 Show QR to customer</div><img src="'+DB.settings.upiQR+'" style="width:150px;height:150px;object-fit:contain;border-radius:8px">':'<div style="font-size:11px;color:var(--text3);padding:8px">No UPI QR - upload in Settings</div>'}
       </div>
 
       <!-- Cash input -->
@@ -6572,7 +6572,7 @@ function pagePOS(){
       </button>
     </div>
 
-    <!-- Bottom strip — status only -->
+    <!-- Bottom strip - status only -->
     <div class="pos-strip">
       ${readyJobs.length>0?`<div class="pos-strip-item green" onclick="posShowReady()">${_ic('bell')} <strong>${readyJobs.length}</strong>&nbsp;Ready Pickup</div>`:`<div class="pos-strip-item" style="color:var(--text3);cursor:default">${_ic('bell')} No pickups</div>`}
       ${dueTotal>0?`<div class="pos-strip-item red" onclick="posShowDues()">${_ic('money')} <strong>${cur}${dueTotal.toLocaleString('en-IN')}</strong>&nbsp;Due</div>`:''}
@@ -6847,7 +6847,7 @@ function posCharge(){
   DB.sales.push(sale);saveDB();
   updateRepairBadge();
 
-  // Reset cart immediately — ready for next order
+  // Reset cart immediately - ready for next order
   posResetCart();
   // Show invoice (cart already cleared behind it)
   posShowInvoice(sale.id);
@@ -6869,7 +6869,7 @@ function posShowInvoice(saleId){
   const itemRows=(s.items||[]).map(i=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span>${escHtml(i.name)} ×${i.qty}</span><span style="font-family:var(--mono);font-weight:700">${cur}${(i.qty*i.price).toLocaleString('en-IN')}</span></div>`).join('');
   const logoHtml=shop.shopLogo?`<img src="${shop.shopLogo}" style="height:40px;object-fit:contain;margin:0 auto 6px;display:block">`:'' ;
 
-  openModal(s.invoiceNo+' — Invoice Created',`
+  openModal(s.invoiceNo+' - Invoice Created',`
   <div style="background:var(--bg3);border-radius:var(--r);padding:18px">
     <div style="text-align:center;margin-bottom:14px">
       ${logoHtml}
@@ -6956,8 +6956,8 @@ function pageDashboard(){
 
   // Recent activity
   const allEvents=[];
-  DB.sales.slice(-3).reverse().forEach(s=>allEvents.push({time:s.date,dot:'var(--green)',text:`<strong>${s.invoiceNo}</strong> — ${cur}${s.total.toLocaleString('en-IN')} • ${escHtml(s.customerName)}`}));
-  DB.repairs.slice(-2).reverse().forEach(r=>allEvents.push({time:r.received,dot:'var(--orange)',text:`<strong>${escHtml(r.jobNo)}</strong> — ${escHtml(r.device)} • ${r.status}`}));
+  DB.sales.slice(-3).reverse().forEach(s=>allEvents.push({time:s.date,dot:'var(--green)',text:`<strong>${s.invoiceNo}</strong> - ${cur}${s.total.toLocaleString('en-IN')} • ${escHtml(s.customerName)}`}));
+  DB.repairs.slice(-2).reverse().forEach(r=>allEvents.push({time:r.received,dot:'var(--orange)',text:`<strong>${escHtml(r.jobNo)}</strong> - ${escHtml(r.device)} • ${r.status}`}));
   const actHtml=allEvents.slice(0,5).map(e=>`<div class="activity-item"><div class="activity-dot" style="background:${e.dot}"></div><div class="activity-text">${e.text}</div><div class="activity-time">${e.time}</div></div>`).join('')||'<div style="color:var(--text3);font-size:12px;padding:12px 0">No recent activity</div>';
 
   // Low stock items
@@ -7044,15 +7044,15 @@ function pageDashboard(){
   <div class="dash-grid-2">
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Revenue — Last 7 Days</div>
+        <div class="card-title">Revenue - Last 7 Days</div>
         <span style="font-size:11px;color:var(--teal);font-weight:700">${cur}${daySales.reduce((a,v)=>a+v,0).toLocaleString('en-IN')} week</span>
       </div>
       <div class="mini-chart">${barsHtml}</div>
       <div style="display:flex;justify-content:space-between;margin-top:8px;padding:0 2px">${dayLabHtml}</div>
     </div>
     <div class="card">
-      ${readyJobs.length>0?`<div style="background:rgba(16,217,121,.08);border:1px solid rgba(16,217,121,.2);border-radius:9px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;font-weight:700;color:var(--green);display:flex;align-items:center;gap:5px">${_ic('bell')} ${readyJobs.length} device${readyJobs.length>1?'s':''} ready — call customers</span><button class="btn btn-wa btn-xs" style="display:flex;align-items:center;gap:4px" onclick="bulkReadyWA()">${_ic('wa')} Notify All</button></div>`:''}
-      ${overdueJobs.length>0?`<div style="background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.2);border-radius:9px;padding:8px 14px;margin-bottom:10px;font-size:12px;color:var(--red);display:flex;align-items:center;gap:5px">${_ic('dues')} <strong>${overdueJobs.length} overdue</strong> — delivery date passed</div>`:''}
+      ${readyJobs.length>0?`<div style="background:rgba(16,217,121,.08);border:1px solid rgba(16,217,121,.2);border-radius:9px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;font-weight:700;color:var(--green);display:flex;align-items:center;gap:5px">${_ic('bell')} ${readyJobs.length} device${readyJobs.length>1?'s':''} ready - call customers</span><button class="btn btn-wa btn-xs" style="display:flex;align-items:center;gap:4px" onclick="bulkReadyWA()">${_ic('wa')} Notify All</button></div>`:''}
+      ${overdueJobs.length>0?`<div style="background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.2);border-radius:9px;padding:8px 14px;margin-bottom:10px;font-size:12px;color:var(--red);display:flex;align-items:center;gap:5px">${_ic('dues')} <strong>${overdueJobs.length} overdue</strong> - delivery date passed</div>`:''}
       <div class="card-header">
         <div class="card-title">Open Repair Jobs</div>
         <button class="btn btn-ghost btn-xs" onclick="showPage('repairs')">View all →</button>
@@ -7129,18 +7129,18 @@ function dashRenderCashbook(){
   // 1. Sales payments
   (DB.sales||[]).forEach(function(s){
     (s.payments||[{method:s.payMethod,amount:s.paid,date:s.date}]).forEach(function(p){
-      if(p.amount>0)entries.push({date:s.date,time:p.time||'',desc:'Sale '+s.invoiceNo+' — '+(s.customerName||'Walk-in'),type:'Sale',method:p.method||s.payMethod||'Cash',in:p.amount,out:0,source:'sale'});
+      if(p.amount>0)entries.push({date:s.date,time:p.time||'',desc:'Sale '+s.invoiceNo+' - '+(s.customerName||'Walk-in'),type:'Sale',method:p.method||s.payMethod||'Cash',in:p.amount,out:0,source:'sale'});
     });
   });
   // 2. Repair payments
   (DB.repairs||[]).forEach(function(r){
     (r.payments||[]).forEach(function(p){
-      if(p.amount>0)entries.push({date:p.date||r.delivered||r.received,time:p.time||'',desc:'Repair '+r.jobNo+' — '+(r.customerName||'')+(r.device?' ('+r.device+')':''),type:'Repair',method:p.method||'Cash',in:p.amount,out:0,source:'repair'});
+      if(p.amount>0)entries.push({date:p.date||r.delivered||r.received,time:p.time||'',desc:'Repair '+r.jobNo+' - '+(r.customerName||'')+(r.device?' ('+r.device+')':''),type:'Repair',method:p.method||'Cash',in:p.amount,out:0,source:'repair'});
     });
   });
   // 3. Expenses
   (DB.expenses||[]).forEach(function(e){
-    entries.push({date:e.date,time:'',desc:escHtml(e.title||e.category||'Expense')+(e.note?' — '+escHtml(e.note):''),type:'Expense',method:e.payMethod||'Cash',in:0,out:e.amount||0,source:'expense'});
+    entries.push({date:e.date,time:'',desc:escHtml(e.title||e.category||'Expense')+(e.note?' - '+escHtml(e.note):''),type:'Expense',method:e.payMethod||'Cash',in:0,out:e.amount||0,source:'expense'});
   });
   // 4. Manual entries
   (DB.cashEntries||[]).forEach(function(e){
@@ -7271,7 +7271,7 @@ function saveProduct(){
     ['p-imei', validateIMEI(imei)],
   ]);
   if(!ok)return;
-  if(imei){const dup=DB.inventory.find(x=>x.imei&&x.imei===imei);if(dup){fieldErr('p-imei','IMEI already registered to "'+dup.name+'"');toast('Duplicate IMEI — already linked to "'+dup.name+'"','error');return;}}
+  if(imei){const dup=DB.inventory.find(x=>x.imei&&x.imei===imei);if(dup){fieldErr('p-imei','IMEI already registered to "'+dup.name+'"');toast('Duplicate IMEI - already linked to "'+dup.name+'"','error');return;}}
   DB.inventory.push({
     id:DB.nextProduct++,name,
     category:document.getElementById('p-cat').value,
@@ -7320,7 +7320,7 @@ function updateProduct(id){
     ['ep-imei', validateIMEI(imei)],
   ]);
   if(!ok)return;
-  if(imei){const dup=DB.inventory.find(x=>x.id!==id&&x.imei&&x.imei===imei);if(dup){fieldErr('ep-imei','IMEI already registered to "'+dup.name+'"');toast('Duplicate IMEI — already linked to "'+dup.name+'"','error');return;}}
+  if(imei){const dup=DB.inventory.find(x=>x.id!==id&&x.imei&&x.imei===imei);if(dup){fieldErr('ep-imei','IMEI already registered to "'+dup.name+'"');toast('Duplicate IMEI - already linked to "'+dup.name+'"','error');return;}}
   p.name=name;
   p.category=document.getElementById('ep-cat').value;
   p.sku=document.getElementById('ep-sku').value.trim()||p.sku;
@@ -7333,7 +7333,7 @@ function updateProduct(id){
 }
 function adjustStock(id){
   const p=DB.inventory.find(x=>x.id===id);if(!p)return;
-  openModal('Adjust Stock — '+p.name,`
+  openModal('Adjust Stock - '+p.name,`
   <div class="alert alert-info">Current Stock: <strong>${p.stock} ${p.unit}</strong></div>
   <div class="form-row">
     <div class="form-group"><label class="form-label">Action</label>
@@ -7369,11 +7369,11 @@ function deleteProduct(id){
 function formatPaymentSummary(s){
   const cur=DB.settings.currency||'₹';
   const p=s.payments||[];
-  if(!p.length)return s.payMethod||'—';
+  if(!p.length)return s.payMethod||'-';
   const agg={};
   p.forEach(x=>{if(x.amount>0)agg[x.method]=(agg[x.method]||0)+x.amount;});
   const ms=Object.keys(agg);
-  if(!ms.length)return s.payMethod||'—';
+  if(!ms.length)return s.payMethod||'-';
   if(ms.length===1)return ms[0]+(agg[ms[0]]>0?': '+cur+agg[ms[0]].toLocaleString('en-IN'):'');
   return ms.map(m=>m+': '+cur+agg[m].toLocaleString('en-IN')).join(' + ');
 }
@@ -7538,7 +7538,7 @@ let saleItems=[];
 let nsCart=[];
 let esCart=[];
 
-// ── Draft Sale Persistence — auto-saves in-progress bill to localStorage ──────
+// ── Draft Sale Persistence - auto-saves in-progress bill to localStorage ──────
 function saveDraftSale(){
   try{
     var custId=(document.getElementById('s-cust-id')||{}).value||'';
@@ -7584,7 +7584,7 @@ window.addEventListener('visibilitychange',function(){if(document.visibilityStat
 let splitPayments = []; // [{method:'Cash', amount:0}, ...]
 const PAY_METHODS = ['Cash','UPI','Card','Cheque','BNPL','Credit','Other'];
 
-// Format payments for display — handles both old (single) and new (split) format
+// Format payments for display - handles both old (single) and new (split) format
 function formatPayments(sale, cur){
   if(sale.payments && sale.payments.length > 0){
     return sale.payments.filter(p=>p.amount>0)
@@ -7593,7 +7593,7 @@ function formatPayments(sale, cur){
   }
   return sale.payMethod || 'Cash';
 }
-// Method name only — used in invoice details where amount is already shown in totals
+// Method name only - used in invoice details where amount is already shown in totals
 function formatPayMethod(sale){
   if(sale.payments && sale.payments.length > 0){
     const methods=[...new Set(sale.payments.filter(p=>p.amount>0).map(p=>p.method))];
@@ -7746,7 +7746,7 @@ function filterCustSearch(q){
       ).slice(0,20);
   if(matches.length===0){
     dd.style.display='block';
-    dd.innerHTML=`<div style="padding:10px 12px;color:var(--text3);font-size:12px;text-align:center">No customers found — <a href="#" onclick="quickAddCustomerForSale()" style="color:var(--accent)">Add new</a></div>`;
+    dd.innerHTML=`<div style="padding:10px 12px;color:var(--text3);font-size:12px;text-align:center">No customers found - <a href="#" onclick="quickAddCustomerForSale()" style="color:var(--accent)">Add new</a></div>`;
     _custSearchSelected=-1;return;
   }
   _custSearchSelected=-1;
@@ -7903,7 +7903,7 @@ function filterProdSearch(q){
   const all=DB.inventory;
   const ql=q.trim().toLowerCase();
 
-  // Search by: name, SKU, category, IMEI — all fields customer might type
+  // Search by: name, SKU, category, IMEI - all fields customer might type
   const matches = ql===''
     ? all
     : all.filter(p=>
@@ -7935,7 +7935,7 @@ function filterProdSearch(q){
   dd.innerHTML=matches.map((p,i)=>{
     const outOfStock=p.stock<=0;
     const lowStock=p.stock>0&&p.stock<=p.minStock;
-    // Build subtitle — show what matched if SKU/IMEI search
+    // Build subtitle - show what matched if SKU/IMEI search
     const skuMatch=ql&&(p.sku||'').toLowerCase().includes(ql);
     const imeiMatch=ql&&(p.imei||'').toLowerCase().includes(ql);
     const subtitle=[
@@ -8105,12 +8105,12 @@ function editSale(id){
   // Load items into saleItems global
   saleItems=s.items.map(i=>({...i}));
 
-  const customers=DB.customers.map(c=>`<option value="${c.id}"${c.id===s.customerId?' selected':''}>${escHtml(c.name)} — ${c.phone}</option>`).join('');
+  const customers=DB.customers.map(c=>`<option value="${c.id}"${c.id===s.customerId?' selected':''}>${escHtml(c.name)} - ${c.phone}</option>`).join('');
 
   openModal('Edit Invoice: '+s.invoiceNo,`
   <div class="form-row">
     <div class="form-group"><label class="form-label">Customer</label>
-      <select class="form-control" id="s-cust"><option value="">— Select —</option>${customers}</select>
+      <select class="form-control" id="s-cust"><option value="">- Select -</option>${customers}</select>
     </div>
     <div class="form-group"><label class="form-label">Date</label>
       <input class="form-control" id="s-date" type="date" value="${s.date}" max="${localDateStr()}">
@@ -8225,7 +8225,7 @@ function saveSale(){
   }
   if(saleItems.length===0){toast('Add at least one item','error');return;}
 
-  // ── Hard stock validation — final check before saving ──
+  // ── Hard stock validation - final check before saving ──
   const stockErrors=[];
   saleItems.forEach(item=>{
     const prod=DB.inventory.find(p=>p.id===item.productId);
@@ -8245,7 +8245,7 @@ function saveSale(){
   if(disc<0){fieldErr('s-disc','Discount cannot be negative');return;}
   if(disc>sub){fieldErr('s-disc',`Discount (₹${disc.toLocaleString('en-IN')}) cannot exceed subtotal (₹${sub.toLocaleString('en-IN')})`);return;}
   const total=Math.max(0,sub-disc);
-  // Validate split payments — cap at total
+  // Validate split payments - cap at total
   // ── Determine paid amount from new payment UI ──
   // ── Read from new buildPaymentUI ──────────────────────────
   var _splits=(window._paySplits&&window._paySplits['ns-pay'])||[];
@@ -8611,7 +8611,7 @@ function deleteJob(id){
   id=parseInt(id)||id;
   const r=DB.repairs.find(x=>parseInt(x.id)===id);if(!r){toast('Job not found','error');return;}
   showConfirm(
-    `Delete job ${r.jobNo} (${escHtml(r.device||'')} — ${escHtml(r.customerName||'')})? Parts used will be restored to stock.`,
+    `Delete job ${r.jobNo} (${escHtml(r.device||'')} - ${escHtml(r.customerName||'')})? Parts used will be restored to stock.`,
     function(){
       // Restore parts to stock
       (r.partsUsed||[]).forEach(part=>{
@@ -8677,7 +8677,7 @@ function newJob(){
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
     <div>
       <div style="font-size:13px;font-weight:700">Collect Advance?</div>
-      <div style="font-size:11px;color:var(--text3)">Optional — record upfront payment from customer</div>
+      <div style="font-size:11px;color:var(--text3)">Optional - record upfront payment from customer</div>
     </div>
     <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer">
       <input type="checkbox" id="j-advance-toggle" onchange="toggleAdvanceSection(this.checked)" style="opacity:0;width:0;height:0">
@@ -8707,7 +8707,7 @@ function newJob(){
   `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
    <button class="btn btn-primary" onclick="saveJob()">Create Job Card</button>`,
   '', // no extra class
-  function(){ // onRendered — focus cursor in search box, no auto-dropdown
+  function(){ // onRendered - focus cursor in search box, no auto-dropdown
     const inp=document.getElementById('j-cust-search');
     if(inp) inp.focus();
   });
@@ -8736,7 +8736,7 @@ function filterJobCustSearch(q){
       ).slice(0,20);
   if(matches.length===0){
     dd.style.display='block';
-    dd.innerHTML=`<div style="padding:10px 12px;color:var(--text3);font-size:12px;text-align:center">No match — <a href="#" onclick="quickAddCustForJob()" style="color:var(--accent)">Add new customer</a></div>`;
+    dd.innerHTML=`<div style="padding:10px 12px;color:var(--text3);font-size:12px;text-align:center">No match - <a href="#" onclick="quickAddCustForJob()" style="color:var(--accent)">Add new customer</a></div>`;
     return;
   }
   _jobCustSelected=-1;
@@ -8810,7 +8810,7 @@ function handleJobCustKey(e){
 }
 
 function quickAddCustForJob(){
-  // Quick inline add — opens a minimal modal, then returns to job card
+  // Quick inline add - opens a minimal modal, then returns to job card
   closeModal();
   setTimeout(()=>{
     openModal('Quick Add Customer',`
@@ -8937,7 +8937,7 @@ function waJobReceipt(id){
   const estDate=r.estimatedDelivery||'To be confirmed';
   const msgEn=`*${shop.shopName||'ShopERP Pro'}* 📱
 ━━━━━━━━━━━━━
-*Job Receipt — ${r.jobNo}*
+*Job Receipt - ${r.jobNo}*
 📅 Date: ${r.received}
 
 *Customer:* ${r.customerName}
@@ -8950,7 +8950,7 @@ ${shop.phone?'📞 '+shop.phone:''}${shop.address?'\n📍 '+shop.address:''}
 We'll keep you updated. Thank you! 🙏`;
   const msgHi=`*${shop.shopName||'ShopERP Pro'}* 📱
 ━━━━━━━━━━━━━
-*जॉब रसीद — ${r.jobNo}*
+*जॉब रसीद - ${r.jobNo}*
 📅 तारीख: ${r.received}
 
 *ग्राहक:* ${r.customerName}
@@ -9138,7 +9138,7 @@ function isWarrantyActive(r){
   return new Date()<=expiryDate;
 }
 function getWarrantyExpiry(r){
-  if(!r.delivered) return '—';
+  if(!r.delivered) return '-';
   const delivDate=new Date(r.delivered);
   const expiryDate=new Date(delivDate);
   expiryDate.setDate(expiryDate.getDate()+(r.warranty||0));
@@ -9150,7 +9150,7 @@ function editJobUnderWarranty(id){
   if(w===false){toast('Warranty expired. Editing is locked.','error');return;}
   const wCount=r.warrantyRepairs?r.warrantyRepairs.length:0;
   const cur=DB.settings.currency||'₹';
-  const prods=DB.inventory.map(p=>`<option value="${p.id}">${escHtml(p.name)} (Stock: ${p.stock}) — ${cur}${p.sellPrice}</option>`).join('');
+  const prods=DB.inventory.map(p=>`<option value="${p.id}">${escHtml(p.name)} (Stock: ${p.stock}) - ${cur}${p.sellPrice}</option>`).join('');
   const partsHtml=(r.warrantyParts||[]).map((p,i)=>
     `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--bg3);border-radius:var(--r-xs);margin-bottom:4px">
       <span style="flex:1;font-size:12px">${escHtml(p.name)} ×${p.qty}</span>
@@ -9159,7 +9159,7 @@ function editJobUnderWarranty(id){
     </div>`
   ).join('')||'<div style="font-size:11px;color:var(--text3);padding:4px 0">No parts added yet</div>';
 
-  openModal('Warranty Repair — '+r.jobNo,`
+  openModal('Warranty Repair - '+r.jobNo,`
   <div style="background:var(--green-d);border:1px solid rgba(34,197,94,.3);border-radius:var(--r-sm);padding:10px 14px;font-size:12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
     <span>🛡️ <strong>Under Warranty</strong> · ${escHtml(r.device)} · Expires: ${getWarrantyExpiry(r)}</span>
     <span class="badge bg-orange">Visit #${wCount+1}</span>
@@ -9303,19 +9303,19 @@ function saveWarrantyEdit(id){
   const chargeArea=document.getElementById('wed-charge-area');
   const isPaid=chargeArea&&chargeArea.style.display!=='none';
   if(!isPaid){
-    // Free warranty — mark as paid ₹0
+    // Free warranty - mark as paid ₹0
     r.paymentStatus='Paid';
     r.paidAmount=0;
     r.payMethod='Warranty (No Charge)';
   } else {
-    // Charge customer — reset payment status
+    // Charge customer - reset payment status
     const chargeAmt=parseFloat(document.getElementById('wed-charge-amt')?.value)||0;
     r.paymentStatus='Unpaid';
     r.paidAmount=0;
     if(chargeAmt>0)r.finalCost=chargeAmt;
   }
   saveDB();updateRepairBadge();
-  toast('Warranty repair #'+r.warrantyRepairs.length+' opened — job back to Repairing','success');
+  toast('Warranty repair #'+r.warrantyRepairs.length+' opened - job back to Repairing','success');
   viewJob(id); // return to job card
 }
 function setJobStatus(id,status){
@@ -9337,7 +9337,7 @@ function setJobStatus(id,status){
         var paid=rep.paidAmount||0;
         var finalCost=rep.finalCost>0?rep.finalCost:0;
         return '<tr>'+
-          '<td><span style="color:var(--orange);font-weight:700;font-family:var(--mono)">'+(rep.jobNo||'—')+'</span></td>'+
+          '<td><span style="color:var(--orange);font-weight:700;font-family:var(--mono)">'+(rep.jobNo||'-')+'</span></td>'+
           '<td>'+escHtml(rep.customerName||'Unknown')+'</td>'+
           '<td>'+escHtml(rep.device||'Unknown')+'</td>'+
           '<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:11px">'+escHtml(rep.issue||'')+'</td>'+
@@ -9347,11 +9347,11 @@ function setJobStatus(id,status){
           '</td>'+
           '<td style="font-family:var(--mono)">'+cur+(rep.estimatedCost||0).toLocaleString('en-IN')+'</td>'+
           '<td style="font-family:var(--mono);font-weight:600;color:'+(finalCost>0?'var(--green)':'var(--text3)')+'">'+
-            (finalCost>0?cur+finalCost.toLocaleString('en-IN'):'—')+
+            (finalCost>0?cur+finalCost.toLocaleString('en-IN'):'-')+
           '</td>'+
-          '<td style="font-size:11px;color:var(--text3)">'+(rep.received||'—')+'</td>'+
+          '<td style="font-size:11px;color:var(--text3)">'+(rep.received||'-')+'</td>'+
           '<td style="font-size:11px;color:'+(rep.delivered?'var(--green)':'var(--text3)')+'">'+
-            (rep.delivered||'—')+
+            (rep.delivered||'-')+
           '</td>'+
           '<td style="font-size:10px;color:var(--text2)">'+(rep.note?'📝 '+escHtml(rep.note):'')+'</td>'+
           '<td>'+
@@ -9524,7 +9524,7 @@ function saveJobChanges(id){
   r.finalCost=partsTotal+r.labourCharge;
   var cur=DB.settings.currency||'₹';
   saveDB();updateRepairBadge();
-  toast('Saved — Parts: '+cur+partsTotal.toLocaleString('en-IN')+
+  toast('Saved - Parts: '+cur+partsTotal.toLocaleString('en-IN')+
         ' + Labour: '+cur+r.labourCharge.toLocaleString('en-IN')+
         ' = '+cur+r.finalCost.toLocaleString('en-IN'),'success');
   closeModal();
@@ -9575,7 +9575,7 @@ function printJobCard(id){
     <span style="font-size:11px;color:#888">Customer Signature: ______________</span>
     <span style="font-size:11px;color:#888">Technician: ______________</span>
   </div>
-  <div class="footer">${escHtml(shop.shopName||'ShopERP Pro')} — Keep this receipt for warranty claims</div>
+  <div class="footer">${escHtml(shop.shopName||'ShopERP Pro')} - Keep this receipt for warranty claims</div>
   </body></html>`;
   _printViaFrame(html);
 }
@@ -9602,7 +9602,7 @@ function checkPhoneUnique(el, excludeId=null){
 // ============================================================
 // CUSTOMERS
 // ============================================================
-// ── Customer types — dynamic, user-editable ───────────────────
+// ── Customer types - dynamic, user-editable ───────────────────
 const DEFAULT_CUST_TYPES=['Regular','Wholesale','Shopkeeper','VIP'];
 function getCustTypes(){
   const saved=DB.settings.customCustTypes||[];
@@ -9700,7 +9700,7 @@ function pageCustomers(){
     <div id="cust-page-info" style="font-size:12px;color:var(--text3)"></div>
     <div id="cust-page-btns" style="display:flex;gap:5px;flex-wrap:wrap"></div>
   </div>`;
-  // NOTE: renderCustTable() is called by showPage() postRender hook — NOT via inline script
+  // NOTE: renderCustTable() is called by showPage() postRender hook - NOT via inline script
 }
 
 function renderCustStats(){
@@ -9766,7 +9766,7 @@ function renderCustTable(){
     tbody.innerHTML=`<tr><td colspan="11" class="tbl-empty">${
       _custFilter||_custType!=='All'
         ?'No customers match your filter. Try a different search or category.'
-        :'No customers yet — click "+ Add Customer" to get started.'
+        :'No customers yet - click "+ Add Customer" to get started.'
     }</td></tr>`;
   } else {
     tbody.innerHTML=paginated.map(c=>{
@@ -9787,7 +9787,7 @@ function renderCustTable(){
         </td>
         <td><span class="badge ${badgeCls}" style="font-size:10px">${escHtml(c.type)}</span></td>
         <td><a href="https://wa.me/${waPhone(c.phone)}" target="_blank" style="color:var(--green);font-size:12px">${c.phone}</a></td>
-        <td style="font-size:11px;color:var(--text2)">${escHtml(c.address||'—')}</td>
+        <td style="font-size:11px;color:var(--text2)">${escHtml(c.address||'-')}</td>
         <td style="text-align:center;font-size:12px">${sales.length}</td>
         <td style="text-align:center;font-size:12px">${repairs.length}</td>
         <td style="font-family:var(--mono);font-size:12px">${cur}${spent.toLocaleString('en-IN')}</td>
@@ -10248,7 +10248,7 @@ function vcRenderRepairs(page){
     var st=paid>=total&&total>0?'Paid':paid>0?'Partial':'Unpaid';
     return '<tr style="border-bottom:1px solid var(--border)" onmouseover="this.style.background=\'var(--bg2)\'" onmouseout="this.style.background=\'\'">'
       +'<td style="padding:11px 14px;font-family:var(--mono);font-size:12px;font-weight:700;white-space:nowrap">'+r.jobNo+'</td>'
-      +'<td style="padding:11px 14px;font-size:12px;white-space:nowrap;color:var(--text2)">'+(r.received||'—')+'</td>'
+      +'<td style="padding:11px 14px;font-size:12px;white-space:nowrap;color:var(--text2)">'+(r.received||'-')+'</td>'
       +'<td style="padding:11px 14px;font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(r.device||'')+'</td>'
       +'<td style="padding:11px 14px;font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">'+escHtml(r.issue||'')+'</td>'
       +'<td style="padding:11px 14px"><span class="badge '+statusColor(r.status)+'" style="font-size:10px;white-space:nowrap">'+r.status+'</span></td>'
@@ -10302,16 +10302,16 @@ function openBulkWA(){
   const typeLabel=_custType==='All'?'All Customers':_custType+' Customers';
 
   const msgTemplates={
-    greeting:  `Hello {name}! 🙏\nThis is *${shop.shopName}*.\nFor any mobile needs — repairs or purchases — we're here!\n${shop.phone?`📞 ${shop.phone}`:''}`,
+    greeting:  `Hello {name}! 🙏\nThis is *${shop.shopName}*.\nFor any mobile needs - repairs or purchases - we're here!\n${shop.phone?`📞 ${shop.phone}`:''}`,
     offer:     `Hello {name}! 🎉\n*${shop.shopName}* Special Offer!\n📱 20% off on Mobile Accessories\n🔧 Free tempered glass with screen repair\nValid till stock lasts!\n📞 ${shop.phone||''}`,
     festival:  `Hello {name}! 🎊\n*${shop.shopName}* wishes you a wonderful festival season!\nCelebrate with our exclusive festival offers on phones and accessories.\nVisit us today!\n📞 ${shop.phone||''}`,
     new_stock: `Hello {name}! 📦\nNew stock has arrived at *${shop.shopName}*!\nLatest smartphones and accessories now available.\nVisit us or call for details.\n📞 ${shop.phone||''}`,
     reminder:  `Hello {name},\nThis is a gentle reminder from *${shop.shopName}*.\nYou have a pending payment with us.\nKindly visit at your earliest convenience.\nThank you! 🙏\n📞 ${shop.phone||''}`,
-    review:    `Hello {name}! 🌟\nThank you for choosing *${shop.shopName}*!\nWe'd love your Google review — it takes just 1 minute!\n${shop.googleReviewLink||'[Add Google link in Settings]'}\nThank you! 🙏`,
+    review:    `Hello {name}! 🌟\nThank you for choosing *${shop.shopName}*!\nWe'd love your Google review - it takes just 1 minute!\n${shop.googleReviewLink||'[Add Google link in Settings]'}\nThank you! 🙏`,
     custom:    `Hello {name}! 🙏\n\n[Type your message here]\n\n${shop.shopName}\n📞 ${shop.phone||''}`,
   };
 
-  openModal(`Bulk WhatsApp — ${_custSelected.size} Customer${_custSelected.size>1?'s':''}`,`
+  openModal(`Bulk WhatsApp - ${_custSelected.size} Customer${_custSelected.size>1?'s':''}`,`
   <!-- Selected preview -->
   <div style="background:var(--bg3);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:14px;max-height:80px;overflow-y:auto">
     <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">SELECTED CUSTOMERS (${_custSelected.size})</div>
@@ -10341,7 +10341,7 @@ function openBulkWA(){
 
   <!-- WhatsApp-style preview -->
   <div style="background:#0b141a;border-radius:10px;padding:14px">
-    <div style="font-size:10px;color:#8696a0;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Preview — how it looks for the first customer</div>
+    <div style="font-size:10px;color:#8696a0;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Preview - how it looks for the first customer</div>
     <div style="display:flex;justify-content:flex-start">
       <div id="bulk-preview" style="background:#025c4c;border-radius:0 10px 10px 10px;padding:10px 13px;font-size:12px;color:#e9edef;line-height:1.7;max-width:88%;white-space:pre-wrap;word-break:break-word;font-family:inherit"></div>
     </div>
@@ -10353,7 +10353,7 @@ function openBulkWA(){
      🚀 Send to ${_custSelected.size} Customer${_custSelected.size>1?'s':''}
    </button>`,'modal-lg');
 
-  // Store templates and init — done AFTER openModal so DOM exists
+  // Store templates and init - done AFTER openModal so DOM exists
   window._bulkTpls=msgTemplates;
   window._bulkFirstName=selectedCustomers[0]?.name||'Customer';
   // Small delay to ensure modal DOM is painted
@@ -10554,7 +10554,7 @@ function addRecurring(){
   </div>
   <div class="form-group">
     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-      <input type="checkbox" id="re-active" checked> <span>Active — auto-apply each month</span>
+      <input type="checkbox" id="re-active" checked> <span>Active - auto-apply each month</span>
     </label>
   </div>`,
   `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
@@ -10961,7 +10961,7 @@ function buildReportContent(fy){
 
   ${turnoverExceeded?`<div class="alert alert-danger" style="margin-bottom:14px;font-size:12px">
     ⚠️ <strong>Turnover Exceeds 44AD Limit!</strong> Your turnover ₹${totalRev.toLocaleString('en-IN')} exceeds the ${cashIsLow?'₹3 Crore (digital)':'₹2 Crore (cash)'} limit.
-    You may NOT be eligible for presumptive taxation. Consult your CA — you may need ITR-3 with books of accounts and tax audit.
+    You may NOT be eligible for presumptive taxation. Consult your CA - you may need ITR-3 with books of accounts and tax audit.
   </div>`:''}
 
   <!-- STATS ROW -->
@@ -10978,12 +10978,12 @@ function buildReportContent(fy){
 
     <!-- CA / ITR SUMMARY -->
     <div class="card">
-      <div class="card-title">📋 CA / ITR-4 Summary — ${ayLabel}</div>
+      <div class="card-title">📋 CA / ITR-4 Summary - ${ayLabel}</div>
       <table><tbody>
-        <tr><td style="color:var(--text2);font-size:12px;padding:5px 0">Business Name</td><td style="font-weight:600;font-size:12px">${escHtml(shop.shopName||'—')}</td></tr>
+        <tr><td style="color:var(--text2);font-size:12px;padding:5px 0">Business Name</td><td style="font-weight:600;font-size:12px">${escHtml(shop.shopName||'-')}</td></tr>
         <tr><td style="color:var(--text2);font-size:12px;padding:5px 0">GST Number</td><td style="font-weight:600;font-size:12px;font-family:var(--mono)">${escHtml(shop.gstNo||'⚠ Not registered')}</td></tr>
         <tr><td style="color:var(--text2);font-size:12px;padding:5px 0">Assessment Year</td><td style="font-weight:600;font-size:12px">${ayLabel}</td></tr>
-        <tr><td style="color:var(--text2);font-size:12px;padding:5px 0">ITR Form</td><td style="font-weight:600;font-size:12px">ITR-4 (Sugam) — Section 44AD</td></tr>
+        <tr><td style="color:var(--text2);font-size:12px;padding:5px 0">ITR Form</td><td style="font-weight:600;font-size:12px">ITR-4 (Sugam) - Section 44AD</td></tr>
         <tr><td colspan="2"><hr class="divider" style="margin:4px 0"></td></tr>
 
         <tr><td colspan="2" style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:6px 0 2px">Turnover (Gross Receipts)</td></tr>
@@ -10992,7 +10992,7 @@ function buildReportContent(fy){
         <tr><td style="color:var(--text2);font-size:11px;padding:3px 0 3px 10px">↳ Service/Repair Revenue</td><td style="font-size:11px;font-family:var(--mono)">${cur}${repairRev.toLocaleString('en-IN')}</td></tr>
         <tr><td colspan="2"><hr class="divider" style="margin:4px 0"></td></tr>
 
-        <tr><td colspan="2" style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:6px 0 2px">Sec 44AD — Presumptive Taxation</td></tr>
+        <tr><td colspan="2" style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:6px 0 2px">Sec 44AD - Presumptive Taxation</td></tr>
         <tr><td style="color:var(--text2);font-size:12px;padding:4px 0">Cash Receipts</td><td style="font-family:var(--mono)">${cur}${totalCashRec.toLocaleString('en-IN')} <span style="color:var(--text3);font-size:10px">(${cashPct}%)</span></td></tr>
         <tr><td style="color:var(--text2);font-size:12px;padding:4px 0">Digital Receipts</td><td style="font-family:var(--mono)">${cur}${totalDigitalRec.toLocaleString('en-IN')} <span style="color:var(--text3);font-size:10px">(${digitalPct}%)</span></td></tr>
         <tr><td style="color:var(--text2);font-size:12px;padding:4px 0">Applicable Rate</td><td style="font-weight:700;color:${cashIsLow?'var(--green)':'var(--orange)'}"><strong>${presumptiveRate}%</strong> <span style="font-size:10px;color:var(--text3)">(${cashIsLow?'≤5% cash → 6% digital rate':'> 5% cash → 8% rate'})</span></td></tr>
@@ -11023,7 +11023,7 @@ function buildReportContent(fy){
       <!-- PAYMENT BREAKDOWN -->
       <div class="card" style="margin-bottom:14px">
         <div class="card-title">💳 Payment Mode Breakdown</div>
-        <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Cash % = ${cashPct}% — ${cashIsLow?'✓ ≤5% cash → 6% presumptive rate (better)':'⚠ >5% cash → 8% rate. Consider digital payments for lower tax.'}</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Cash % = ${cashPct}% - ${cashIsLow?'✓ ≤5% cash → 6% presumptive rate (better)':'⚠ >5% cash → 8% rate. Consider digital payments for lower tax.'}</div>
         <table><thead><tr><th>Mode</th><th>Amount</th><th>%</th></tr></thead><tbody>
           ${Object.entries(payBreak).sort((a,b)=>b[1]-a[1]).map(([m,a])=>`
             <tr><td>${m}</td>
@@ -11055,7 +11055,7 @@ function buildReportContent(fy){
 
   <!-- MONTHLY P&L TABLE -->
   <div class="card" style="margin-bottom:14px">
-    <div class="card-title">📅 Monthly P&L — ${fyLabel}</div>
+    <div class="card-title">📅 Monthly P&L - ${fyLabel}</div>
     <div class="tbl-wrap"><table>
       <thead><tr><th>Month</th><th>Sales</th><th>Service</th><th>Total Rev</th><th>Cash</th><th>Digital</th><th>Expenses</th><th>Net</th><th>Bills</th></tr></thead>
       <tbody>
@@ -11073,7 +11073,7 @@ function buildReportContent(fy){
             <td style="font-family:var(--mono);font-size:11px;color:var(--green)">${cur}${d.digital.toLocaleString('en-IN')}</td>
             <td style="font-family:var(--mono);font-size:11px;color:var(--red)">${cur}${d.exp.toLocaleString('en-IN')}</td>
             <td style="font-family:var(--mono);font-size:11px;font-weight:700;color:${net>=0?'var(--green)':'var(--red)'}">${cur}${net.toLocaleString('en-IN')}</td>
-            <td style="text-align:center;font-size:11px;color:var(--text2)">${d.inv||'—'}</td>
+            <td style="text-align:center;font-size:11px;color:var(--text2)">${d.inv||'-'}</td>
           </tr>
           <tr id="plm_${mKey}" style="display:none">
             <td colspan="9" style="padding:0;background:var(--bg3)">
@@ -11124,7 +11124,7 @@ function buildReportContent(fy){
     <div class="card">
       <div class="card-title">📦 Revenue by Category</div>
       <table><thead><tr><th>Category</th><th>Revenue</th><th>Share</th></tr></thead><tbody>
-        ${Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,a])=>`<tr><td>${c}</td><td style="font-family:var(--mono);font-weight:600;color:var(--green)">${cur}${a.toLocaleString('en-IN')}</td><td style="color:var(--text2)">${salesRev>0?Math.round(a/salesRev*100)+'%':'—'}</td></tr>`).join('')||'<tr><td colspan="3" class="tbl-empty">No data</td></tr>'}
+        ${Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,a])=>`<tr><td>${c}</td><td style="font-family:var(--mono);font-weight:600;color:var(--green)">${cur}${a.toLocaleString('en-IN')}</td><td style="color:var(--text2)">${salesRev>0?Math.round(a/salesRev*100)+'%':'-'}</td></tr>`).join('')||'<tr><td colspan="3" class="tbl-empty">No data</td></tr>'}
       </tbody></table>
     </div>
   </div>
@@ -11189,7 +11189,7 @@ function buildReportContent(fy){
     </div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:12px">
       JSON files ready for direct upload to the <strong>GST Portal (gst.gov.in)</strong>. Assumes 18% GST (9% CGST + 9% SGST intra-state). Verify all figures with your CA before filing.
-      ${!shop.gstNo?'<span style="color:var(--red);font-weight:700"> ⚠ GSTIN not set — add it in Settings first.</span>':''}
+      ${!shop.gstNo?'<span style="color:var(--red);font-weight:700"> ⚠ GSTIN not set - add it in Settings first.</span>':''}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
       <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:14px">
@@ -11322,7 +11322,7 @@ function buildReportContent(fy){
         <div style="font-size:11px;font-weight:700;color:var(--orange);margin-bottom:8px">Provide to CA separately &#x25CB;</div>
         <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;font-size:12px"><span style="color:var(--orange);flex-shrink:0">&#x25CB;</span><span style="color:var(--text2)">Purchase invoices from suppliers/wholesalers</span></div>
         <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;font-size:12px"><span style="color:var(--orange);flex-shrink:0">&#x25CB;</span><span style="color:var(--text2)">Rent agreement and rent receipts</span></div>
-        <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;font-size:12px"><span style="color:var(--orange);flex-shrink:0">&#x25CB;</span><span style="color:var(--text2)">Bank statements (all accounts) — full FY</span></div>
+        <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;font-size:12px"><span style="color:var(--orange);flex-shrink:0">&#x25CB;</span><span style="color:var(--text2)">Bank statements (all accounts) - full FY</span></div>
         <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;font-size:12px"><span style="color:var(--orange);flex-shrink:0">&#x25CB;</span><span style="color:var(--text2)">Salary and wage payment records</span></div>
         <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;font-size:12px"><span style="color:var(--orange);flex-shrink:0">&#x25CB;</span><span style="color:var(--text2)">Electricity, internet, phone bills</span></div>
         <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;font-size:12px"><span style="color:var(--orange);flex-shrink:0">&#x25CB;</span><span style="color:var(--text2)">TDS certificates received (Form 16A)</span></div>
@@ -11376,7 +11376,7 @@ function printCAReport(){
   const turnoverLimitAmt=cashIsLow?30000000:20000000;
   const turnoverExceeded=totalRev>turnoverLimitAmt;
 
-  // Tax estimate new regime — calcTax defined locally (not in global scope)
+  // Tax estimate new regime - calcTax defined locally (not in global scope)
   function calcTax(income){
     if(income<=400000)return 0;
     let tax=0;
@@ -11393,7 +11393,7 @@ function printCAReport(){
   fyExp.forEach(e=>{const mk=MONTHS_ORDER[((new Date(e.date).getMonth()-3+12)%12)];if(monthly[mk])monthly[mk].exp+=e.amount;});
 
   // Build full HTML
-  var reportHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CA Report ${ayLabel} — ${shop.shopName||'Business'}</title>
+  var reportHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CA Report ${ayLabel} - ${shop.shopName||'Business'}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a1a;background:#fff;padding:32px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -11443,11 +11443,11 @@ function printCAReport(){
     </div>
   </div>
 
-  ${turnoverExceeded?`<div class="danger">⚠ <strong>IMPORTANT:</strong> Turnover ₹${totalRev.toLocaleString('en-IN')} exceeds the 44AD limit (${turnoverLimit}). Section 44AD may NOT apply. Consult your CA — you may need ITR-3 with books of accounts and tax audit u/s 44AB.</div>`:''}
+  ${turnoverExceeded?`<div class="danger">⚠ <strong>IMPORTANT:</strong> Turnover ₹${totalRev.toLocaleString('en-IN')} exceeds the 44AD limit (${turnoverLimit}). Section 44AD may NOT apply. Consult your CA - you may need ITR-3 with books of accounts and tax audit u/s 44AB.</div>`:''}
 
   <!-- SECTION 44AD BOX -->
   <div class="section44ad">
-    <h3>📋 Section 44AD — Presumptive Taxation (ITR-4 Key Figures)</h3>
+    <h3>📋 Section 44AD - Presumptive Taxation (ITR-4 Key Figures)</h3>
     <div class="grid-2">
       <table class="sum"><tbody>
         <tr><td>Gross Turnover / Receipts</td><td style="color:#15803D;font-size:13px">₹${totalRev.toLocaleString('en-IN')}</td></tr>
@@ -11485,7 +11485,7 @@ function printCAReport(){
         <tr><td>&nbsp;</td><td></td></tr>
         <tr class="highlight-row"><td>Gross Profit</td><td style="color:#15803D">₹${grossProfit.toLocaleString('en-IN')}</td></tr>
         <tr><td>Less: Total Expenses</td><td>(₹${totalExpenses.toLocaleString('en-IN')})</td></tr>
-        <tr class="total-row"><td><strong>Net Profit / (Loss) — Actual</strong></td><td style="color:${netProfit>=0?'#15803D':'#B91C1C'}">₹${netProfit.toLocaleString('en-IN')}</td></tr>
+        <tr class="total-row"><td><strong>Net Profit / (Loss) - Actual</strong></td><td style="color:${netProfit>=0?'#15803D':'#B91C1C'}">₹${netProfit.toLocaleString('en-IN')}</td></tr>
       </tbody></table>
     </div>
     <div>
@@ -11637,7 +11637,7 @@ function exportReport(){
   const sections=[];
 
   // ── Section 1: Business Info ──
-  sections.push(row('CA / ITR-4 REPORT — '+ayLabel,'','','','',''));
+  sections.push(row('CA / ITR-4 REPORT - '+ayLabel,'','','','',''));
   sections.push(row('Shop','Owner','Phone','GSTIN','FY','Generated'));
   sections.push(row(shop.shopName||'',shop.ownerName||'',shop.phone||'',shop.gstNo||'No GST','FY '+fy,new Date().toLocaleDateString('en-IN')));
   sections.push('');
@@ -11657,7 +11657,7 @@ function exportReport(){
   sections.push('');
 
   // ── Section 3: Section 44AD ──
-  sections.push(row('--- SECTION 44AD — PRESUMPTIVE TAXATION ---','','','','',''));
+  sections.push(row('--- SECTION 44AD - PRESUMPTIVE TAXATION ---','','','','',''));
   sections.push(row('Gross Turnover',totalRev));
   sections.push(row('Cash Receipts',totalCash,'('+cashPct+'%)','','',''));
   sections.push(row('Digital Receipts',totalCollected-totalCash,'('+(100-cashPct)+'%)','','',''));
@@ -11702,7 +11702,7 @@ function exportReport(){
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='CA_Report_FY'+fy+'_'+localDateStr()+'.csv';a.click();URL.revokeObjectURL(url);
-  toast('CA Report exported — open in Excel for full breakdown','success');
+  toast('CA Report exported - open in Excel for full breakdown','success');
 }
 // ============================================================
 // GSTR FILING EXPORT
@@ -11759,7 +11759,7 @@ function showGSTRModal(defaultTab){
       '<div id="gstr1-preview" style="font-size:11px;color:var(--text3);min-height:40px"></div>'+
     '</div>'+
     '<div id="gstr-tab-gstr3b" style="display:'+(tab==='gstr3b'?'block':'none')+'">'+
-      '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">Monthly tax summary. Covers outward taxable supplies (Table 3.1a). ITC left as zero — add manually if you have purchase invoices. Due <strong>20th of next month</strong>.</div>'+
+      '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">Monthly tax summary. Covers outward taxable supplies (Table 3.1a). ITC left as zero - add manually if you have purchase invoices. Due <strong>20th of next month</strong>.</div>'+
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
         '<label style="font-size:12px;font-weight:600;white-space:nowrap">Select Month:</label>'+
         '<select id="gstr3b-period" class="form-control" style="flex:1">'+opts+'</select>'+
@@ -11777,7 +11777,7 @@ function showGSTRModal(defaultTab){
     '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'+
     '<button id="gstr-dl-btn" class="btn btn-primary" onclick="gstrDownload()">📥 Download JSON</button>';
 
-  openModal('GSTR Export — FY '+fy, body, footer);
+  openModal('GSTR Export - FY '+fy, body, footer);
   window._gstrActiveFY=fy;
   window._gstrActiveTab=tab;
 }
@@ -12311,8 +12311,8 @@ function previewWaMsg(){
 
   const msgs={
     greeting: lang==='hi'
-      ? `नमस्ते ${name} जी! 🙏\n*${shop.shopName||'हमारी दुकान'}* में आपका स्वागत है।\nमोबाइल की कोई भी जरूरत हो — मरम्मत या खरीदारी — हम हाज़िर हैं!\n📞 ${shop.phone||''}`
-      : `Hello ${name}! 🙏\n*${shop.shopName||'ShopERP Pro'}* welcomes you.\nFor any mobile need — repair or purchase — we are here!\n📞 ${shop.phone||''}`,
+      ? `नमस्ते ${name} जी! 🙏\n*${shop.shopName||'हमारी दुकान'}* में आपका स्वागत है।\nमोबाइल की कोई भी जरूरत हो - मरम्मत या खरीदारी - हम हाज़िर हैं!\n📞 ${shop.phone||''}`
+      : `Hello ${name}! 🙏\n*${shop.shopName||'ShopERP Pro'}* welcomes you.\nFor any mobile need - repair or purchase - we are here!\n📞 ${shop.phone||''}`,
 
     offer: lang==='hi'
       ? `नमस्ते ${name} जी! 🎉\n*${shop.shopName}* का खास ऑफर!\n📱 मोबाइल एक्सेसरीज पर 20% छूट\n🔧 स्क्रीन रिपेयर के साथ फ्री टेम्पर्ड ग्लास\nजब तक स्टॉक रहे!\n📞 ${shop.phone||''}`
@@ -12323,8 +12323,8 @@ function previewWaMsg(){
       : `Hello ${name},\nPayment reminder from *${shop.shopName}*.\nYou have a pending payment. Please visit us.\nThank you! 🙏\n📞 ${shop.phone||''}`,
 
     review: lang==='hi'
-      ? `नमस्ते ${name} जी! 🙏\n*${shop.shopName}* आने के लिए धन्यवाद!\nकृपया हमें Google पर रिव्यू दें — सिर्फ 1 मिनट!\n⭐ ${shop.googleReviewLink||'[गूगल रिव्यू लिंक जोड़ें]'}\nबहुत धन्यवाद! 🌟`
-      : `Hello ${name}! 🙏\nThank you for visiting *${shop.shopName}*!\nWe'd love your Google review — just 1 minute!\n⭐ ${shop.googleReviewLink||'[Add Google Review link]'}\nThank you! 🌟`,
+      ? `नमस्ते ${name} जी! 🙏\n*${shop.shopName}* आने के लिए धन्यवाद!\nकृपया हमें Google पर रिव्यू दें - सिर्फ 1 मिनट!\n⭐ ${shop.googleReviewLink||'[गूगल रिव्यू लिंक जोड़ें]'}\nबहुत धन्यवाद! 🌟`
+      : `Hello ${name}! 🙏\nThank you for visiting *${shop.shopName}*!\nWe'd love your Google review - just 1 minute!\n⭐ ${shop.googleReviewLink||'[Add Google Review link]'}\nThank you! 🌟`,
 
     followup: lang==='hi'
       ? `नमस्ते ${name} जी! 👋\nआशा है आपका फोन ठीक काम कर रहा है!\nकोई भी एक्सेसरी या मरम्मत की जरूरत हो तो *${shop.shopName}* पधारें।\n📞 ${shop.phone||''}`
@@ -12377,17 +12377,17 @@ function waDueReminder(saleId){
   const shop=DB.settings;const cur=shop.currency||'₹';
   const cust=DB.customers.find(c=>c.id===s.customerId);if(!cust)return;
   const due=s.total-s.paid;
-  // Build fresh templates per customer — never shared
+  // Build fresh templates per customer - never shared
   const templates={
     en:`Hello ${cust.name}! 🙏
 *${shop.shopName||'ShopERP'}* here.
-Invoice *${s.invoiceNo}* — Amount Due: *${cur}${due.toLocaleString('en-IN')}*
+Invoice *${s.invoiceNo}* - Amount Due: *${cur}${due.toLocaleString('en-IN')}*
 Kindly settle at your earliest convenience.
 Thank you! 🙏
 ${shop.phone?'📞 '+shop.phone:''}`,
     hi:`नमस्ते ${cust.name} जी! 🙏
 *${shop.shopName||'ShopERP'}* की तरफ से भुगतान याद दिलाना चाहते हैं।
-बिल नंबर *${s.invoiceNo}* — बकाया राशि: *${cur}${due.toLocaleString('en-IN')}*
+बिल नंबर *${s.invoiceNo}* - बकाया राशि: *${cur}${due.toLocaleString('en-IN')}*
 कृपया जल्द से जल्द भुगतान करें।
 धन्यवाद! 🙏
 ${shop.phone?'📞 '+shop.phone:''}`
@@ -12518,17 +12518,17 @@ function pageSupport(){
         </button>
       </div>
 
-      <div class="sup-footer">Any issue — just WhatsApp. Fast response, always.</div>
+      <div class="sup-footer">Any issue - just WhatsApp. Fast response, always.</div>
     </div>
   </div>`;
-  // When license is expired: show ONLY the contact/renewal screen — no other support content
+  // When license is expired: show ONLY the contact/renewal screen - no other support content
   if(window._licenseExpiredMode) return expiredBanner;
   return html;
 }
 function openSupportChat(){
   const mid=getAppMachineId?getAppMachineId():'Unknown';
   const shop=DB.settings;
-  const msg='Hello Ravi!\nI need support for ShopERP Pro.\n\nShop: '+(shop.shopName||'—')+'\nMachine ID: '+mid;
+  const msg='Hello Ravi!\nI need support for ShopERP Pro.\n\nShop: '+(shop.shopName||'-')+'\nMachine ID: '+mid;
   openWA('919451100556',msg);
 }
 function copySupportMid(){
@@ -12570,7 +12570,7 @@ function _pageSupportOld(){
       <div style="width:36px;height:2px;background:var(--accent);border-radius:2px;margin:14px auto 0"></div>
     </div>
 
-    <!-- Single clean list — login-screen style -->
+    <!-- Single clean list - login-screen style -->
     <div class="sp-fade-3" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:16px;overflow:hidden">
 
       <!-- Contact -->
@@ -12608,7 +12608,7 @@ function _pageSupportOld(){
     </div>
 
     <div style="font-size:11px;color:var(--text3);margin-top:20px;text-align:center">
-      Any issue — just WhatsApp. Fast response, always.
+      Any issue - just WhatsApp. Fast response, always.
     </div>
 
   </div>`;
@@ -12646,7 +12646,7 @@ function pageSettings(){
         <div class="card-title">Shop Logo</div>
         <div class="logo-uploader" id="logo-drop-area">
           ${s.shopLogo?`<img class="logo-preview" src="${s.shopLogo}" id="logo-preview-img">`:'<div style="font-size:40px;margin-bottom:8px">🏪</div>'}
-          <div style="font-size:12px;color:var(--text2)">${s.shopLogo?'Logo uploaded — click to change':'Click to upload your shop logo'}</div>
+          <div style="font-size:12px;color:var(--text2)">${s.shopLogo?'Logo uploaded - click to change':'Click to upload your shop logo'}</div>
           <div style="font-size:10px;color:var(--text3);margin-top:4px">PNG, JPG supported. Square works best.</div>
           <input type="file" class="logo-upload-input" accept="image/*" onchange="uploadLogo(this)">
         </div>
@@ -12656,7 +12656,7 @@ function pageSettings(){
         <div class="card-title">UPI QR Code</div>
         <div class="logo-uploader" id="upi-drop-area" style="border-color:${s.upiQR?'var(--green)':'var(--border2)'}">
           ${s.upiQR?`<img src="${s.upiQR}" style="height:120px;width:120px;object-fit:contain;margin:0 auto 8px;display:block;border-radius:8px">`:'<div style="font-size:36px;margin-bottom:8px">📲</div>'}
-          <div style="font-size:12px;color:var(--text2)">${s.upiQR?'✓ UPI QR uploaded — click to change':'Click to upload your UPI QR code'}</div>
+          <div style="font-size:12px;color:var(--text2)">${s.upiQR?'✓ UPI QR uploaded - click to change':'Click to upload your UPI QR code'}</div>
           <div style="font-size:10px;color:var(--text3);margin-top:4px">Shown automatically when UPI payment is selected</div>
           <input type="file" class="logo-upload-input" accept="image/*" onchange="uploadUpiQR(this)">
         </div>
@@ -12666,7 +12666,7 @@ function pageSettings(){
         <div class="card-title">Signature / Stamp</div>
         <div class="logo-uploader" id="sig-drop-area" style="border-color:${s.signature?'var(--green)':'var(--border2)'}">
           ${s.signature?`<img src="${s.signature}" style="max-height:80px;max-width:180px;object-fit:contain;margin:0 auto 8px;display:block">`:'<div style="font-size:36px;margin-bottom:8px">✍️</div>'}
-          <div style="font-size:12px;color:var(--text2)">${s.signature?'✓ Signature uploaded — click to change':'Click to upload your signature or stamp'}</div>
+          <div style="font-size:12px;color:var(--text2)">${s.signature?'✓ Signature uploaded - click to change':'Click to upload your signature or stamp'}</div>
           <div style="font-size:10px;color:var(--text3);margin-top:4px">PNG with transparent background recommended · Shown on all printed invoices</div>
           <input type="file" class="logo-upload-input" accept="image/*" onchange="uploadSignature(this)">
         </div>
@@ -12750,7 +12750,7 @@ function pageSettings(){
         <div style="font-size:13px;line-height:2.4;margin-bottom:12px">
           <div>Status: <span class="badge bg-green">Active</span></div>
           <div>Plan: <strong style="color:var(--accent)">${s.licensePlan?s.licensePlan.charAt(0).toUpperCase()+s.licensePlan.slice(1):'Licensed'}</strong></div>
-          <div>Valid till: <strong>${s.licenseExpiry==='2099-12-31'?'Lifetime ∞':(s.licenseExpiry||'—')}</strong></div>
+          <div>Valid till: <strong>${s.licenseExpiry==='2099-12-31'?'Lifetime ∞':(s.licenseExpiry||'-')}</strong></div>
         </div>
         <hr class="divider">
         <div class="card-title" style="margin-top:4px">Activate / Renew Key</div>
@@ -12830,7 +12830,7 @@ function removeSignature(){DB.settings.signature='';saveDB();showPage('settings'
 function showUpiQRModal(){
   const qr=DB.settings.upiQR;
   if(!qr){toast('No UPI QR uploaded. Add it in Settings → UPI QR Code','info');return;}
-  openModal('UPI QR Code — Scan to Pay',
+  openModal('UPI QR Code - Scan to Pay',
     `<div style="text-align:center;padding:10px 0">
       <img src="${qr}" style="max-width:240px;max-height:240px;border-radius:12px;border:2px solid var(--border2)">
       <div style="font-size:12px;color:var(--text2);margin-top:12px">Show this QR to customer to scan & pay</div>
@@ -12939,7 +12939,7 @@ function doAutoBackupNow(){
   const filename=`shoperpro_backup_${ts}.json`;
 
   if(window.electronAPI && window.electronAPI.saveBackup){
-    // Electron — save silently to Documents/ShopERP Backups/
+    // Electron - save silently to Documents/ShopERP Backups/
     window.electronAPI.saveBackup(jsonData).then(result=>{
       if(result && result.success){
         DB.settings.lastBackup=new Date().toISOString();
@@ -12955,12 +12955,12 @@ function doAutoBackupNow(){
         document.getElementById('backup-reminder-toast')?.remove();
         toast(`✓ Backup saved to Documents/ShopERP Backups/${filename}`,'success');
       } else {
-        toast('Backup failed — trying browser download','error');
+        toast('Backup failed - trying browser download','error');
         _doBackupBrowserDownload(jsonData, filename);
       }
     }).catch(()=>_doBackupBrowserDownload(jsonData, filename));
   } else {
-    // Browser — trigger download
+    // Browser - trigger download
     _doBackupBrowserDownload(jsonData, filename);
   }
 }
@@ -12999,7 +12999,7 @@ function checkAutoBackupDue(){
   const due=new Date(DB.settings.nextBackup);
   const now=new Date();
   if(now>=due){
-    // In Electron — take backup automatically to disk, no user interaction needed
+    // In Electron - take backup automatically to disk, no user interaction needed
     if(window.electronAPI && window.electronAPI.saveBackup){
       const jsonData=JSON.stringify(DB,null,2);
       window.electronAPI.saveBackup(jsonData).then(result=>{
@@ -13011,7 +13011,7 @@ function checkAutoBackupDue(){
           // Show system notification
           if(window.electronAPI.showNotification){
             window.electronAPI.showNotification(
-              'ShopERP Pro — Auto Backup ✓',
+              'ShopERP Pro - Auto Backup ✓',
               `Backup saved automatically to Documents/ShopERP Backups/`
             );
           }
@@ -13027,7 +13027,7 @@ function checkAutoBackupDue(){
         showBackupReminder();
       });
     } else {
-      // Browser — can't auto-download, show persistent reminder instead
+      // Browser - can't auto-download, show persistent reminder instead
       showBackupReminder();
     }
   }
@@ -13149,7 +13149,7 @@ function copyMachineIdSettings(){
   const id=getAppMachineId();
   navigator.clipboard.writeText(id)
     .then(()=>toast('Machine ID copied!','success'))
-    .catch(()=>toast('Copy failed — select and copy manually','error'));
+    .catch(()=>toast('Copy failed - select and copy manually','error'));
 }
 
 function waMachineIdSettings(){
@@ -13173,7 +13173,7 @@ function doImport(input){
 }
 function showConfirmReset(){
   showConfirm(
-    'This will DELETE ALL DATA permanently — sales, customers, inventory, repairs, everything. This CANNOT be undone. Are you absolutely sure?',
+    'This will DELETE ALL DATA permanently - sales, customers, inventory, repairs, everything. This CANNOT be undone. Are you absolutely sure?',
     function(){
       // Second confirmation for extra safety
       showConfirm(
@@ -13388,14 +13388,14 @@ Thank you! 🙏`);
     if(lang==='hi') return(
 `नमस्ते ${cust.name} जी! 🙏
 *${shop.shopName}* की तरफ से भुगतान याद दिलाना चाहते हैं।
-बिल नंबर *${s.invoiceNo}* — बकाया राशि: *${amt}*
+बिल नंबर *${s.invoiceNo}* - बकाया राशि: *${amt}*
 कृपया जल्द से जल्द भुगतान करें।
 धन्यवाद! 🙏
 📞 ${shop.phone||''}`);
     return(
 `Hello ${cust.name},
 Payment reminder from *${shop.shopName}*.
-Invoice *${s.invoiceNo}* — Amount Due: *${amt}*
+Invoice *${s.invoiceNo}* - Amount Due: *${amt}*
 Kindly settle at your earliest convenience.
 Thank you! 🙏
 📞 ${shop.phone||''}`);
@@ -13405,12 +13405,12 @@ Thank you! 🙏
     if(lang==='hi') return(
 `नमस्ते ${cust.name} जी! 🙏
 यह *${shop.shopName||'हमारी दुकान'}* है।
-मोबाइल से जुड़ी कोई भी जरूरत हो — मरम्मत हो या खरीदारी — हम हाजिर हैं!
+मोबाइल से जुड़ी कोई भी जरूरत हो - मरम्मत हो या खरीदारी - हम हाजिर हैं!
 ${shop.phone?'📞 '+shop.phone:''}`);
     return(
 `Hello ${cust.name}! 🙏
 This is *${shop.shopName||'ShopERP Pro'}*.
-For any mobile needs — repairs or purchases — we're here!
+For any mobile needs - repairs or purchases - we're here!
 ${shop.phone?'📞 '+shop.phone:''}`);
   },
 
@@ -13452,10 +13452,10 @@ function openWAWithLangPicker(phone, msgFn, title){
   <div class="form-hint" id="wa-edit-note" style="margin-top:4px">✏️ You can edit the message before sending</div>`,
   `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
    <button class="btn btn-wa" onclick="sendWAFromPicker('${phone}')">💬 Send WhatsApp</button>`);
-  // Store both versions for switching — always fresh, no bleed between customers
+  // Store both versions for switching - always fresh, no bleed between customers
   window._waMsgHi=msgHi;
   window._waMsgEn=msgEn;
-  // Always reset to fresh template — no bleed from previous customer
+  // Always reset to fresh template - no bleed from previous customer
   window._waCurrentPhone=phone;
   setTimeout(()=>{
     const ta=document.getElementById('wa-preview-text');
@@ -13478,7 +13478,7 @@ function switchWaLang(lang){
     const prevTemplate=(prevLang==='hi'?window._waMsgHi:window._waMsgEn)||'';
     const userEdited=currentMsg!==prevTemplate.trim()&&currentMsg!=='';
     if(userEdited){
-      // User edited — swap to new language template but preserve a note
+      // User edited - swap to new language template but preserve a note
       // Simply switch to the new template (don't lose edits silently, show note)
       ta.value=lang==='hi'?window._waMsgHi:window._waMsgEn;
       if(editNote){
@@ -13525,14 +13525,14 @@ function openWA(phone, text){
     : `whatsapp://send?text=${encoded}`;
 
   if(window.electronAPI){
-    // Electron — use shell.openExternal which respects default apps
+    // Electron - use shell.openExternal which respects default apps
     // Try WhatsApp protocol first
     window.electronAPI.openExternal(appUrl).catch(()=>{
       // If WhatsApp not installed, fall back to browser
       window.electronAPI.openExternal(webUrl);
     });
   } else {
-    // Browser — try app protocol via hidden link
+    // Browser - try app protocol via hidden link
     // If WhatsApp not installed, wa.me opens in browser automatically
     const a = document.createElement('a');
     a.href = appUrl;
@@ -13576,8 +13576,8 @@ function closeModal(){
   document.getElementById('modal-overlay').classList.add('hidden');
 }
 
-// ── Local date string — always returns today in YYYY-MM-DD using DEVICE timezone ──
-// toISOString() is UTC — wrong for India after midnight. This is always correct.
+// ── Local date string - always returns today in YYYY-MM-DD using DEVICE timezone ──
+// toISOString() is UTC - wrong for India after midnight. This is always correct.
 function localDateStr(d){
   const dt=d||new Date();
   const y=dt.getFullYear();
@@ -13588,7 +13588,7 @@ function localDateStr(d){
 
 // ── Custom confirm dialog (replaces native confirm() which breaks Electron) ──
 // Native confirm() freezes Electron renderer input focus permanently after close.
-// This custom version uses the existing modal system — safe in all environments.
+// This custom version uses the existing modal system - safe in all environments.
 function showConfirm(message, onConfirm, onCancel, danger=true){
   openModal(
     danger ? '⚠️ Confirm Delete' : '⚠️ Confirm',
@@ -13612,7 +13612,7 @@ function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt
 function phoneInput(el){
   el.value=el.value.replace(/\D/g,'').slice(0,10);
 }
-// Numeric only (prices, amounts, stock) — strips negatives, letters, multiple dots
+// Numeric only (prices, amounts, stock) - strips negatives, letters, multiple dots
 function numInput(el){
   el.value=el.value.replace(/[^0-9.]/g,'');
   const parts=el.value.split('.');
@@ -13650,7 +13650,7 @@ function licenseKeyInput(el){
 function nameInput(el,max){
   el.value=el.value.replace(/[\x00-\x1F\x7F]/g,'').slice(0,max||80);
 }
-// Person name: letters, spaces, dot, hyphen, apostrophe only — no digits
+// Person name: letters, spaces, dot, hyphen, apostrophe only - no digits
 function personNameInput(el,max){
   el.value=el.value.replace(/[^a-zA-ZÀ-ɏ\s.\-']/g,'').slice(0,max||40);
 }
@@ -13664,7 +13664,7 @@ function checkSellVsCost(sellId, costId){
   const sell=parseFloat(document.getElementById(sellId)?.value)||0;
   const cost=parseFloat(document.getElementById(costId)?.value)||0;
   if(cost>0 && sell<cost){
-    fieldErr(sellId, `Sell price ₹${sell.toLocaleString('en-IN')} is below cost price ₹${cost.toLocaleString('en-IN')} — you will make a loss`);
+    fieldErr(sellId, `Sell price ₹${sell.toLocaleString('en-IN')} is below cost price ₹${cost.toLocaleString('en-IN')} - you will make a loss`);
   } else {
     clearFieldErr(sellId);
   }
@@ -13680,7 +13680,7 @@ function validatePhone(val, label){
   return null;
 }
 function validateOptionalPhone(val, label){
-  if(!val||!val.trim()) return null; // optional — ok if empty
+  if(!val||!val.trim()) return null; // optional - ok if empty
   return validatePhone(val, label);
 }
 function validateEmail(val){
@@ -13741,7 +13741,7 @@ function clearFieldErr(id){
   const err=document.getElementById('err-'+id);
   if(err)err.remove();
 }
-// Run multiple validations — shows first error found, returns true if all pass
+// Run multiple validations - shows first error found, returns true if all pass
 function runValidations(checks){
   let allPass=true;
   checks.forEach(([id,msg])=>{
@@ -13756,7 +13756,7 @@ function runValidations(checks){
   return allPass;
 }
 document.getElementById('modal-overlay').addEventListener('click',function(e){
-  // Do NOT close modal on outside click — user may lose entered data
+  // Do NOT close modal on outside click - user may lose entered data
   // Modal only closes via Cancel button or closeModal() call
 });
 // Close search dropdowns when clicking outside
@@ -13922,9 +13922,9 @@ function buildPaymentReceiptHTML({title, invoiceNo, customerName, phone, deviceI
   <div class="shop">${logoHtml}<div class="shop-name">${shopName||'ShopERP Pro'}</div>
   <div class="shop-sub">${shopAddress||''}${shopPhone?' · '+shopPhone:''}</div></div>
   <div class="receipt-title">${title||'PAYMENT RECEIPT'}</div>
-  <div class="info-row"><span class="info-label">Receipt#</span><span class="info-val">${invoiceNo||'—'}</span></div>
+  <div class="info-row"><span class="info-label">Receipt#</span><span class="info-val">${invoiceNo||'-'}</span></div>
   <div class="info-row"><span class="info-label">Date</span><span class="info-val">${date||localDateStr()}</span></div>
-  <div class="info-row"><span class="info-label">Customer</span><span class="info-val">${customerName||'—'}</span></div>
+  <div class="info-row"><span class="info-label">Customer</span><span class="info-val">${customerName||'-'}</span></div>
   ${phone?'<div class="info-row"><span class="info-label">Phone</span><span class="info-val">'+phone+'</span></div>':''}
   ${deviceInfo?'<div class="info-row"><span class="info-label">Device</span><span class="info-val">'+deviceInfo+'</span></div>':''}
   ${itemRows?'<table><thead><tr><th style="text-align:left;padding:6px 10px;background:#f8fafc;font-size:10px">Description</th><th style="text-align:right;padding:6px 10px;background:#f8fafc;font-size:10px">Amount</th></tr></thead><tbody>'+itemRows+'</tbody></table>':''}
@@ -13992,7 +13992,7 @@ function buildRepairInvoiceHTML(repairId){
   const sigHtml=shop.signature?`<img src="${shop.signature}" style="max-height:52px;max-width:140px;object-fit:contain;display:block;margin:0 auto 4px">`:'<div style="height:44px"></div>';
 
   return`<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>Repair Invoice — ${r.jobNo}</title>
+  <title>Repair Invoice - ${r.jobNo}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#111;background:#fff;padding:24px;max-width:780px;margin:0 auto}
@@ -14145,7 +14145,7 @@ function buildInvoiceHTML(saleId){
 
   return`<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
-<title>Invoice ${s.invoiceNo} — ${shop.shopName||'ShopERP Pro'}</title>
+<title>Invoice ${s.invoiceNo} - ${shop.shopName||'ShopERP Pro'}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;color:#1E293B;background:#07091C;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -14333,7 +14333,7 @@ function changePinFlow(uid){
     </div>`,
     `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>`);
   } else {
-    // Staff or owner with no PIN yet — go straight to setup
+    // Staff or owner with no PIN yet - go straight to setup
     const mode=u.role==='owner'?`change-${uid}`:`staff-${uid}`;
     applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin(mode,uid);
     closeModal();
@@ -14644,7 +14644,7 @@ if (document.readyState === 'loading') {
 // ============================================================
 function pageCashbook(){
   var today=new Date().toISOString().split('T')[0];
-  return`<div class="ph"><div class="ph-left"><div class="ph-title">Cashbook</div><div class="ph-sub">Daily cash flow — sales, expenses & collections</div></div><div class="ph-right"><button class="btn btn-primary" onclick="addCashEntry()">+ Manual Entry</button></div></div>
+  return`<div class="ph"><div class="ph-left"><div class="ph-title">Cashbook</div><div class="ph-sub">Daily cash flow - sales, expenses & collections</div></div><div class="ph-right"><button class="btn btn-primary" onclick="addCashEntry()">+ Manual Entry</button></div></div>
   <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
     <input class="form-control" id="cb-from" type="date" value="${today}" style="width:140px" onchange="renderCashbook()">
     <span style="color:var(--text3);font-size:12px">to</span>
@@ -14677,18 +14677,18 @@ function renderCashbook(){
   // 1. Sales payments
   (DB.sales||[]).forEach(function(s){
     (s.payments||[{method:s.payMethod,amount:s.paid,date:s.date}]).forEach(function(p){
-      if(p.amount>0)entries.push({date:s.date,time:p.time||'',desc:'Sale '+s.invoiceNo+' — '+(s.customerName||'Walk-in'),type:'Sale',method:p.method||s.payMethod||'Cash',in:p.amount,out:0,source:'sale'});
+      if(p.amount>0)entries.push({date:s.date,time:p.time||'',desc:'Sale '+s.invoiceNo+' - '+(s.customerName||'Walk-in'),type:'Sale',method:p.method||s.payMethod||'Cash',in:p.amount,out:0,source:'sale'});
     });
   });
   // 2. Repair payments
   (DB.repairs||[]).forEach(function(r){
     (r.payments||[]).forEach(function(p){
-      if(p.amount>0)entries.push({date:p.date||r.delivered||r.received,time:p.time||'',desc:'Repair '+r.jobNo+' — '+(r.customerName||'')+(r.device?' ('+r.device+')':''),type:'Repair',method:p.method||'Cash',in:p.amount,out:0,source:'repair'});
+      if(p.amount>0)entries.push({date:p.date||r.delivered||r.received,time:p.time||'',desc:'Repair '+r.jobNo+' - '+(r.customerName||'')+(r.device?' ('+r.device+')':''),type:'Repair',method:p.method||'Cash',in:p.amount,out:0,source:'repair'});
     });
   });
   // 3. Expenses
   (DB.expenses||[]).forEach(function(e){
-    entries.push({date:e.date,time:'',desc:escHtml(e.title||e.category||'Expense')+(e.note?' — '+escHtml(e.note):''),type:'Expense',method:e.payMethod||'Cash',in:0,out:e.amount||0,source:'expense'});
+    entries.push({date:e.date,time:'',desc:escHtml(e.title||e.category||'Expense')+(e.note?' - '+escHtml(e.note):''),type:'Expense',method:e.payMethod||'Cash',in:0,out:e.amount||0,source:'expense'});
   });
   // 4. Manual entries
   (DB.cashEntries||[]).forEach(function(e){
