@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.11">
-<title>ShopERP Pro v8.11</title>
+<meta name="shoperpro-version" content="v8.12">
+<title>ShopERP Pro v8.12</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -2935,7 +2935,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.11 · Licensed</div>
+        <div class="sb-footer-ver">v8.12 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3216,11 +3216,13 @@ const _api = {
   async get(path) {
     const r = await fetch(SHOPERPRO_API_URL + path, { headers: this.headers() });
     if (r.status === 401) { _api.clearToken(); showWebLoginScreen(); throw new Error('Session expired'); }
+    if (r.status === 403) { const b=await r.json().catch(()=>{}); if(b&&b.status)showSuspendedScreen(b.status,b.reason||''); throw new Error(b?.error||'Forbidden'); }
     return r.json();
   },
   async put(path, body) {
     const r = await fetch(SHOPERPRO_API_URL + path, { method: 'PUT', headers: this.headers(), body: JSON.stringify(body) });
     if (r.status === 401) { _api.clearToken(); showWebLoginScreen(); throw new Error('Session expired'); }
+    if (r.status === 403) { const b=await r.json().catch(()=>{}); if(b&&b.status)showSuspendedScreen(b.status,b.reason||''); throw new Error(b?.error||'Forbidden'); }
     return r.json();
   },
   async post(path, body) {
@@ -4467,15 +4469,14 @@ function webLogin(){
         document.getElementById('web-login-screen').style.display='none';
         var ind=document.getElementById('autosave-ind');
         if(ind)ind.title='Synced to cloud · '+res.shopName;
-        // Check if tenant is suspended/terminated via admin records
-        loadAdminDB();
-        var shopLower=(res.shopName||'').toLowerCase();
-        var rec=ADMIN_DB.customers.find(function(c){return(c.shopName||'').toLowerCase()===shopLower;});
-        if(rec&&(rec.status==='paused'||rec.status==='terminated')){
-          showSuspendedScreen(rec.status,rec.suspendReason||'');
-          return;
-        }
-        continueBootApp();
+        // Check tenant status from server (works across all locations in real-time)
+        return _api.get('/api/license/status').then(function(st){
+          if(st.status==='paused'||st.status==='terminated'){
+            showSuspendedScreen(st.status,st.reason||'');
+            return;
+          }
+          continueBootApp();
+        }).catch(function(){ continueBootApp(); });
       });
     })
     .catch(function(e){
@@ -5015,7 +5016,9 @@ function admPauseCustomer(id){
       {label:'⏸ Pause',style:'flex:2;background:linear-gradient(135deg,#F59E0B,#D97706);color:#000',onClick:function(){
         var r=(document.getElementById('_gm-reason')||{}).value||'Account paused';
         document.getElementById('_glass-modal').remove();
-        c.status='paused';c.suspendReason=r;saveAdminDB();showAdminPage('adm-customers');toast('Account paused for '+c.shopName,'info');
+        c.status='paused';c.suspendReason=r;saveAdminDB();showAdminPage('adm-customers');
+        _admServerStatus(c.shopName,'paused',r);
+        toast('Account paused for '+c.shopName,'info');
       }}
     ]
   });
@@ -5032,14 +5035,29 @@ function admTerminateCustomer(id){
       {label:'🚫 Terminate',style:'flex:2;background:linear-gradient(135deg,#EF4444,#B91C1C);color:#fff',onClick:function(){
         var r=(document.getElementById('_gm-reason')||{}).value||'Account terminated';
         document.getElementById('_glass-modal').remove();
-        c.status='terminated';c.suspendReason=r;saveAdminDB();showAdminPage('adm-customers');toast('Account terminated for '+c.shopName,'error');
+        c.status='terminated';c.suspendReason=r;saveAdminDB();showAdminPage('adm-customers');
+        _admServerStatus(c.shopName,'terminated',r);
+        toast('Account terminated for '+c.shopName,'error');
       }}
     ]
   });
 }
 function admRestoreCustomer(id){
   var c=ADMIN_DB.customers.find(x=>x.id===id); if(!c)return;
-  c.status='active'; c.suspendReason=''; saveAdminDB(); showAdminPage('adm-customers'); toast('Account restored for '+c.shopName,'success');
+  c.status='active'; c.suspendReason=''; saveAdminDB(); showAdminPage('adm-customers');
+  _admServerStatus(c.shopName,'active','');
+  toast('Account restored for '+c.shopName,'success');
+}
+function _admServerStatus(shopName, status, reason){
+  if(!SHOPERPRO_API_URL) return; // local mode - no server to call
+  fetch(SHOPERPRO_API_URL+'/api/admin/tenant/status',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-Admin-Key':ADMIN_PWD_HASH},
+    body:JSON.stringify({shopName:shopName,status:status,reason:reason||''})
+  }).then(function(r){
+    if(r.ok) toast('Server updated: '+shopName+' is now '+status,'success');
+    else r.json().then(function(b){toast('Server: '+(b.error||'Could not update'),'error');}).catch(function(){});
+  }).catch(function(){ toast('Server unreachable - local change saved only','warn'); });
 }
 function admRenewCustomer(id){
   var c=ADMIN_DB.customers.find(x=>x.id===id); if(!c)return;

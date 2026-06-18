@@ -25,6 +25,12 @@ const JWT_SECRET = process.env.JWT_SECRET || ('shoperpro-local-' + require('cryp
 const DB_PATH    = path.join(__dirname, 'shoperpro.db');
 const HTML_PATH  = path.join(__dirname, '..', 'app', 'ShopERP_Pro_v8.html');
 
+// ── Admin key — used by Super Admin panel to call remote control endpoints ──
+// Set ADMIN_KEY env var = sha256 hash of your admin password.
+// Run:  echo -n 'YourAdminPassword' | shasum -a 256
+// Default = current admin password hash. CHANGE THIS if you change admin password.
+const ADMIN_KEY  = process.env.ADMIN_KEY || '2b5877210c3581cccac2431c0a5681ea1c5674ae71dbb5d664eda93e3965a3dd';
+
 // ── SQLite database ──────────────────────────────────────────────────────────
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');   // faster concurrent reads
@@ -64,6 +70,9 @@ db.exec(`
 try { db.exec('ALTER TABLE users ADD COLUMN display_name TEXT'); } catch(_) {}
 try { db.exec('ALTER TABLE users ADD COLUMN mobile TEXT'); } catch(_) {}
 try { db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_mobile ON users(mobile) WHERE mobile IS NOT NULL'); } catch(_) {}
+// Tenant status columns — support remote pause/terminate
+try { db.exec("ALTER TABLE tenants ADD COLUMN status TEXT NOT NULL DEFAULT 'active'"); } catch(_) {}
+try { db.exec("ALTER TABLE tenants ADD COLUMN suspend_reason TEXT NOT NULL DEFAULT ''"); } catch(_) {}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getLocalIp() {
@@ -95,6 +104,22 @@ function requireAuth(req, res, next) {
   } catch {
     res.status(401).json({ error: 'Session expired. Please log in again.' });
   }
+}
+
+// Blocks API calls if tenant is paused or terminated
+function requireActive(req, res, next) {
+  const t = db.prepare('SELECT status, suspend_reason FROM tenants WHERE id = ?').get(req.user.tenantId);
+  if (!t) return res.status(404).json({ error: 'Tenant not found' });
+  if (t.status === 'paused')     return res.status(403).json({ error: 'Account paused',     status: 'paused',      reason: t.suspend_reason || '' });
+  if (t.status === 'terminated') return res.status(403).json({ error: 'Account terminated', status: 'terminated',  reason: t.suspend_reason || '' });
+  next();
+}
+
+// Validates X-Admin-Key header for Super Admin remote control endpoints
+function requireAdminKey(req, res, next) {
+  const key = req.headers['x-admin-key'];
+  if (!key || key !== ADMIN_KEY) return res.status(401).json({ error: 'Invalid admin key' });
+  next();
 }
 
 // ── Express app ──────────────────────────────────────────────────────────────
@@ -215,8 +240,34 @@ app.post('/api/auth/add-staff', requireAuth, (req, res) => {
   }
 });
 
+// ── GET /api/license/status — called on app boot to check pause/terminate ────
+app.get('/api/license/status', requireAuth, (req, res) => {
+  const t = db.prepare('SELECT status, suspend_reason FROM tenants WHERE id = ?').get(req.user.tenantId);
+  res.json({ status: t?.status || 'active', reason: t?.suspend_reason || '' });
+});
+
+// ── POST /api/admin/tenant/status — pause / terminate / restore (remote) ─────
+app.post('/api/admin/tenant/status', requireAdminKey, (req, res) => {
+  const { shopName, status, reason = '' } = req.body;
+  if (!shopName || !status) return res.status(400).json({ error: 'shopName and status required' });
+  if (!['active', 'paused', 'terminated'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
+  const t = db.prepare('SELECT id, shop_name FROM tenants WHERE LOWER(shop_name) = LOWER(?)').get(shopName);
+  if (!t) return res.status(404).json({ error: 'Shop not found on this server' });
+  db.prepare('UPDATE tenants SET status = ?, suspend_reason = ? WHERE id = ?').run(status, reason, t.id);
+  console.log(`[Admin] ${t.shop_name} → ${status}${reason ? ' ('+reason+')' : ''}`);
+  res.json({ ok: true, shopName: t.shop_name, status, reason });
+});
+
+// ── GET /api/admin/tenants — list all tenants with status ────────────────────
+app.get('/api/admin/tenants', requireAdminKey, (req, res) => {
+  const tenants = db.prepare(
+    "SELECT id, shop_name, status, suspend_reason, created_at FROM tenants ORDER BY created_at DESC"
+  ).all();
+  res.json({ tenants });
+});
+
 // ── GET /api/data ────────────────────────────────────────────────────────────
-app.get('/api/data', requireAuth, (req, res) => {
+app.get('/api/data', requireAuth, requireActive, (req, res) => {
   try {
     const row = db.prepare('SELECT data, updated_at FROM tenant_data WHERE tenant_id = ?').get(req.user.tenantId);
     if (!row) return res.json({ data: {}, updatedAt: null });
@@ -228,7 +279,7 @@ app.get('/api/data', requireAuth, (req, res) => {
 });
 
 // ── PUT /api/data ────────────────────────────────────────────────────────────
-app.put('/api/data', requireAuth, (req, res) => {
+app.put('/api/data', requireAuth, requireActive, (req, res) => {
   const { data } = req.body;
   if (!data || typeof data !== 'object') {
     return res.status(400).json({ error: 'data must be a JSON object' });
@@ -276,15 +327,17 @@ app.listen(PORT, '0.0.0.0', () => {
   const ip  = getLocalIp();
   const url = `http://${ip}:${PORT}`;
   console.log('\n╔════════════════════════════════════════════════════╗');
-  console.log('║   ShopERP Pro — Local Server  ✅ Running           ║');
+  console.log('║   ShopERP Pro - Local Server  ✅ Running           ║');
   console.log('╠════════════════════════════════════════════════════╣');
   console.log(`║  This PC  →  http://localhost:${PORT}               ║`);
   console.log(`║  Phone / Tablet / Other PC on WiFi →               ║`);
   console.log(`║             ${url.padEnd(38)}║`);
   console.log('╠════════════════════════════════════════════════════╣');
-  console.log('║  Open the URL above on ANY device on this WiFi    ║');
-  console.log('║  All devices see the same live data instantly.    ║');
-  console.log('║                                                    ║');
+  console.log('║  Remote Admin Control (pause / terminate shops):  ║');
+  console.log('║  Set ADMIN_KEY env var = sha256 of admin password ║');
+  console.log('║  Current key (first 16 chars):                    ║');
+  console.log(`║  ${ADMIN_KEY.slice(0,16)}...${' '.repeat(34)}║`);
+  console.log('╠════════════════════════════════════════════════════╣');
   console.log('║  Data saved to: server/shoperpro.db               ║');
   console.log('║  Press Ctrl+C to stop                             ║');
   console.log('╚════════════════════════════════════════════════════╝\n');
