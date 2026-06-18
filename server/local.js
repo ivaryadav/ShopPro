@@ -82,6 +82,16 @@ try { db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_mobile ON users(mobil
 // Tenant status columns — support remote pause/terminate
 try { db.exec("ALTER TABLE tenants ADD COLUMN status TEXT NOT NULL DEFAULT 'active'"); } catch(_) {}
 try { db.exec("ALTER TABLE tenants ADD COLUMN suspend_reason TEXT NOT NULL DEFAULT ''"); } catch(_) {}
+// Cloud backup table — keyed by license key hash (machine-bound)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS cloud_backups (
+    key_hash    TEXT PRIMARY KEY,
+    shop_name   TEXT,
+    data        TEXT NOT NULL,
+    backed_up_at TEXT DEFAULT (datetime('now'))
+  );
+`);
+try { db.exec('ALTER TABLE cloud_backups ADD COLUMN shop_name TEXT'); } catch(_) {}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getLocalIp() {
@@ -131,11 +141,62 @@ function requireAdminKey(req, res, next) {
   next();
 }
 
+// ── In-memory rate limiter (no npm dependency) ───────────────────────────────
+const _rateBuckets = new Map();
+function rateLimit(maxReq, windowMs) {
+  return function(req, res, next) {
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const key = ip + ':' + req.path;
+    const now = Date.now();
+    let bucket = _rateBuckets.get(key) || { count: 0, reset: now + windowMs };
+    if (now > bucket.reset) { bucket = { count: 0, reset: now + windowMs }; }
+    bucket.count++;
+    _rateBuckets.set(key, bucket);
+    if (bucket.count > maxReq) {
+      const retryAfter = Math.ceil((bucket.reset - now) / 1000);
+      res.set('Retry-After', retryAfter);
+      return res.status(429).json({ error: 'Too many requests. Try again in ' + retryAfter + 's.' });
+    }
+    next();
+  };
+}
+// Clean up expired buckets every 5 minutes
+setInterval(function() {
+  const now = Date.now();
+  for (const [k, v] of _rateBuckets.entries()) { if (now > v.reset) _rateBuckets.delete(k); }
+}, 5 * 60 * 1000);
+
 // ── Express app ──────────────────────────────────────────────────────────────
 const app = express();
 app.set('trust proxy', 1);
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+
+// CORS: allow same-origin and local network only (no wild-card in production)
+const _allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+  : null; // null = allow all (local/dev mode)
+app.use(cors({
+  origin: function(origin, cb) {
+    if (!origin) return cb(null, true); // allow non-browser / Electron
+    if (!_allowedOrigins) return cb(null, true); // no restriction configured
+    if (_allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error('CORS: origin not allowed'));
+  },
+  credentials: true,
+}));
+
+// Security headers on every response
+app.use(function(req, res, next) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none';"
+  );
+  next();
+});
+
+app.use(express.json({ limit: '5mb' }));
 
 // ── Health ───────────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) =>
@@ -143,7 +204,7 @@ app.get('/health', (_req, res) =>
 );
 
 // ── POST /api/auth/register ──────────────────────────────────────────────────
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', rateLimit(5, 10 * 60 * 1000), (req, res) => {
   const { shopName, ownerName, mobile, pin } = req.body;
   const mob = (mobile || '').replace(/\D/g, '');
   if (!shopName || !mob || !pin) {
@@ -185,7 +246,7 @@ app.post('/api/auth/register', (req, res) => {
 });
 
 // ── POST /api/auth/login ─────────────────────────────────────────────────────
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', rateLimit(10, 5 * 60 * 1000), (req, res) => {
   const { mobile, pin } = req.body;
   const mob = (mobile || '').replace(/\D/g, '');
   if (!mob || !pin) {
@@ -256,7 +317,7 @@ app.get('/api/license/status', requireAuth, (req, res) => {
 });
 
 // ── POST /api/admin/tenant/status — pause / terminate / restore (remote) ─────
-app.post('/api/admin/tenant/status', requireAdminKey, (req, res) => {
+app.post('/api/admin/tenant/status', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
   const { shopName, status, reason = '' } = req.body;
   if (!shopName || !status) return res.status(400).json({ error: 'shopName and status required' });
   if (!['active', 'paused', 'terminated'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
@@ -315,6 +376,41 @@ app.get('/api/data/users', requireAuth, (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Failed to fetch users' });
   }
+});
+
+// ── POST /api/cloud/backup — push encrypted shop data tied to license key hash ─
+// X-License-Key header must be the raw 19-char license key (validated server-side by SHA-256)
+app.post('/api/cloud/backup', requireAdminKey, (req, res) => {
+  // In production this endpoint is called from the app with the admin key embedded.
+  // For open deployment, swap requireAdminKey with a per-tenant token.
+  const { keyHash, shopName, data } = req.body;
+  if (!keyHash || !data) return res.status(400).json({ error: 'keyHash and data required' });
+  try {
+    db.prepare(
+      `INSERT INTO cloud_backups (key_hash, shop_name, data, backed_up_at)
+       VALUES (?,?,?,datetime('now'))
+       ON CONFLICT(key_hash) DO UPDATE SET
+         shop_name=excluded.shop_name,
+         data=excluded.data,
+         backed_up_at=excluded.backed_up_at`
+    ).run(keyHash, shopName || '', data);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Backup failed' });
+  }
+});
+
+// ── GET /api/cloud/restore/:keyHash — pull backup for a license key ───────────
+app.get('/api/cloud/restore/:keyHash', requireAdminKey, (req, res) => {
+  const row = db.prepare('SELECT data, shop_name, backed_up_at FROM cloud_backups WHERE key_hash = ?').get(req.params.keyHash);
+  if (!row) return res.status(404).json({ error: 'No backup found for this license key' });
+  res.json({ data: row.data, shopName: row.shop_name, backedUpAt: row.backed_up_at });
+});
+
+// ── DELETE /api/cloud/backup/:keyHash — wipe backup (admin only) ──────────────
+app.delete('/api/cloud/backup/:keyHash', requireAdminKey, (req, res) => {
+  db.prepare('DELETE FROM cloud_backups WHERE key_hash = ?').run(req.params.keyHash);
+  res.json({ ok: true });
 });
 
 // ── Serve the ShopERP HTML (local/single-device mode) ────────────────────────

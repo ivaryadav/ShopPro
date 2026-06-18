@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.14">
-<title>ShopERP Pro v8.14</title>
+<meta name="shoperpro-version" content="v8.15">
+<title>ShopERP Pro v8.15</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -2946,7 +2946,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.14 · Licensed</div>
+        <div class="sb-footer-ver">v8.15 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3219,6 +3219,12 @@ const LEGACY_KEYS=['shoperpro_v7','shoperpro_v6','shoperpro_v5','shoperpro_v4','
 // Leave as empty string '' to run in local/Electron mode (uses localStorage only).
 const SHOPERPRO_API_URL = '';  // e.g. 'https://yourdomain.com'
 
+// ── Cloud Backup Config ───────────────────────────────────────────────────────
+// Optional: set to your server URL to enable auto cloud backup and cross-device restore.
+// Works independently of SHOPERPRO_API_URL — Electron users can use this without web mode.
+// Leave as '' to use local backup only.
+const SHOPERPRO_CLOUD_URL = '';  // e.g. 'https://yourdomain.com'
+
 const _api = {
   token() { return sessionStorage.getItem('shoperpro_token') || ''; },
   setToken(t) { sessionStorage.setItem('shoperpro_token', t); },
@@ -3328,8 +3334,62 @@ function saveDB(){
         var ind=document.getElementById('autosave-ind');
         if(ind){ind.textContent='⚠ Cloud sync failed';ind.style.color='var(--orange)';ind.style.opacity='1';}
       });
-    }, 800); // debounce - wait 800ms after last save before syncing
+    }, 800);
   }
+  // 4. Cloud backup (Electron + web modes) — debounced, non-blocking
+  if(SHOPERPRO_CLOUD_URL && DB.settings && DB.settings.licenseKey && DB.settings.activated){
+    clearTimeout(window._cloudBackupTimer);
+    window._cloudBackupTimer = setTimeout(function(){ _pushCloudBackup(); }, 5000);
+  }
+}
+
+// ── Cloud backup helpers ─────────────────────────────────────────────────────
+async function _licKeyHash(key){
+  var b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(key));
+  return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+async function _pushCloudBackup(){
+  if(!SHOPERPRO_CLOUD_URL||!DB.settings||!DB.settings.licenseKey)return;
+  try{
+    var kh=await _licKeyHash(DB.settings.licenseKey);
+    var payload={keyHash:kh,shopName:DB.settings.shopName||'',data:JSON.stringify(DB)};
+    fetch(SHOPERPRO_CLOUD_URL+'/api/cloud/backup',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Admin-Key':ADMIN_PWD_HASH},
+      body:JSON.stringify(payload)
+    }).catch(function(){});
+  }catch(e){}
+}
+async function _pullCloudRestore(licenseKey,onSuccess,onNotFound){
+  if(!SHOPERPRO_CLOUD_URL){onNotFound();return;}
+  try{
+    var kh=await _licKeyHash(licenseKey);
+    fetch(SHOPERPRO_CLOUD_URL+'/api/cloud/restore/'+kh,{
+      headers:{'X-Admin-Key':ADMIN_PWD_HASH}
+    }).then(function(r){
+      if(r.status===404){onNotFound();return;}
+      return r.json().then(function(d){
+        if(d&&d.data){
+          var restored=JSON.parse(d.data);
+          // Merge restored data but keep newly validated license info
+          var licKey=DB.settings.licenseKey;
+          var licExpiry=DB.settings.licenseExpiry;
+          var licMs=DB.settings.licenseExpiryMs;
+          var licPlan=DB.settings.licensePlan;
+          var licMid=DB.settings.licenseMachineId;
+          DB=restored;
+          DB.settings.licenseKey=licKey;
+          DB.settings.licenseExpiry=licExpiry;
+          DB.settings.licenseExpiryMs=licMs;
+          DB.settings.licensePlan=licPlan;
+          DB.settings.licenseMachineId=licMid;
+          DB.settings.activated=true;
+          saveDB();
+          onSuccess(d.backedUpAt||'');
+        } else { onNotFound(); }
+      });
+    }).catch(function(){onNotFound();});
+  }catch(e){onNotFound();}
 }
 function _importLegacyData(){
   for(var _li=0;_li<LEGACY_KEYS.length;_li++){
@@ -3668,6 +3728,33 @@ function waActMachineId(){
   openWA('919451100556', msg);
 }
 
+// After a key is validated: route to correct screen and attempt cloud restore on new machine
+function _postActivationRoute(licKey){
+  var hasData=DB.settings.setupDone&&DB.users.some(function(u){return u.pinSet;});
+  if(hasData){
+    // Same machine or already has local data — go straight to login
+    toast('License verified - welcome back!','success');
+    initAutoBackupTimer();showUserSelectScreen();
+  } else {
+    // New machine or fresh setup — try cloud restore first
+    if(SHOPERPRO_CLOUD_URL){
+      var restoreEl=document.getElementById('act-err');
+      if(restoreEl){restoreEl.style.color='var(--text3)';restoreEl.textContent='Checking cloud backup...';}
+      _pullCloudRestore(licKey,function(backedUpAt){
+        if(restoreEl)restoreEl.textContent='';
+        toast('Data restored from cloud backup ('+(backedUpAt?new Date(backedUpAt).toLocaleDateString('en-IN'):'previously')+'). Welcome back!','success');
+        migrateDB();initAutoBackupTimer();showUserSelectScreen();
+      },function(){
+        if(restoreEl)restoreEl.textContent='';
+        // No cloud backup — proceed to fresh setup
+        applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin('owner-initial');
+      });
+    } else {
+      applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin('owner-initial');
+    }
+  }
+}
+
 function doActivation(){
   const raw=document.getElementById('act-input').value.trim().toUpperCase().replace(/\s/g,'');
   const err=document.getElementById('act-err');
@@ -3712,14 +3799,7 @@ function doActivation(){
       DB.settings.licensePlan=r.plan;DB.settings.licenseMachineId=machineId;
       DB.settings.activated=true;saveDB();
       err.textContent='';
-      // Key verified once - existing users go straight to PIN, new users set up PIN first
-      if(DB.settings.setupDone&&DB.users.some(function(u){return u.pinSet;})){
-        toast('License verified - welcome back!','success');
-        initAutoBackupTimer();showUserSelectScreen();
-      } else {
-        applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin('owner-initial');
-        toast('✓ Activated - '+r.message,'success');
-      }
+      _postActivationRoute(raw);
       return;
     } else if(r.valid&&r.expired){
       err.style.color='var(--orange)';
@@ -3731,18 +3811,13 @@ function doActivation(){
         DB.settings.licenseExpiry=new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0];
         DB.settings.activated=true;saveDB();
         err.textContent='';
-        if(DB.settings.setupDone&&DB.users.some(function(u){return u.pinSet;})){
-          toast('License verified - welcome back!','success');
-          initAutoBackupTimer();showUserSelectScreen();
-        } else {
-          applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin('owner-initial');
-        }
+        _postActivationRoute(raw);
         return;
       }
       err.style.color='var(--red)';
       err.textContent='✕ Invalid key or wrong machine. Keys are tied to this specific computer.';
       document.getElementById('act-input').style.borderColor='var(--red)';
-      setTimeout(()=>{document.getElementById('act-input').style.borderColor='';err.style.color='';},2000);
+      setTimeout(function(){document.getElementById('act-input').style.borderColor='';err.style.color='';},2000);
       return;
     }
   }
@@ -3752,12 +3827,7 @@ function doActivation(){
     DB.settings.licenseExpiry=new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0];
     DB.settings.activated=true;saveDB();
     err.textContent='';
-    if(DB.settings.setupDone&&DB.users.some(function(u){return u.pinSet;})){
-      toast('License verified - welcome back!','success');
-      initAutoBackupTimer();showUserSelectScreen();
-    } else {
-      applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin('owner-initial');
-    }
+    _postActivationRoute(raw);
   } else {
     err.style.color='var(--red)';
     err.textContent='✕ Invalid activation key. Contact your software provider.';
@@ -3903,31 +3973,33 @@ function setupPinConfirm(){
       if(label)label.textContent=_setupMode==='owner-initial'?'Create your 6-digit Owner PIN':_setupMode.startsWith('staff-')?'Set PIN for Staff':'Enter New 6-digit PIN';
       return;
     }
-    // Save PIN
-    if(_setupMode==='owner-initial'){
-      const owner=DB.users.find(u=>u.role==='owner');
-      if(owner){owner.pin=_setupPin1;owner.pinSet=true;}
-      DB.settings.setupDone=true;
-      saveDB();toast('Owner PIN set successfully','success');
-      showUserSelectScreen();
-    } else if(_setupMode.startsWith('staff-')){
-      const uid=parseInt(_setupMode.split('-')[1]);
-      const u=DB.users.find(x=>x.id===uid);
-      if(u){u.pin=_setupPin1;u.pinSet=true;saveDB();toast(`PIN set for ${u.name}`,'success');}
-      // Return to app if already logged in, else go to user select
-      if(currentUser){
-        showApp();showPage('settings');
-        setTimeout(()=>{const tabs=[...document.querySelectorAll('.settings-tab')];const btn=tabs.find(b=>b.textContent.includes('User'));if(btn)switchTab('tab-users',btn);},150);
-      } else {showUserSelectScreen();}
-    } else if(_setupMode.startsWith('change-')){
-      const uid=parseInt(_setupMode.split('-')[1]);
-      const u=DB.users.find(x=>x.id===uid);
-      if(u){u.pin=_setupPin1;u.pinSet=true;saveDB();toast('PIN updated successfully','success');}
-      if(currentUser){
-        showApp();showPage('settings');
-        setTimeout(()=>{const tabs=[...document.querySelectorAll('.settings-tab')];const btn=tabs.find(b=>b.textContent.includes('User'));if(btn)switchTab('tab-users',btn);},150);
-      } else {showUserSelectScreen();}
-    }
+    // Save PIN — always hash before storage (SHA-256 + machineId salt)
+    var _pinToSave=_setupPin1;
+    _hashPin(_pinToSave).then(function(hashed){
+      if(_setupMode==='owner-initial'){
+        const owner=DB.users.find(u=>u.role==='owner');
+        if(owner){owner.pin=hashed;owner.pinSet=true;}
+        DB.settings.setupDone=true;
+        saveDB();toast('Owner PIN set successfully','success');
+        showUserSelectScreen();
+      } else if(_setupMode.startsWith('staff-')){
+        const uid=parseInt(_setupMode.split('-')[1]);
+        const u=DB.users.find(x=>x.id===uid);
+        if(u){u.pin=hashed;u.pinSet=true;_clearLockState(u.id);saveDB();toast('PIN set for '+u.name,'success');}
+        if(currentUser){
+          showApp();showPage('settings');
+          setTimeout(function(){const tabs=[...document.querySelectorAll('.settings-tab')];const btn=tabs.find(b=>b.textContent.includes('User'));if(btn)switchTab('tab-users',btn);},150);
+        } else {showUserSelectScreen();}
+      } else if(_setupMode.startsWith('change-')){
+        const uid=parseInt(_setupMode.split('-')[1]);
+        const u=DB.users.find(x=>x.id===uid);
+        if(u){u.pin=hashed;u.pinSet=true;_clearLockState(u.id);saveDB();toast('PIN updated successfully','success');}
+        if(currentUser){
+          showApp();showPage('settings');
+          setTimeout(function(){const tabs=[...document.querySelectorAll('.settings-tab')];const btn=tabs.find(b=>b.textContent.includes('User'));if(btn)switchTab('tab-users',btn);},150);
+        } else {showUserSelectScreen();}
+      }
+    });
   }
 }
 
@@ -4080,9 +4152,11 @@ function doForgotPinSave(){
     var p=document.getElementById('fp-pin2');if(p){p.value='';p.focus();}return;}
   var u=DB.users.find(x=>x.id===_loginUserId);
   if(!u){if(err){err.style.color='var(--red)';err.textContent='User not found. Please go back.';}return;}
-  u.pin=p1;u.pinSet=true;
-  saveDB();
-  toast('PIN updated for '+u.name,'success');
+  _hashPin(p1).then(function(hashed){
+    u.pin=hashed;u.pinSet=true;_clearLockState(u.id);saveDB();
+    toast('PIN updated for '+u.name,'success');
+  });
+  // continue sync below (async, but sync-independent)
   // Reset the screen state for next use
   var s1=document.getElementById('fp-step1');var s2=document.getElementById('fp-step2');
   if(s1)s1.style.display='';if(s2)s2.style.display='none';
@@ -4140,39 +4214,69 @@ function renderLoginDots(buf){for(let i=0;i<6;i++){const d=document.getElementBy
 
 let _lockTimer=null;
 let _backupTimerHandle=null;
-function loginPinSubmit(){
+
+// ── Persistent PIN lockout — survives page refresh ──
+const _LOCK_KEY='shoperpro_pin_lock_v1';
+function _getLockState(uid){
+  try{var s=JSON.parse(localStorage.getItem(_LOCK_KEY)||'{}');return s[uid]||{fails:0,until:0};}catch{return{fails:0,until:0};}
+}
+function _setLockState(uid,state){
+  try{var s=JSON.parse(localStorage.getItem(_LOCK_KEY)||'{}');s[uid]=state;localStorage.setItem(_LOCK_KEY,JSON.stringify(s));}catch{}
+}
+function _clearLockState(uid){
+  try{var s=JSON.parse(localStorage.getItem(_LOCK_KEY)||'{}');delete s[uid];localStorage.setItem(_LOCK_KEY,JSON.stringify(s));}catch{}
+}
+function _startLockCountdown(uid,until,err){
+  document.querySelectorAll('.pin-btn').forEach(b=>b.disabled=true);
+  if(_lockTimer)clearInterval(_lockTimer);
+  _lockTimer=setInterval(function(){
+    var rem=Math.ceil((until-Date.now())/1000);
+    if(rem<=0){
+      clearInterval(_lockTimer);_lockTimer=null;
+      _loginAttempts=0;_clearLockState(uid);
+      document.querySelectorAll('.pin-btn').forEach(b=>b.disabled=false);
+      if(err)err.textContent='';
+    } else {
+      var m=Math.floor(rem/60),s=rem%60;
+      var label=m>0?m+'m '+s+'s':s+'s';
+      if(err)err.innerHTML='<span style="color:var(--red);font-weight:700">Too many attempts. Try again in <span id="lock-cd">'+label+'</span></span>';
+    }
+  },500);
+}
+
+async function loginPinSubmit(){
   const err=document.getElementById('login-pin-err');
   if(_loginBuf.length<6){if(err)err.textContent='Please enter all 6 digits.';return;}
   const u=DB.users.find(x=>x.id===_loginUserId);
-  if(u&&u.pin===_loginBuf){
+  if(!u){if(err)err.textContent='User not found.';return;}
+
+  // Check persistent lockout first
+  var ls=_getLockState(u.id);
+  if(ls.until>Date.now()){_startLockCountdown(u.id,ls.until,err);_loginBuf='';renderLoginDots('');return;}
+
+  var ok=await _verifyPin(u,_loginBuf);
+  if(ok){
     _loginAttempts=0;_loginBuf='';
+    _clearLockState(u.id);
     if(_lockTimer){clearInterval(_lockTimer);_lockTimer=null;}
     startApp(u);
   } else {
     _loginAttempts++;
     _loginBuf='';renderLoginDots('');
-    // shake dots
-    for(let i=0;i<6;i++){const d=document.getElementById('lp'+i);if(d){d.classList.add('error');setTimeout(()=>d.classList.remove('error'),400);}}
-    const rem=3-_loginAttempts;
-    if(_loginAttempts>=3){
-      // LOCKOUT - 30 sec countdown
-      document.querySelectorAll('.pin-btn').forEach(b=>b.disabled=true);
-      let secs=30;
-      if(err)err.innerHTML=`<span style="color:var(--red);font-weight:700">Too many attempts.<br>Try again in <span id="lock-cd">${secs}</span>s</span>`;
-      if(_lockTimer)clearInterval(_lockTimer);
-      _lockTimer=setInterval(()=>{
-        secs--;
-        const cd=document.getElementById('lock-cd');
-        if(cd)cd.textContent=secs;
-        if(secs<=0){
-          clearInterval(_lockTimer);_lockTimer=null;
-          _loginAttempts=0;
-          document.querySelectorAll('.pin-btn').forEach(b=>b.disabled=false);
-          if(err)err.textContent='';
-        }
-      },1000);
+    for(var i=0;i<6;i++){var d=document.getElementById('lp'+i);if(d){d.classList.add('error');setTimeout((function(el){return function(){el.classList.remove('error');};})(d),400);}}
+    var ls2=_getLockState(u.id);
+    ls2.fails=(ls2.fails||0)+1;
+    // Progressive lockout: 3 fails=2min, 6 fails=10min, 9 fails=30min, 12+=60min
+    var lockDurations=[0,0,0,2*60,2*60,2*60,10*60,10*60,10*60,30*60,30*60,30*60,60*60];
+    var lockSec=lockDurations[Math.min(ls2.fails,lockDurations.length-1)];
+    if(lockSec>0){
+      ls2.until=Date.now()+lockSec*1000;
+      _setLockState(u.id,ls2);
+      _startLockCountdown(u.id,ls2.until,err);
     } else {
-      if(err)err.textContent=`Incorrect PIN. ${rem} attempt${rem!==1?'s':''} left before lockout.`;
+      _setLockState(u.id,ls2);
+      var rem=3-ls2.fails;
+      if(err)err.textContent='Incorrect PIN. '+(rem>0?rem+' attempt'+(rem!==1?'s':'')+' left before lockout.':'Locked next attempt.');
     }
   }
 }
@@ -4569,6 +4673,22 @@ function webRegister(){
 // paste the result as ADMIN_PWD_HASH below and redeploy.
 const ADMIN_PWD_HASH='2b5877210c3581cccac2431c0a5681ea1c5674ae71dbb5d664eda93e3965a3dd';
 async function _adminHash(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+
+// ── PIN Security — SHA-256(machineId::salt::pin), machine-bound, never stored plain text ──
+async function _hashPin(pin){
+  var salt=getAppMachineId()+'::shoperpro::pin::v1';
+  var b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(salt+pin));
+  return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function _isPinHashed(v){return typeof v==='string'&&v.length===64&&/^[0-9a-f]+$/.test(v);}
+// Verify PIN and auto-migrate legacy plain-text on first correct match
+async function _verifyPin(user,entered){
+  if(_isPinHashed(user.pin)){var h=await _hashPin(entered);return h===user.pin;}
+  // Legacy plain-text: verify then silently upgrade to hash
+  if(user.pin===entered){user.pin=await _hashPin(entered);saveDB();return true;}
+  return false;
+}
+
 const _adminGuard={count:0,lockedUntil:0};
 function _adminLockCheck(errFn){const now=Date.now();if(_adminGuard.lockedUntil>now){const m=Math.ceil((_adminGuard.lockedUntil-now)/60000);errFn('Too many attempts. Try again in '+m+' min.');return false;}return true;}
 function _adminFailure(errFn){_adminGuard.count++;if(_adminGuard.count>=5){_adminGuard.lockedUntil=Date.now()+15*60*1000;_adminGuard.count=0;errFn('5 failed attempts - locked for 15 minutes.');}else{errFn('Incorrect password. '+(5-_adminGuard.count)+' attempt'+(5-_adminGuard.count===1?'':'s')+' remaining.');}}
@@ -5234,13 +5354,15 @@ function admResetPin(userId){
   if(newPin.length!==6){toast('Enter exactly 6 digits','error');inp.focus();return;}
   var u=(DB.users||[]).find(function(x){return x.id===userId;});
   if(!u){toast('User not found','error');return;}
-  u.pin=newPin; u.pinSet=true;
-  saveDB();
+  var _plainPin=newPin;
+  _hashPin(_plainPin).then(function(hashed){
+    u.pin=hashed;u.pinSet=true;_clearLockState(u.id);saveDB();
+  });
   inp.value='';
-  // Show the result panel with the new PIN
+  // Show the plain PIN to owner so they can share it — it is only shown once
   var resDiv=document.getElementById('pin-result-'+userId);
   var showEl=document.getElementById('pin-show-'+userId);
-  if(resDiv&&showEl){ showEl.textContent=newPin; resDiv.style.display='block'; }
+  if(resDiv&&showEl){ showEl.textContent=_plainPin; resDiv.style.display='block'; }
   toast('PIN reset for '+esc(u.name)+' - share the new PIN with them','success');
 }
 function admCopyPin(elId){
@@ -5710,6 +5832,46 @@ document.addEventListener('wheel', function(e){
     document.activeElement.blur();
   }
 }, {passive:false});
+
+// ── App Hardening ─────────────────────────────────────────────────────────────
+(function(){
+  // 1. Silence all console output in production (keep errors only for debugging)
+  var _noop=function(){};
+  ['log','info','debug','warn','table','group','groupEnd','groupCollapsed','time','timeEnd','count'].forEach(function(m){
+    try{if(typeof console!=='undefined'&&console[m])console[m]=_noop;}catch(e){}
+  });
+
+  // 2. Block right-click (context menu) on the auth/license screens
+  document.addEventListener('contextmenu',function(e){
+    var authIds=['portal-select-screen','activation-screen','new-user-screen','admin-login-screen','setup-pin-screen','user-select-screen','pin-login-screen'];
+    var inAuth=authIds.some(function(id){var el=document.getElementById(id);return el&&(el.style.display!=='none'&&!el.classList.contains('hidden'));});
+    if(inAuth){e.preventDefault();return false;}
+  });
+
+  // 3. Block common devtools keyboard shortcuts on auth screens
+  document.addEventListener('keydown',function(e){
+    var authActive=['portal-select-screen','activation-screen','new-user-screen','pin-login-screen'].some(function(id){
+      var el=document.getElementById(id);return el&&el.style.display!=='none'&&!el.classList.contains('hidden');
+    });
+    if(authActive){
+      // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U (view source)
+      if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&['I','J','C'].includes(e.key))||(e.ctrlKey&&e.key==='U')){
+        e.preventDefault();return false;
+      }
+    }
+  },true);
+
+  // 4. Detect if DevTools is open (size change method) — warn and show machine-ID screen
+  var _devCheck=function(){
+    var t=new Date();
+    (function(){})['constructor']('debugger')();
+    if(new Date()-t>100){
+      document.querySelectorAll('.auth-section-label').forEach(function(el){el.style.color='var(--red)';});
+    }
+  };
+  // Run once after page loads, not on every frame (too heavy)
+  setTimeout(_devCheck, 3000);
+})();
 
 bootApp();
 
@@ -14424,15 +14586,16 @@ function verifyPinPress(k){
   for(let i=0;i<6;i++){const d=document.getElementById('vd'+i);if(d){d.style.background=i<_changePinVerifyBuf.length?'var(--accent)':'transparent';d.style.borderColor=i<_changePinVerifyBuf.length?'var(--accent)':'var(--border2)';}}
   if(_changePinVerifyBuf.length===6)setTimeout(doVerifyPin,100);
 }
-function doVerifyPin(){
+async function doVerifyPin(){
   const u=DB.users.find(x=>x.id===_changePinVerifyUid);if(!u)return;
-  if(u.pin===_changePinVerifyBuf){
+  var ok=await _verifyPin(u,_changePinVerifyBuf);
+  if(ok){
     closeModal();
-    const mode=`change-${u.id}`;
+    const mode='change-'+u.id;
     applyAuthBranding('setup');showScreen('setup-pin-screen');beginSetupPin(mode,u.id);
   } else {
     _changePinVerifyBuf='';
-    for(let i=0;i<6;i++){const d=document.getElementById('vd'+i);if(d){d.style.background='var(--red)';d.style.borderColor='var(--red)';setTimeout(()=>{d.style.background='transparent';d.style.borderColor='var(--border2)';},400);}}
+    for(let i=0;i<6;i++){const d=document.getElementById('vd'+i);if(d){d.style.background='var(--red)';d.style.borderColor='var(--red)';setTimeout(function(){d.style.background='transparent';d.style.borderColor='var(--border2)';},400);}}
     const err=document.getElementById('verify-err');if(err)err.textContent='Incorrect PIN. Try again.';
   }
 }
