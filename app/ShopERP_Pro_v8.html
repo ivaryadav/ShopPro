@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.4">
-<title>ShopERP Pro v8.4</title>
+<meta name="shoperpro-version" content="v8.5">
+<title>ShopERP Pro v8.5</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -2626,7 +2626,7 @@ spline-viewer{width:100%;height:100%;border:none}
           <div class="pss-form-sub">License &amp; system management console</div>
           <div class="pss-field">
             <label class="pss-flabel">Admin Password</label>
-            <input class="pss-finput" id="pss-adm-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')pssAdminLogin()">
+            <input class="pss-finput" id="pss-adm-pass" type="password" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter')pssAdminLogin()">
           </div>
           <button class="pss-fbtn red" id="pss-adm-btn" onclick="pssAdminLogin()">Enter Console &#8594;</button>
         </div>
@@ -2751,7 +2751,7 @@ spline-viewer{width:100%;height:100%;border:none}
     <div id="admin-login-error" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#FCA5A5;padding:10px 14px;border-radius:10px;font-size:12px;margin-bottom:16px"></div>
     <div style="margin-bottom:22px">
       <label class="wl-label">Admin Password</label>
-      <input class="wl-input" id="adm-pass" type="password" placeholder="••••••••••••" onkeydown="if(event.key==='Enter')adminLogin()">
+      <input class="wl-input" id="adm-pass" type="password" placeholder="••••••••••••" autocomplete="off" onkeydown="if(event.key==='Enter')adminLogin()">
     </div>
     <button class="wl-btn" style="background:linear-gradient(135deg,#DC2626,#991B1B)" onclick="adminLogin()">Enter Admin Console →</button>
     <div style="text-align:center;margin-top:20px">
@@ -2881,7 +2881,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.4 · Licensed</div>
+        <div class="sb-footer-ver">v8.5 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -4550,6 +4550,8 @@ function selectPortal(mode){
   document.getElementById('portal-select-screen').style.display='none';
   if(mode==='admin'){
     var el=document.getElementById('admin-login-screen'); if(el)el.style.display='flex';
+    var _ap=document.getElementById('adm-pass');if(_ap)_ap.value='';
+    var _ae=document.getElementById('admin-login-error');if(_ae){_ae.style.display='none';_ae.textContent='';}
     setTimeout(function(){ var p=document.getElementById('adm-pass'); if(p)p.focus(); },100);
   } else {
     // 'user' portal: web mode → web login, local/Electron mode → boot flow
@@ -5237,6 +5239,7 @@ function pssOpenPanel(type){
     var el=document.getElementById('pss-panel-'+t);
     if(el) el.style.display=(t===type?'block':'none');
   });
+  if(type==='admin'){var p=document.getElementById('pss-adm-pass');if(p){p.value='';}}
   var focusMap={login:'pss-mobile',register:'pss-reg-shop',admin:'pss-adm-pass'};
   setTimeout(function(){ var el=document.getElementById(focusMap[type]); if(el)el.focus(); },60);
 }
@@ -5574,7 +5577,9 @@ document.addEventListener('keydown',function(e){
     var ps=document.getElementById('portal-select-screen');
     if(ps)ps.style.display='none';
     var al=document.getElementById('admin-login-screen');
-    if(al){al.style.display='flex';setTimeout(function(){var p=document.getElementById('adm-pass');if(p)p.focus();},50);}
+    if(al){al.style.display='flex';var _kp=document.getElementById('adm-pass');if(_kp)_kp.value='';
+    var _ke=document.getElementById('admin-login-error');if(_ke){_ke.style.display='none';_ke.textContent='';}
+    setTimeout(function(){var p=document.getElementById('adm-pass');if(p)p.focus();},50);}
   }
 });
 
