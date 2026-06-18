@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.5">
-<title>ShopERP Pro v8.5</title>
+<meta name="shoperpro-version" content="v8.6">
+<title>ShopERP Pro v8.6</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -2881,7 +2881,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.5 · Licensed</div>
+        <div class="sb-footer-ver">v8.6 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -4457,10 +4457,15 @@ function webRegister(){
 // PORTAL SELECTION + ADMIN DASHBOARD
 // ════════════════════════════════════════════════════════════════
 
-// ── Admin password (change before going live) ──
-// In web/hosted mode this should come from .env via API.
-// For local/Electron mode this is checked client-side.
-const ADMIN_PASSWORD = 'ShopERP@Admin2025';
+// ── Admin password: SHA-256 hash only — plaintext never in source ──
+// To change: run   echo -n 'NewPassword' | shasum -a 256
+// paste the result as ADMIN_PWD_HASH below and redeploy.
+const ADMIN_PWD_HASH='a3f3a35fd3a1f5490afb50bbddf6261171bc5961dd0b1aac489c6d19cbb0cdf3';
+async function _adminHash(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+const _adminGuard={count:0,lockedUntil:0};
+function _adminLockCheck(errFn){const now=Date.now();if(_adminGuard.lockedUntil>now){const m=Math.ceil((_adminGuard.lockedUntil-now)/60000);errFn('Too many attempts. Try again in '+m+' min.');return false;}return true;}
+function _adminFailure(errFn){_adminGuard.count++;if(_adminGuard.count>=5){_adminGuard.lockedUntil=Date.now()+15*60*1000;_adminGuard.count=0;errFn('5 failed attempts — locked for 15 minutes.');}else{errFn('Incorrect password. '+(5-_adminGuard.count)+' attempt'+(5-_adminGuard.count===1?'':'s')+' remaining.');}}
+function _adminSuccess(){_adminGuard.count=0;sessionStorage.setItem('_sa',Date.now().toString());}
 
 // ── Admin DB (separate from main app DB) ──
 const ADMIN_STORE_KEY = 'shoperpro_admin_v1';
@@ -4561,14 +4566,18 @@ function selectPortal(mode){
 }
 
 // ── Admin login / logout ──
-function adminLogin(){
-  var pass=document.getElementById('adm-pass').value;
+async function adminLogin(){
   var errEl=document.getElementById('admin-login-error');
-  if(!pass){ errEl.textContent='Password required.'; errEl.style.display='block'; return; }
-  if(pass!==ADMIN_PASSWORD){ errEl.textContent='Incorrect admin password.'; errEl.style.display='block'; document.getElementById('adm-pass').value=''; return; }
+  var showErr=function(m){errEl.textContent=m;errEl.style.display='block';};
+  var pass=document.getElementById('adm-pass').value;
+  if(!pass){showErr('Password required.');return;}
+  if(!_adminLockCheck(showErr))return;
+  var hash=await _adminHash(pass);
+  document.getElementById('adm-pass').value='';
+  if(hash!==ADMIN_PWD_HASH){_adminFailure(showErr);return;}
+  _adminSuccess();
   errEl.style.display='none';
   document.getElementById('admin-login-screen').style.display='none';
-  document.getElementById('adm-pass').value='';
   loadAdminDB();
   document.getElementById('admin-panel').style.display='block';
   document.getElementById('adm-topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
@@ -5304,10 +5313,14 @@ function pssRegister(){
     continueBootApp();
   }).catch(function(){ pssShowErr('Connection error. Check your network.'); btn.disabled=false; btn.textContent='Register & Start →'; });
 }
-function pssAdminLogin(){
+async function pssAdminLogin(){
   var pass=document.getElementById('pss-adm-pass').value;
-  if(!pass){ pssShowErr('Password required.'); return; }
-  if(pass!==ADMIN_PASSWORD){ pssShowErr('Incorrect admin password.'); document.getElementById('pss-adm-pass').value=''; return; }
+  if(!pass){pssShowErr('Password required.');return;}
+  if(!_adminLockCheck(pssShowErr))return;
+  var hash=await _adminHash(pass);
+  document.getElementById('pss-adm-pass').value='';
+  if(hash!==ADMIN_PWD_HASH){_adminFailure(pssShowErr);return;}
+  _adminSuccess();
   document.getElementById('pss-inline-err').style.display='none';
   document.getElementById('portal-select-screen').style.display='none';
   loadAdminDB();
