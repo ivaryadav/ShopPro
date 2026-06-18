@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.7">
-<title>ShopERP Pro v8.7</title>
+<meta name="shoperpro-version" content="v8.8">
+<title>ShopERP Pro v8.8</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -262,10 +262,11 @@ button,input,select,textarea{font-family:var(--font)}
 /* Section label */
 .auth-section-label{
   font-size:9px;font-weight:700;letter-spacing:2.5px;
-  text-transform:uppercase;color:rgba(255,255,255,.3);
+  text-transform:uppercase;color:rgba(46,212,196,.7);
   margin-bottom:20px;
 }
 .auth-heading{font-size:28px;font-weight:800;color:#fff;letter-spacing:-.5px;margin-bottom:6px}
+#us-shop-name{font-size:32px;letter-spacing:-.8px;background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,.88) 55%,rgba(46,212,196,.65) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .auth-subhead{font-size:13px;color:rgba(255,255,255,.35);margin-bottom:32px;line-height:1.6}
 .auth-err{
   color:var(--red);font-size:12px;min-height:16px;
@@ -367,23 +368,32 @@ button,input,select,textarea{font-family:var(--font)}
   color:#000;font-size:18px;font-weight:700;
 }
 .pin-btn-ok:hover{background:rgba(255,255,255,.9)}
-.pin-who-select{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.pin-who-select{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
 .pin-who-btn{
-  padding:13px 16px;border-radius:14px;
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.07);
-  color:#fff;font-size:13px;font-weight:600;
+  padding:16px 18px;border-radius:16px;
+  background:rgba(255,255,255,.038);
+  border:1px solid rgba(255,255,255,.08);
+  color:#fff;font-size:14px;font-weight:700;
   cursor:pointer;display:flex;align-items:center;
-  gap:14px;transition:.15s;text-align:left;
+  gap:15px;transition:all .26s cubic-bezier(.25,.8,.25,1);text-align:left;
+  position:relative;overflow:hidden;
 }
-.pin-who-btn:hover{background:rgba(91,142,249,.1);border-color:rgba(91,142,249,.35);transform:translateY(-1px)}
+.pin-who-btn::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);opacity:0;transition:opacity .26s}
+.pin-who-btn:hover{background:rgba(91,142,249,.08);border-color:rgba(91,142,249,.38);transform:translateY(-2px);box-shadow:0 8px 28px rgba(91,142,249,.16)}
+.pin-who-btn:hover::before{opacity:1}
+.pin-who-btn:active{transform:scale(.997)}
 .pin-who-btn .who-av{
-  width:42px;height:42px;border-radius:50%;
+  width:46px;height:46px;border-radius:50%;
   background:linear-gradient(135deg,var(--accent),var(--purple));
   display:flex;align-items:center;justify-content:center;
-  font-size:17px;font-weight:800;color:#fff;flex-shrink:0;
+  font-size:18px;font-weight:800;color:#fff;flex-shrink:0;
+  box-shadow:0 0 0 2px rgba(91,142,249,.25),0 0 0 5px rgba(91,142,249,.08);
+  transition:box-shadow .26s;
 }
-.pin-who-btn .who-role{font-size:10px;color:rgba(255,255,255,.3);font-weight:400;margin-top:2px}
+.pin-who-btn:hover .who-av{box-shadow:0 0 0 2px rgba(91,142,249,.55),0 0 0 5px rgba(91,142,249,.15)}
+.pin-who-btn .who-role{font-size:11px;color:rgba(255,255,255,.38);font-weight:500;margin-top:2px}
+.who-arr{margin-left:auto;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.38);font-size:14px;transition:all .26s;flex-shrink:0}
+.pin-who-btn:hover .who-arr{background:rgba(91,142,249,.15);border-color:rgba(91,142,249,.35);color:#fff;transform:translateX(2px)}
 /* Machine ID box on user-select screen */
 .us-mid-box{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .us-mid-label{font-size:9px;font-weight:700;color:rgba(52,211,153,.6);letter-spacing:.8px;text-transform:uppercase;margin-bottom:3px}
@@ -392,7 +402,9 @@ button,input,select,textarea{font-family:var(--font)}
 .us-mid-copy:hover{background:rgba(52,211,153,.22)}
 body.light-mode .us-mid-box{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.3)}
 body.light-mode .pin-who-btn{background:#fff;border:1.5px solid #D1DAFB;color:#0F172A;box-shadow:0 2px 8px rgba(0,0,0,.05)}
-body.light-mode .pin-who-btn:hover{background:#EEF2FF;border-color:#3B6FE8;box-shadow:0 4px 16px rgba(37,99,235,.12)}
+body.light-mode .pin-who-btn:hover{background:#EEF2FF;border-color:#3B6FE8;box-shadow:0 8px 28px rgba(37,99,235,.15)}
+body.light-mode .who-arr{background:#F1F5FF;border-color:#C7D4FB;color:#3B6FE8}
+body.light-mode .pin-who-btn:hover .who-arr{background:#3B6FE8;border-color:#3B6FE8;color:#fff}
 .pin-setup-hint{font-size:11px;color:rgba(255,255,255,.25);text-align:center;margin-top:14px;line-height:1.7}
 .login-wrap{width:380px}
 .login-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px}
@@ -2347,55 +2359,76 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
   </div>
 </div>
 
-<!-- PORTAL SELECT SCREEN — Spotlight centered layout -->
+<!-- PORTAL SELECT SCREEN — Premium redesign -->
 <style>
-/* === Spotlight animation (aceternity-style) === */
-@keyframes pss-spotlight{
-  0%{opacity:0;transform:translate(-72%,-62%) scale(.5)}
-  100%{opacity:1;transform:translate(-50%,-40%) scale(1)}
-}
-/* === Portal outer shell === */
-#portal-select-screen{background:#000}
-.pss-outer{width:100%;height:100%;background:rgba(0,0,0,.96);position:relative;overflow:hidden;display:flex}
+/* === Animations === */
+@keyframes pss-spotlight{0%{opacity:0;transform:translate(-72%,-62%) scale(.5)}100%{opacity:1;transform:translate(-50%,-40%) scale(1)}}
+@keyframes pss-orb1{0%{transform:translate(0,0) scale(1)}50%{transform:translate(60px,40px) scale(1.12)}100%{transform:translate(0,0) scale(1)}}
+@keyframes pss-orb2{0%{transform:translate(0,0)}50%{transform:translate(-50px,-35px) scale(1.08)}100%{transform:translate(0,0)}}
+@keyframes pss-orb3{0%{transform:translate(0,0)}50%{transform:translate(28px,-52px)}100%{transform:translate(0,0)}}
+@keyframes pss-badgePulse{0%,100%{opacity:.7}50%{opacity:1}}
+@keyframes pss-dotBlink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+@keyframes pss-cardIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+/* === Outer shell === */
+#portal-select-screen{background:#020818}
+.pss-outer{width:100%;height:100%;background:linear-gradient(135deg,#020818 0%,#030e1c 55%,#020818 100%);position:relative;overflow:hidden;display:flex}
+/* Subtle grid */
+.pss-outer::after{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.016) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.016) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;mask-image:radial-gradient(ellipse 75% 85% at 22% 50%,black 15%,transparent 100%);z-index:0}
 /* Spotlight SVG */
 .pss-spotlight{pointer-events:none;position:absolute;z-index:1;opacity:0;height:169%;width:138%;top:0;left:0;animation:pss-spotlight 2s ease .75s 1 forwards}
+/* Ambient orbs */
+.pss-orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(80px);z-index:0}
+.pss-orb-1{width:700px;height:700px;background:radial-gradient(circle,rgba(46,212,196,.1) 0%,transparent 70%);top:-260px;left:-220px;animation:pss-orb1 14s ease-in-out infinite}
+.pss-orb-2{width:580px;height:580px;background:radial-gradient(circle,rgba(91,142,249,.1) 0%,transparent 70%);bottom:-200px;left:40px;animation:pss-orb2 18s ease-in-out infinite}
+.pss-orb-3{width:440px;height:440px;background:radial-gradient(circle,rgba(139,92,246,.08) 0%,transparent 70%);top:20%;right:28%;animation:pss-orb3 22s ease-in-out infinite}
 /* === Left column === */
-.pss-left{flex:0 0 420px;padding:44px 40px 44px 48px;position:relative;z-index:10;display:flex;flex-direction:column;justify-content:center}
-.pss-logo-row{display:flex;align-items:center;margin-bottom:22px}
-.pss-h1{font-size:44px;font-weight:900;letter-spacing:-2px;line-height:1.04;margin-bottom:12px;background:linear-gradient(180deg,rgba(255,255,255,.98) 0%,rgba(255,255,255,.5) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.pss-sub{font-size:13px;color:rgba(255,255,255,.45);line-height:1.75;margin-bottom:28px;max-width:340px}
+.pss-left{flex:0 0 440px;padding:44px 44px 44px 52px;position:relative;z-index:10;display:flex;flex-direction:column;justify-content:center}
+.pss-logo-row{display:flex;align-items:center;margin-bottom:28px}
+/* Platform badge */
+.pss-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 13px 5px 8px;background:rgba(46,212,196,.06);border:1px solid rgba(46,212,196,.18);border-radius:20px;font-size:9.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:rgba(46,212,196,.85);margin-bottom:16px;animation:pss-badgePulse 3s ease-in-out infinite;width:fit-content}
+.pss-badge-dot{width:7px;height:7px;border-radius:50%;background:#2ED4C4;animation:pss-dotBlink 2.5s ease-in-out infinite;flex-shrink:0}
+.pss-h1{font-size:46px;font-weight:900;letter-spacing:-2.5px;line-height:1.02;margin-bottom:12px;background:linear-gradient(155deg,#fff 0%,rgba(255,255,255,.92) 45%,rgba(46,212,196,.65) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.pss-sub{font-size:13px;color:rgba(255,255,255,.36);line-height:1.82;margin-bottom:28px;max-width:335px}
 /* Portal list items */
-.pss-list{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
-.pss-item{display:flex;align-items:center;gap:14px;padding:15px 18px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.13);border-radius:14px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;user-select:none}
-.pss-item::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .22s;pointer-events:none}
-.pss-item:hover{transform:translateX(4px)}
-.pss-item.c-user:hover{border-color:rgba(91,142,249,.55);box-shadow:0 4px 24px rgba(91,142,249,.15)}
-.pss-item.c-user:hover::before{background:linear-gradient(90deg,rgba(91,142,249,.1) 0%,transparent 100%);opacity:1}
-.pss-item.c-new:hover{border-color:rgba(16,185,129,.5);box-shadow:0 4px 24px rgba(16,185,129,.12)}
-.pss-item.c-new:hover::before{background:linear-gradient(90deg,rgba(16,185,129,.08) 0%,transparent 100%);opacity:1}
-.pss-item.c-admin:hover{border-color:rgba(248,113,113,.45);box-shadow:0 4px 24px rgba(248,113,113,.1)}
-.pss-item.c-admin:hover::before{background:linear-gradient(90deg,rgba(248,113,113,.07) 0%,transparent 100%);opacity:1}
-.pss-item-ico{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.pss-item-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:3px}
-.pss-item-desc{font-size:11.5px;color:rgba(255,255,255,.48);line-height:1.4}
-.pss-item-arr{margin-left:auto;color:rgba(255,255,255,.35);font-size:20px;transition:all .2s;flex-shrink:0;font-weight:300}
-.pss-item:hover .pss-item-arr{color:rgba(255,255,255,.7);transform:translateX(4px)}
+.pss-list{display:flex;flex-direction:column;gap:10px;margin-bottom:26px}
+.pss-item{display:flex;align-items:center;gap:16px;padding:17px 20px;background:rgba(255,255,255,.038);border:1px solid rgba(255,255,255,.08);border-radius:16px;cursor:pointer;transition:all .26s cubic-bezier(.25,.8,.25,1);position:relative;overflow:hidden;user-select:none;backdrop-filter:blur(6px)}
+.pss-item::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .26s;pointer-events:none}
+.pss-item::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);opacity:0;transition:opacity .26s}
+.pss-item:hover{transform:translateY(-2px)}
+.pss-item:hover::after{opacity:1}
+.pss-item:active{transform:scale(.996)}
+.pss-item.c-user:hover{border-color:rgba(91,142,249,.42);box-shadow:0 8px 30px rgba(91,142,249,.16),inset 0 1px 0 rgba(91,142,249,.12)}
+.pss-item.c-user:hover::before{background:linear-gradient(120deg,rgba(91,142,249,.1) 0%,transparent 75%);opacity:1}
+.pss-item.c-new:hover{border-color:rgba(16,185,129,.38);box-shadow:0 8px 30px rgba(16,185,129,.14),inset 0 1px 0 rgba(16,185,129,.1)}
+.pss-item.c-new:hover::before{background:linear-gradient(120deg,rgba(16,185,129,.09) 0%,transparent 75%);opacity:1}
+.pss-item.c-admin:hover{border-color:rgba(248,113,113,.38);box-shadow:0 8px 30px rgba(248,113,113,.12),inset 0 1px 0 rgba(248,113,113,.1)}
+.pss-item.c-admin:hover::before{background:linear-gradient(120deg,rgba(248,113,113,.08) 0%,transparent 75%);opacity:1}
+.pss-item-ico{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .26s}
+.pss-item:hover .pss-item-ico{transform:scale(1.08)}
+.pss-item-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:3px;letter-spacing:-.2px}
+.pss-item-desc{font-size:11.5px;color:rgba(255,255,255,.4);line-height:1.4}
+.pss-item-arr{margin-left:auto;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.4);font-size:15px;transition:all .26s;flex-shrink:0}
+.pss-item:hover .pss-item-arr{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18);color:#fff;transform:translateX(2px)}
+/* Card stagger */
+.pss-list .pss-item:nth-child(1){animation:pss-cardIn .45s ease .28s both}
+.pss-list .pss-item:nth-child(2){animation:pss-cardIn .45s ease .40s both}
+.pss-list .pss-item:nth-child(3){animation:pss-cardIn .45s ease .52s both}
 /* Download row */
-.pss-dl{display:flex;align-items:center;gap:8px;padding-top:18px;border-top:1px solid rgba(255,255,255,.07);flex-wrap:wrap}
-.pss-dl-btn{display:flex;align-items:center;gap:6px;padding:9px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:9px;color:rgba(255,255,255,.6);font-size:11px;font-weight:600;text-decoration:none;transition:all .18s;white-space:nowrap;cursor:pointer}
-.pss-dl-btn:not([data-disabled="1"]):hover{border-color:rgba(91,142,249,.5);color:#fff;background:rgba(91,142,249,.12)}
-.pss-dl-btn[data-disabled="1"]{opacity:.45;cursor:not-allowed}
-.pss-dl-contact{font-size:10px;color:rgba(255,255,255,.25);margin-left:auto;text-align:right;line-height:1.6;min-width:0}
-.pss-dl-contact strong{color:rgba(255,255,255,.45);display:block;font-size:11px}
-/* === Right column — Spline 3D === */
+.pss-dl{display:flex;align-items:center;gap:8px;padding-top:18px;border-top:1px solid rgba(255,255,255,.06);flex-wrap:wrap}
+.pss-dl-btn{display:flex;align-items:center;gap:6px;padding:9px 16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:9px;color:rgba(255,255,255,.5);font-size:11px;font-weight:600;text-decoration:none;transition:all .18s;white-space:nowrap;cursor:pointer}
+.pss-dl-btn:not([data-disabled="1"]):hover{border-color:rgba(91,142,249,.48);color:#fff;background:rgba(91,142,249,.1)}
+.pss-dl-btn[data-disabled="1"]{opacity:.38;cursor:not-allowed}
+.pss-dl-contact{font-size:10px;color:rgba(255,255,255,.2);margin-left:auto;text-align:right;line-height:1.6;min-width:0}
+.pss-dl-contact strong{color:rgba(255,255,255,.4);display:block;font-size:11px}
+/* === Right column === */
 .pss-right{flex:1;position:relative;min-height:0}
 .pss-spline-wrap{position:absolute;inset:0}
-/* === Inline form panel inside left column === */
+/* === Inline form panel === */
 #pss-form-area{flex-direction:column;flex:1;justify-content:center;padding-top:8px}
-.pss-back-btn{background:none;border:none;color:rgba(255,255,255,.35);font-size:12px;cursor:pointer;padding:0;margin-bottom:18px;display:inline-flex;align-items:center;gap:5px;transition:.15s;letter-spacing:.2px}
-.pss-back-btn:hover{color:rgba(255,255,255,.75)}
+.pss-back-btn{background:none;border:none;color:rgba(255,255,255,.3);font-size:12px;cursor:pointer;padding:0;margin-bottom:18px;display:inline-flex;align-items:center;gap:5px;transition:.15s;letter-spacing:.2px}
+.pss-back-btn:hover{color:rgba(255,255,255,.72)}
 .pss-form-title{font-size:20px;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:-.5px}
-.pss-form-sub{font-size:12px;color:rgba(255,255,255,.38);margin-bottom:20px;line-height:1.55}
+.pss-form-sub{font-size:12px;color:rgba(255,255,255,.36);margin-bottom:20px;line-height:1.55}
 .pss-form-note{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:8px 12px;font-size:11px;color:rgba(255,255,255,.45);margin-bottom:16px;line-height:1.6}
 .pss-field{margin-bottom:13px}
 .pss-flabel{display:block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.3);margin-bottom:5px}
@@ -2416,7 +2449,7 @@ spline-viewer{width:100%;height:100%;border:none}
 
 @media(max-width:900px){
   .pss-left{flex:0 0 380px;padding:36px 28px}
-  .pss-h1{font-size:36px}
+  .pss-h1{font-size:38px}
 }
 @media(max-width:700px){
   .pss-outer{flex-direction:column}
@@ -2429,6 +2462,10 @@ spline-viewer{width:100%;height:100%;border:none}
 </style>
 <div id="portal-select-screen" style="display:none;position:fixed;inset:0;z-index:9990">
   <div class="pss-outer">
+    <!-- Ambient gradient orbs -->
+    <div class="pss-orb pss-orb-1"></div>
+    <div class="pss-orb pss-orb-2"></div>
+    <div class="pss-orb pss-orb-3"></div>
 
     <!-- Aceternity Spotlight SVG -->
     <svg class="pss-spotlight" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3787 2842" fill="none">
@@ -2530,12 +2567,18 @@ spline-viewer{width:100%;height:100%;border:none}
 
       <!-- ── MENU VIEW ── -->
       <div id="pss-menu-area">
+        <div class="pss-badge"><span class="pss-badge-dot"></span>Enterprise ERP Platform</div>
         <div class="pss-h1">Your shop,<br>fully managed.</div>
-        <div class="pss-sub">Billing, repairs, inventory and customer management — all in one place. Choose how you'd like to sign in.</div>
+        <div class="pss-sub">Billing, repairs, inventory &amp; customers — all in one place. Choose how you'd like to continue.</div>
 
         <div class="pss-list">
           <div class="pss-item c-user" onclick="pssClickExisting()">
-            <div class="pss-item-ico" style="background:rgba(91,142,249,.1);border:1px solid rgba(91,142,249,.22)">&#127978;</div>
+            <div class="pss-item-ico" style="background:rgba(91,142,249,.12);border:1px solid rgba(91,142,249,.25)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="8" r="3.5" stroke="#5B8EF9" stroke-width="1.8"/>
+                <path d="M5 19.5C5 16.4624 8.13401 14 12 14C15.866 14 19 16.4624 19 19.5" stroke="#5B8EF9" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </div>
             <div>
               <div class="pss-item-title">Existing User</div>
               <div class="pss-item-desc" id="pss-existing-desc">Sign in with mobile number &amp; PIN</div>
@@ -2543,7 +2586,13 @@ spline-viewer{width:100%;height:100%;border:none}
             <div class="pss-item-arr">&#8250;</div>
           </div>
           <div class="pss-item c-new" onclick="pssClickNew()">
-            <div class="pss-item-ico" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.22)">&#10024;</div>
+            <div class="pss-item-ico" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.22)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="10" width="18" height="11" rx="2" stroke="#10B981" stroke-width="1.8"/>
+                <path d="M7 10V7C7 4.79086 8.79086 3 11 3H13C15.2091 3 17 4.79086 17 7V10" stroke="#10B981" stroke-width="1.8"/>
+                <path d="M12 14V17M10.5 15.5H13.5" stroke="#10B981" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </div>
             <div>
               <div class="pss-item-title">New User</div>
               <div class="pss-item-desc" id="pss-new-desc">First time setup — register your shop</div>
@@ -2551,7 +2600,12 @@ spline-viewer{width:100%;height:100%;border:none}
             <div class="pss-item-arr">&#8250;</div>
           </div>
           <div class="pss-item c-admin" onclick="pssOpenPanel('admin')">
-            <div class="pss-item-ico" style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.18)">&#128737;&#65039;</div>
+            <div class="pss-item-ico" style="background:rgba(248,113,113,.09);border:1px solid rgba(248,113,113,.2)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3L4 6.5V11C4 15.4183 7.58172 19.4 12 21C16.4183 19.4 20 15.4183 20 11V6.5L12 3Z" stroke="#F87171" stroke-width="1.8" stroke-linejoin="round"/>
+                <path d="M9 12L11 14L15 10" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
             <div>
               <div class="pss-item-title">Super Admin</div>
               <div class="pss-item-desc">License &amp; system management console</div>
@@ -2881,7 +2935,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.7 · Licensed</div>
+        <div class="sb-footer-ver">v8.8 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3857,7 +3911,7 @@ function showUserSelectScreen(){
       <div>${escHtml(u.name)}</div>
       <div class="who-role">${u.role==='owner'?'Owner / Administrator':u.role==='superadmin'?'Super Admin':'Staff Member'}</div>
     </div>
-    <div style="margin-left:auto;font-size:18px;opacity:.3">›</div>
+    <div class="who-arr">&#8250;</div>
   </button>`).join('');
   // Show Device ID
   var midEl=document.getElementById('us-machine-id-display');
