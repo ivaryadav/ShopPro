@@ -398,6 +398,74 @@ app.get('/api/admin/tenants', requireAdminKey, (req, res) => {
   res.json({ tenants });
 });
 
+// ── GET /api/admin/web-users — all users across all shops ────────────────────
+app.get('/api/admin/web-users', requireAdminKey, (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT u.id, u.display_name, u.mobile, u.role, u.is_active, u.last_login, u.created_at,
+             t.id AS tenant_id, t.shop_name, t.status AS shop_status, t.license_plan
+      FROM users u
+      JOIN tenants t ON t.id = u.tenant_id
+      ORDER BY t.shop_name, u.role DESC, u.created_at
+    `).all();
+    // Group by shop
+    const shops = {};
+    rows.forEach(r => {
+      if (!shops[r.tenant_id]) {
+        shops[r.tenant_id] = { tenantId: r.tenant_id, shopName: r.shop_name, shopStatus: r.shop_status, licensePlan: r.license_plan, users: [] };
+      }
+      shops[r.tenant_id].users.push({
+        id: r.id, name: r.display_name || r.mobile, mobile: r.mobile,
+        role: r.role, isActive: r.is_active === 1, lastLogin: r.last_login, createdAt: r.created_at
+      });
+    });
+    res.json({ shops: Object.values(shops) });
+  } catch (e) {
+    console.error('web-users error:', e);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// ── POST /api/admin/reset-user-pin — force new PIN for a web user ────────────
+app.post('/api/admin/reset-user-pin', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const { userId, newPin } = req.body;
+  if (!userId || !newPin) return res.status(400).json({ error: 'userId and newPin required' });
+  if (!/^\d{6}$/.test(newPin)) return res.status(400).json({ error: 'PIN must be exactly 6 digits' });
+  try {
+    const user = db.prepare('SELECT id, display_name, mobile, tenant_id FROM users WHERE id = ?').get(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const hash = bcrypt.hashSync(newPin, 10);
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, userId);
+    console.log(`[Admin] PIN reset for user ${userId} (${user.display_name || user.mobile})`);
+    res.json({ ok: true, userId, name: user.display_name || user.mobile, mobile: user.mobile });
+  } catch (e) {
+    console.error('reset-pin error:', e);
+    res.status(500).json({ error: 'Failed to reset PIN' });
+  }
+});
+
+// ── POST /api/admin/toggle-user — enable / disable a specific web user ────────
+app.post('/api/admin/toggle-user', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const { userId, active } = req.body;
+  if (userId === undefined || active === undefined) return res.status(400).json({ error: 'userId and active required' });
+  try {
+    const user = db.prepare('SELECT id, display_name, mobile, role FROM users WHERE id = ?').get(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.role === 'owner' && !active) {
+      // make sure shop has at least one active owner before blocking
+      const ownerCount = db.prepare("SELECT COUNT(*) as c FROM users WHERE tenant_id=(SELECT tenant_id FROM users WHERE id=?) AND role='owner' AND is_active=1").get(userId);
+      if (ownerCount.c <= 1) return res.status(400).json({ error: 'Cannot disable the only active owner of a shop.' });
+    }
+    db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(active ? 1 : 0, userId);
+    const status = active ? 'enabled' : 'disabled';
+    console.log(`[Admin] User ${userId} (${user.display_name || user.mobile}) ${status}`);
+    res.json({ ok: true, userId, name: user.display_name || user.mobile, isActive: active });
+  } catch (e) {
+    console.error('toggle-user error:', e);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
 // ── GET /api/data ────────────────────────────────────────────────────────────
 app.get('/api/data', requireAuth, requireActive, (req, res) => {
   try {

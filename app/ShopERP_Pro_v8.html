@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.26">
-<title>ShopERP Pro v8.26</title>
+<meta name="shoperpro-version" content="v8.27">
+<title>ShopERP Pro v8.27</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -2923,6 +2923,7 @@ spline-viewer{width:100%;height:100%;border:none}
         <div class="adm-nav-item" onclick="showAdminPage('adm-expiring')">⏳ Expiring Soon</div>
         <div class="adm-nav-item" onclick="showAdminPage('adm-suspended')">🚫 Suspended</div>
         <div class="adm-nav-item" onclick="showAdminPage('adm-pins')">🔐 User PINs</div>
+        <div id="adm-nav-webusers" style="display:none"><div class="adm-nav-item" onclick="showAdminPage('adm-webusers')">🌐 Web Users</div></div>
         <div style="font-size:9px;color:var(--text3);font-weight:700;padding:8px 8px 4px;letter-spacing:.8px;text-transform:uppercase">Settings</div>
         <div class="adm-nav-item" onclick="showAdminPage('adm-settings')">⚙️ Settings</div>
       </nav>
@@ -3021,7 +3022,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.26 · Licensed</div>
+        <div class="sb-footer-ver">v8.27 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -5225,6 +5226,8 @@ async function adminLogin(){
   loadAdminDB();
   document.getElementById('admin-panel').style.display='block';
   document.getElementById('adm-topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  // Show Web Users nav item only in web/hosted mode
+  var wuNav=document.getElementById('adm-nav-webusers');if(wuNav)wuNav.style.display=SHOPERPRO_API_URL?'block':'none';
   showAdminPage('adm-dashboard');
 }
 function adminLogout(){
@@ -5241,6 +5244,7 @@ const ADM_PAGE_META={
   'adm-expiring':  ['Expiring Soon','Licenses expiring within 30 days'],
   'adm-suspended': ['Suspended Accounts','Paused or terminated tenants'],
   'adm-pins':      ['User PINs','Reset or clear individual user PINs for the loaded shop'],
+  'adm-webusers':  ['Web Users','Manage all users on the web application'],
   'adm-settings':  ['Settings','Admin preferences & download links'],
 };
 function showAdminPage(page){
@@ -5248,10 +5252,11 @@ function showAdminPage(page){
   var meta=ADM_PAGE_META[page]||['',''];
   document.getElementById('adm-page-title').textContent=meta[0];
   document.getElementById('adm-page-sub').textContent=meta[1];
-  var fns={'adm-dashboard':admPageDashboard,'adm-generate':admPageGenerate,'adm-validate':admPageValidate,'adm-customers':admPageCustomers,'adm-expiring':admPageExpiring,'adm-suspended':admPageSuspended,'adm-pins':admPagePins,'adm-settings':admPageSettings};
+  var fns={'adm-dashboard':admPageDashboard,'adm-generate':admPageGenerate,'adm-validate':admPageValidate,'adm-customers':admPageCustomers,'adm-expiring':admPageExpiring,'adm-suspended':admPageSuspended,'adm-pins':admPagePins,'adm-webusers':admPageWebUsers,'adm-settings':admPageSettings};
   var fn=fns[page]; if(!fn)return;
   document.getElementById('adm-content').innerHTML=fn();
   if(page==='adm-generate')admInitGenerate();
+  if(page==='adm-webusers')admLoadWebUsers();
   if(page==='adm-customers'||page==='adm-suspended'||page==='adm-expiring')admRenderCurrentPage(page);
 }
 
@@ -5818,6 +5823,107 @@ function admClearPin(userId){
   toast('PIN cleared for '+esc(u.name)+'. They will set a new one on next login.','info');
 }
 
+// ── Web Users Page (web/hosted mode only) ────────────────────────────────────
+function admPageWebUsers(){
+  return '<div class="card"><div class="card-header"><div class="card-title">🌐 Web Users</div><button class="btn btn-ghost btn-sm" onclick="admLoadWebUsers()">&#8635; Refresh</button></div><div id="adm-webusers-body"><div style="padding:32px;text-align:center;color:var(--text3)">Loading users…</div></div></div>';
+}
+function admLoadWebUsers(){
+  if(!SHOPERPRO_API_URL){document.getElementById('adm-webusers-body').innerHTML='<p style="color:var(--text2);padding:20px">Web Users only available in hosted/web mode.</p>';return;}
+  fetch(SHOPERPRO_API_URL+'/api/admin/web-users',{headers:{'X-Admin-Key':ADMIN_PWD_HASH}})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.error){document.getElementById('adm-webusers-body').innerHTML='<p style="color:var(--red);padding:20px">Error: '+esc(d.error)+'</p>';return;}
+      var shops=d.shops||[];
+      if(!shops.length){document.getElementById('adm-webusers-body').innerHTML='<p style="color:var(--text2);padding:20px">No web users registered yet.</p>';return;}
+      var html='<div style="display:flex;flex-direction:column;gap:18px">';
+      shops.forEach(function(shop){
+        var shopStatusColor=shop.shopStatus==='active'?'var(--green)':shop.shopStatus==='paused'?'var(--orange)':'var(--red)';
+        html+='<div style="border:1px solid var(--border2);border-radius:12px;overflow:hidden">';
+        html+='<div style="background:var(--bg3);padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)">';
+        html+='<div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--text)">'+esc(shop.shopName)+'</div>';
+        html+='<div style="font-size:10px;color:var(--text3);margin-top:2px">'+shop.users.length+' user'+(shop.users.length!==1?'s':'')+'  &bull;  Plan: '+(shop.licensePlan||'—')+'</div></div>';
+        html+='<span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(0,0,0,.15);color:'+shopStatusColor+'">'+shop.shopStatus.toUpperCase()+'</span>';
+        html+='</div>';
+        html+='<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Role</th><th>Mobile</th><th>Last Login</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+        shop.users.forEach(function(u){
+          var roleColor=u.role==='owner'?'var(--accent)':u.role==='manager'?'var(--blue)':'var(--text2)';
+          var lastLogin=u.lastLogin?new Date(u.lastLogin).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Never';
+          var waBtn=u.mobile?'<a href="https://wa.me/91'+u.mobile+'" target="_blank" class="btn btn-xs btn-wa" style="padding:2px 7px;font-size:10px">&#128172;</a>':'';
+          html+='<tr id="wu-row-'+u.id+'">';
+          html+='<td><strong>'+esc(u.name||'—')+'</strong></td>';
+          html+='<td><span style="font-size:10px;font-weight:700;color:'+roleColor+'">'+esc(u.role)+'</span></td>';
+          html+='<td style="font-family:var(--mono);font-size:12px">'+(u.mobile||'—')+' '+waBtn+'</td>';
+          html+='<td style="font-size:11px;color:var(--text2)">'+lastLogin+'</td>';
+          html+='<td><span id="wu-status-'+u.id+'" style="font-size:11px;font-weight:700;color:'+(u.isActive?'var(--green)':'var(--red)')+'">&#9679; '+(u.isActive?'Active':'Disabled')+'</span></td>';
+          html+='<td><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">';
+          // PIN reset inline
+          html+='<input type="text" id="wu-pin-'+u.id+'" placeholder="6 digits" maxlength="6" inputmode="numeric" style="width:80px;padding:4px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:var(--mono);font-size:14px;letter-spacing:3px;text-align:center">';
+          html+='<button class="btn btn-xs btn-primary" onclick="admResetWebPin('+u.id+','+JSON.stringify(u.name||'User')+','+JSON.stringify(u.mobile||'')+')">Reset PIN</button>';
+          // Toggle active
+          if(u.isActive){
+            html+='<button class="btn btn-xs" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red)" onclick="admToggleWebUser('+u.id+',false,\''+esc(u.name||'User')+'\')">Disable</button>';
+          } else {
+            html+='<button class="btn btn-xs" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--green)" onclick="admToggleWebUser('+u.id+',true,\''+esc(u.name||'User')+'\')">Enable</button>';
+          }
+          html+='</div>';
+          // PIN result box (hidden until reset done)
+          html+='<div id="wu-pin-result-'+u.id+'" style="display:none;margin-top:6px;padding:8px 12px;background:var(--bg3);border:1.5px solid var(--green);border-radius:8px;font-size:12px">';
+          html+='<span style="color:var(--text3);font-size:10px">New PIN (share securely): </span>';
+          html+='<span id="wu-pin-show-'+u.id+'" style="font-family:var(--mono);font-size:18px;font-weight:700;letter-spacing:5px;color:var(--green)"></span>';
+          html+=' <button class="btn btn-xs btn-ghost" onclick="if(navigator.clipboard)navigator.clipboard.writeText(document.getElementById(\'wu-pin-show-'+u.id+'\').textContent).then(function(){toast(\'PIN copied\',\'success\');})">&#128203;</button>';
+          if(u.mobile){html+=' <a id="wu-wa-'+u.id+'" href="#" target="_blank" class="btn btn-xs btn-wa">&#128172; WhatsApp</a>';}
+          html+='</div>';
+          html+='</td></tr>';
+        });
+        html+='</tbody></table></div></div>';
+      });
+      html+='</div>';
+      var body=document.getElementById('adm-webusers-body');
+      if(body)body.innerHTML=html;
+    })
+    .catch(function(e){
+      var body=document.getElementById('adm-webusers-body');
+      if(body)body.innerHTML='<p style="color:var(--red);padding:20px">Connection error: '+esc(e.message)+'</p>';
+    });
+}
+function admResetWebPin(userId,userName,mobile){
+  var inp=document.getElementById('wu-pin-'+userId);
+  if(!inp){toast('Input not found','error');return;}
+  var newPin=inp.value.replace(/\D/g,'').trim();
+  if(newPin.length!==6){toast('Enter exactly 6 digits','error');inp.focus();return;}
+  inp.disabled=true;
+  fetch(SHOPERPRO_API_URL+'/api/admin/reset-user-pin',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-Admin-Key':ADMIN_PWD_HASH},
+    body:JSON.stringify({userId:userId,newPin:newPin})
+  }).then(function(r){return r.json();}).then(function(d){
+    inp.disabled=false;inp.value='';
+    if(d.error){toast('Error: '+d.error,'error');return;}
+    var resDiv=document.getElementById('wu-pin-result-'+userId);
+    var showEl=document.getElementById('wu-pin-show-'+userId);
+    if(resDiv&&showEl){showEl.textContent=newPin;resDiv.style.display='block';}
+    if(mobile){
+      var waLink=document.getElementById('wu-wa-'+userId);
+      if(waLink)waLink.href='https://wa.me/91'+mobile+'?text='+encodeURIComponent('Hello '+userName+'! Your ShopERP Pro login PIN has been reset by admin.\n\nYour new PIN: *'+newPin+'*\n\nPlease change it after logging in.');
+    }
+    toast('PIN reset for '+userName,'success');
+  }).catch(function(){inp.disabled=false;toast('Connection error','error');});
+}
+function admToggleWebUser(userId,enable,userName){
+  fetch(SHOPERPRO_API_URL+'/api/admin/toggle-user',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-Admin-Key':ADMIN_PWD_HASH},
+    body:JSON.stringify({userId:userId,active:enable})
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d.error){toast('Error: '+d.error,'error');return;}
+    var statusEl=document.getElementById('wu-status-'+userId);
+    if(statusEl){statusEl.style.color=enable?'var(--green)':'var(--red)';statusEl.innerHTML='&#9679; '+(enable?'Active':'Disabled');}
+    // Replace button in row
+    admLoadWebUsers();
+    toast(userName+' has been '+(enable?'enabled':'disabled'),'success');
+  }).catch(function(){toast('Connection error','error');});
+}
+
 // ── Settings Page ──
 function admPageSettings(){
   var s=ADMIN_DB.settings; var cur=s.currency||'₹';
@@ -5999,6 +6105,7 @@ async function pssAdminLogin(){
   loadAdminDB();
   document.getElementById('admin-panel').style.display='block';
   document.getElementById('adm-topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  var wuNav=document.getElementById('adm-nav-webusers');if(wuNav)wuNav.style.display=SHOPERPRO_API_URL?'block':'none';
   showAdminPage('adm-dashboard');
 }
 
