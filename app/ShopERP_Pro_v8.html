@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.24">
-<title>ShopERP Pro v8.24</title>
+<meta name="shoperpro-version" content="v8.25">
+<title>ShopERP Pro v8.25</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -3021,7 +3021,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.24 · Licensed</div>
+        <div class="sb-footer-ver">v8.25 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3039,6 +3039,7 @@ spline-viewer{width:100%;height:100%;border:none}
         </div>
       </div>
       <div class="topbar-right"><span id="autosave-ind" style="font-size:10px;color:var(--green);opacity:0;transition:opacity .3s;font-family:var(--mono)">✓ Saved</span>
+        <span id="demo-topbar-badge" style="display:none;background:linear-gradient(90deg,#92400e,#b45309);color:#fef3c7;font-size:10px;font-weight:700;letter-spacing:.5px;padding:3px 10px;border-radius:20px;cursor:pointer" onclick="_exitDemoMode()" title="Exit Demo Mode">&#127947; DEMO &mdash; click to exit</span>
         <span id="topbar-date" style="font-size:11px;color:var(--text3);font-family:var(--mono)"></span>
         <button id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light/dark mode"
           style="width:34px;height:34px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:.2s;flex-shrink:0"
@@ -6064,7 +6065,7 @@ function pssLicenseLogin(){
 }
 function _exitDemoMode(){
   window._demoMode=false;
-  var b=document.getElementById('demo-mode-banner');if(b)b.remove();
+  var b=document.getElementById('demo-topbar-badge');if(b)b.style.display='none';
   showPortalSelect();
 }
 function pssClickDemo(){
@@ -6075,12 +6076,8 @@ function pssClickDemo(){
   document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
   showUserSelectScreen();
   setTimeout(function(){
-    var existing=document.getElementById('demo-mode-banner');if(existing)existing.remove();
-    var banner=document.createElement('div');
-    banner.id='demo-mode-banner';
-    banner.innerHTML='&#127947; <strong>DEMO MODE</strong> &nbsp;&mdash;&nbsp; Sample data only &bull; All changes reset on reload &nbsp;|&nbsp; <a href="#" onclick="_exitDemoMode();return false" style="color:#fef3c7;font-weight:800;text-decoration:underline">Exit Demo</a>';
-    banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#92400e,#b45309);color:#fef3c7;text-align:center;padding:7px 16px;font-size:12px;font-weight:600;letter-spacing:.1px;box-shadow:0 2px 8px rgba(0,0,0,.3)';
-    document.body.insertBefore(banner,document.body.firstChild);
+    var badge=document.getElementById('demo-topbar-badge');
+    if(badge)badge.style.display='inline-block';
   },400);
 }
 function bootApp(){
