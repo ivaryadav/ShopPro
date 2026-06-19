@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.22">
-<title>ShopERP Pro v8.22</title>
+<meta name="shoperpro-version" content="v8.23">
+<title>ShopERP Pro v8.23</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -2417,6 +2417,8 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
 .pss-item.c-new:hover::before{background:linear-gradient(120deg,rgba(16,185,129,.09) 0%,transparent 75%);opacity:1}
 .pss-item.c-admin:hover{border-color:rgba(248,113,113,.38);box-shadow:0 8px 30px rgba(248,113,113,.12),inset 0 1px 0 rgba(248,113,113,.1)}
 .pss-item.c-admin:hover::before{background:linear-gradient(120deg,rgba(248,113,113,.08) 0%,transparent 75%);opacity:1}
+.pss-item.c-demo:hover{border-color:rgba(251,191,36,.38);box-shadow:0 8px 30px rgba(251,191,36,.12),inset 0 1px 0 rgba(251,191,36,.1)}
+.pss-item.c-demo:hover::before{background:linear-gradient(120deg,rgba(251,191,36,.09) 0%,transparent 75%);opacity:1}
 .pss-item-ico{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .26s}
 .pss-item:hover .pss-item-ico{transform:scale(1.08)}
 .pss-item-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:3px;letter-spacing:-.2px}
@@ -2427,6 +2429,17 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
 .pss-list .pss-item:nth-child(1){animation:pss-cardIn .45s ease .28s both}
 .pss-list .pss-item:nth-child(2){animation:pss-cardIn .45s ease .40s both}
 .pss-list .pss-item:nth-child(3){animation:pss-cardIn .45s ease .52s both}
+.pss-list .pss-item:nth-child(4){animation:pss-cardIn .45s ease .64s both}
+/* License-verify user list */
+.pss-user-list{display:flex;flex-direction:column;gap:8px;margin:14px 0}
+.pss-user-btn{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;cursor:pointer;transition:.18s;width:100%;text-align:left}
+.pss-user-btn:hover{background:rgba(91,142,249,.12);border-color:rgba(91,142,249,.35);transform:translateX(3px)}
+.pss-user-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#5B8EF9,#A78BFA);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0}
+.pss-user-info-name{font-size:13px;font-weight:700;color:#fff}
+.pss-user-info-role{font-size:10px;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.pss-shop-found{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.22);border-radius:10px;padding:12px 14px;margin-bottom:16px;text-align:center}
+.pss-shop-found-name{font-size:16px;font-weight:800;color:#34D399;margin-bottom:2px}
+.pss-shop-found-sub{font-size:11px;color:rgba(255,255,255,.38)}
 /* Download row */
 .pss-dl{display:flex;align-items:center;gap:8px;padding-top:18px;border-top:1px solid rgba(255,255,255,.06);flex-wrap:wrap}
 .pss-dl-btn{display:flex;align-items:center;gap:6px;padding:9px 16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:9px;color:rgba(255,255,255,.5);font-size:11px;font-weight:600;text-decoration:none;transition:all .18s;white-space:nowrap;cursor:pointer}
@@ -2626,6 +2639,19 @@ spline-viewer{width:100%;height:100%;border:none}
             </div>
             <div class="pss-item-arr">&#8250;</div>
           </div>
+          <div class="pss-item c-demo" onclick="pssClickDemo()">
+            <div class="pss-item-ico" style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.22)">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="9" stroke="#FBBF24" stroke-width="1.8"/>
+                <path d="M10 8.5L15.5 12L10 15.5V8.5Z" fill="#FBBF24" stroke="#FBBF24" stroke-width="1.4" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="pss-item-title">Try Demo</div>
+              <div class="pss-item-desc">Explore with sample shop data &mdash; no login needed</div>
+            </div>
+            <div class="pss-item-arr">&#8250;</div>
+          </div>
         </div>
 
         <div class="pss-dl">
@@ -2666,8 +2692,12 @@ spline-viewer{width:100%;height:100%;border:none}
 
         <!-- FIRST TIME SETUP -->
         <div id="pss-panel-register" style="display:none">
-          <div class="pss-form-title">First Time Setup</div>
-          <div class="pss-form-note">Do this <strong>once only</strong>. You'll be signed in automatically after this.</div>
+          <div class="pss-form-title">New Shop Setup</div>
+          <div class="pss-form-note">A <strong>license key from Ravi</strong> is required. Contact +91 94511 00556 to get one.</div>
+          <div class="pss-field">
+            <label class="pss-flabel">License Key *</label>
+            <input class="pss-finput" id="pss-reg-key" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19" style="text-transform:uppercase;letter-spacing:2px;text-align:center" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/(.{4})(?=.)/g,'$1-').substring(0,19)">
+          </div>
           <div class="pss-field">
             <label class="pss-flabel">Shop Name *</label>
             <input class="pss-finput" id="pss-reg-shop" placeholder="e.g. Dada Mobile">
@@ -2682,10 +2712,10 @@ spline-viewer{width:100%;height:100%;border:none}
           </div>
           <div class="pss-field">
             <label class="pss-flabel">Create PIN *</label>
-            <input class="pss-finput" id="pss-reg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="4–6 digits" autocomplete="new-password" onkeydown="if(event.key==='Enter')pssRegister()">
+            <input class="pss-finput" id="pss-reg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="4-6 digits" autocomplete="new-password" onkeydown="if(event.key==='Enter')pssRegister()">
           </div>
           <button class="pss-fbtn grn" id="pss-reg-btn" onclick="pssRegister()">Register &amp; Start &#8594;</button>
-          <div class="pss-switch-link">Already registered? <a href="#" onclick="pssOpenPanel('login');return false">Sign in &#8594;</a></div>
+          <div class="pss-switch-link">Already have a shop? <a href="#" onclick="pssOpenPanel('license');return false">Sign in &#8594;</a></div>
         </div>
 
         <!-- SUPER ADMIN -->
@@ -2697,6 +2727,37 @@ spline-viewer{width:100%;height:100%;border:none}
             <input class="pss-finput" id="pss-adm-pass" type="password" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter')pssAdminLogin()">
           </div>
           <button class="pss-fbtn red" id="pss-adm-btn" onclick="pssAdminLogin()">Enter Console &#8594;</button>
+        </div>
+
+        <!-- MY EXISTING SHOP (web: license key -> shop -> users -> PIN) -->
+        <div id="pss-panel-license" style="display:none">
+          <div id="pss-lic-step1">
+            <div class="pss-form-title">My Existing Shop</div>
+            <div class="pss-form-sub">Enter your license key to find your shop and sign in</div>
+            <div class="pss-field">
+              <label class="pss-flabel">License Key</label>
+              <input class="pss-finput" id="pss-lic-key" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19" style="text-transform:uppercase;letter-spacing:2px;font-size:15px;text-align:center" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/(.{4})(?=.)/g,'$1-').substring(0,19)" onkeydown="if(event.key==='Enter')pssLicenseVerify()">
+            </div>
+            <button class="pss-fbtn blu" id="pss-lic-find-btn" onclick="pssLicenseVerify()">Find My Shop &#8594;</button>
+          </div>
+          <div id="pss-lic-step2" style="display:none">
+            <div class="pss-shop-found">
+              <div class="pss-shop-found-name" id="pss-lic-shopname"></div>
+              <div class="pss-shop-found-sub">Select your account to continue</div>
+            </div>
+            <div class="pss-user-list" id="pss-lic-users"></div>
+            <button class="pss-back-btn" style="margin-top:10px" onclick="pssLicStep(1)">&#8592; Different key</button>
+          </div>
+          <div id="pss-lic-step3" style="display:none">
+            <div class="pss-form-title" id="pss-lic-greeting">Welcome back</div>
+            <div class="pss-form-sub" id="pss-lic-shop-sub"></div>
+            <div class="pss-field" style="margin-top:16px">
+              <label class="pss-flabel">Your PIN</label>
+              <input class="pss-finput" id="pss-lic-pin" type="password" inputmode="numeric" maxlength="6" placeholder="4-6 digit PIN" autocomplete="current-password" onkeydown="if(event.key==='Enter')pssLicenseLogin()" style="text-align:center;font-size:22px;letter-spacing:8px">
+            </div>
+            <button class="pss-fbtn blu" id="pss-lic-login-btn" onclick="pssLicenseLogin()">Sign In &#8594;</button>
+            <button class="pss-back-btn" style="margin-top:10px;display:block" onclick="pssLicStep(2)">&#8592; Back to users</button>
+          </div>
         </div>
       </div>
     </div>
@@ -2960,7 +3021,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.22 · Licensed</div>
+        <div class="sb-footer-ver">v8.23 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3229,6 +3290,93 @@ const CURRENT_SCHEMA=8;
 const LEGACY_KEYS=['shoperpro_v7','shoperpro_v6','shoperpro_v5','shoperpro_v4','shoperpro_v3','shoperpro_v2','shoperpro_v1','shopErpData','shopErpPro','showerp_data','shopErpProDB'];
 
 // ── Web/Hosted Mode Config ────────────────────────────────────────────────────
+var DEMO_DB={
+settings:{shopName:'Demo Mobile Store',shopTagline:'Varanasi Most Trusted Mobile Shop',shopAddress:'Shop 12, Lanka Market, Varanasi, UP 221005',shopPhone:'9999999001',shopEmail:'demo@shoperpro.in',shopGST:'09DEMO0000A1Z9',activated:true,setupDone:true,licenseKey:'DEMO-DEMO-DEMO-DEMO',licenseExpiry:'2099-12-31',licensePlan:'demo',currency:'₹',gst:'18',
+shopLogo:'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMjAiIHJ4PSIyNCIgZmlsbD0idXJsKCNsZykiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCBCbGFjayxzYW5zLXNlcmlmIiBmb250LXNpemU9IjU0IiBmb250LXdlaWdodD0iOTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSI+RDwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTAyIiBmb250LWZhbWlseT0iQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIj5ERU1PPC90ZXh0PgogIDxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0ibGciIHgxPSIwIiB5MT0iMCIgeDI9IjEyMCIgeTI9IjEyMCIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIHN0b3AtY29sb3I9IiMyRUQ0QzQiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM0RjhGRjkiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz4KPC9zdmc+',
+ownerSignature:'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiB2aWV3Qm94PSIwIDAgMjQwIDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxwYXRoIGQ9Ik0yMCA2MCBDIDQwIDIwLCA2MCA3MCwgODAgMzAgQyAxMDAgMTAsIDEyMCA1MCwgMTQwIDMwIEMgMTYwIDEwLCAxODAgNTUsIDIyMCA0MCIgc3Ryb2tlPSIjMWUyOTNiIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZmlsbD0ibm9uZSIvPgogIDxwYXRoIGQ9Ik0zMCA2NSBMIDIxMCA2NSIgc3Ryb2tlPSIjMWUyOTNiIiBzdHJva2Utd2lkdGg9IjEuNSIgb3BhY2l0eT0iMC40Ii8+Cjwvc3ZnPg=='},
+users:[
+  {id:1,name:'Ravi (Owner)',role:'owner',pin:'1234',pinSet:true,mobile:'9999999001'},
+  {id:2,name:'Priya (Manager)',role:'manager',pin:'1234',pinSet:true,mobile:'9999999002'},
+  {id:3,name:'Ajay (Sales)',role:'staff',pin:'1234',pinSet:true,mobile:'9999999003'}
+],
+customers:[
+  {id:1,name:'Rahul Sharma',mobile:'9876543210',address:'Lanka, Varanasi',email:'rahul@demo.in',balance:0,totalPurchase:70000,loyaltyPoints:70},
+  {id:2,name:'Sunita Devi',mobile:'9876543211',address:'Sigra, Varanasi',email:'',balance:500,totalPurchase:15299,loyaltyPoints:15},
+  {id:3,name:'Amit Kumar',mobile:'9876543212',address:'Cantt, Varanasi',email:'',balance:-200,totalPurchase:51000,loyaltyPoints:51},
+  {id:4,name:'Pooja Singh',mobile:'9876543213',address:'Assi Ghat, Varanasi',email:'',balance:0,totalPurchase:1797,loyaltyPoints:2},
+  {id:5,name:'Vikram Yadav',mobile:'9876543214',address:'Nadesar, Varanasi',email:'',balance:1200,totalPurchase:21499,loyaltyPoints:21},
+  {id:6,name:'Sandeep Gupta',mobile:'9876543215',address:'Manduadih, Varanasi',email:'',balance:0,totalPurchase:8500,loyaltyPoints:9},
+  {id:7,name:'Kavita Mishra',mobile:'9876543216',address:'Pandeypur, Varanasi',email:'',balance:300,totalPurchase:3200,loyaltyPoints:3},
+  {id:8,name:'Rajesh Tiwari',mobile:'9876543217',address:'BHU Campus, Varanasi',email:'',balance:0,totalPurchase:52000,loyaltyPoints:52},
+  {id:9,name:'Mamta Srivastava',mobile:'9876543218',address:'Sarnath, Varanasi',email:'',balance:-500,totalPurchase:14500,loyaltyPoints:14},
+  {id:10,name:'Deepak Jaiswal',mobile:'9876543219',address:'Dashashwamedh, Varanasi',email:'',balance:0,totalPurchase:6200,loyaltyPoints:6}
+],
+inventory:[
+  {id:1,name:'iPhone 15',brand:'Apple',category:'Smartphone',qty:5,buyPrice:65000,sellPrice:72000,barcode:'IP15001'},
+  {id:2,name:'iPhone 14',brand:'Apple',category:'Smartphone',qty:3,buyPrice:52000,sellPrice:58000,barcode:'IP14001'},
+  {id:3,name:'Samsung S24',brand:'Samsung',category:'Smartphone',qty:8,buyPrice:45000,sellPrice:52000,barcode:'SS24001'},
+  {id:4,name:'Samsung A55',brand:'Samsung',category:'Smartphone',qty:12,buyPrice:25000,sellPrice:29999,barcode:'SA55001'},
+  {id:5,name:'Redmi Note 13',brand:'Xiaomi',category:'Smartphone',qty:15,buyPrice:12000,sellPrice:14999,barcode:'RN13001'},
+  {id:6,name:'Redmi 13C',brand:'Xiaomi',category:'Smartphone',qty:20,buyPrice:7000,sellPrice:8999,barcode:'R13C001'},
+  {id:7,name:'Realme 12 Pro',brand:'Realme',category:'Smartphone',qty:10,buyPrice:18000,sellPrice:21999,barcode:'RL12P01'},
+  {id:8,name:'Vivo V30',brand:'Vivo',category:'Smartphone',qty:6,buyPrice:22000,sellPrice:27999,barcode:'VV30001'},
+  {id:9,name:'Oppo F25 Pro',brand:'Oppo',category:'Smartphone',qty:7,buyPrice:20000,sellPrice:24999,barcode:'OF25P01'},
+  {id:10,name:'OnePlus 12',brand:'OnePlus',category:'Smartphone',qty:4,buyPrice:55000,sellPrice:63999,barcode:'OP12001'},
+  {id:11,name:'Tempered Glass 6.5"',brand:'Generic',category:'Accessory',qty:80,buyPrice:30,sellPrice:99,barcode:'TG001'},
+  {id:12,name:'Phone Cover iPhone 15',brand:'Spigen',category:'Accessory',qty:25,buyPrice:150,sellPrice:499,barcode:'PCIP15'},
+  {id:13,name:'Phone Cover Samsung S24',brand:'Generic',category:'Accessory',qty:20,buyPrice:80,sellPrice:249,barcode:'PCSS24'},
+  {id:14,name:'USB-C Cable 1m',brand:'Anker',category:'Accessory',qty:30,buyPrice:200,sellPrice:499,barcode:'USB001'},
+  {id:15,name:'20W Fast Charger',brand:'Samsung',category:'Accessory',qty:18,buyPrice:350,sellPrice:799,barcode:'CH20W1'},
+  {id:16,name:'65W GaN Charger',brand:'Baseus',category:'Accessory',qty:10,buyPrice:800,sellPrice:1999,barcode:'CH65G1'},
+  {id:17,name:'Wireless Earbuds',brand:'boAt',category:'Accessory',qty:15,buyPrice:700,sellPrice:1499,barcode:'WE001'},
+  {id:18,name:'Power Bank 10000mAh',brand:'Mi',category:'Accessory',qty:8,buyPrice:800,sellPrice:1299,barcode:'PB10K1'},
+  {id:19,name:'Screen Protector Film',brand:'Generic',category:'Accessory',qty:60,buyPrice:20,sellPrice:59,barcode:'SPF001'},
+  {id:20,name:'Mobile Stand Foldable',brand:'Generic',category:'Accessory',qty:35,buyPrice:80,sellPrice:199,barcode:'MS001'}
+],
+sales:[
+  {id:1,saleNo:'INV-001',date:'2026-06-18',customerId:1,customerName:'Rahul Sharma',customerMobile:'9876543210',items:[{productId:1,name:'iPhone 15',qty:1,price:72000,discount:2000}],subtotal:72000,discount:2000,gst:12600,total:70000,paid:70000,due:0,paymentMode:'UPI',invoiceNote:'Premium customer'},
+  {id:2,saleNo:'INV-002',date:'2026-06-18',customerId:6,customerName:'Sandeep Gupta',customerMobile:'9876543215',items:[{productId:5,name:'Redmi Note 13',qty:1,price:14999,discount:0},{productId:11,name:'Tempered Glass',qty:2,price:99,discount:0},{productId:19,name:'Screen Protector Film',qty:1,price:59,discount:0}],subtotal:15256,discount:0,gst:2746,total:15256,paid:15256,due:0,paymentMode:'Cash'},
+  {id:3,saleNo:'INV-003',date:'2026-06-17',customerId:2,customerName:'Sunita Devi',customerMobile:'9876543211',items:[{productId:5,name:'Redmi Note 13',qty:1,price:14999,discount:200},{productId:11,name:'Tempered Glass',qty:2,price:99,discount:0}],subtotal:15197,discount:200,gst:2699,total:14997,paid:14497,due:500,paymentMode:'Cash'},
+  {id:4,saleNo:'INV-004',date:'2026-06-17',customerId:8,customerName:'Rajesh Tiwari',customerMobile:'9876543217',items:[{productId:3,name:'Samsung S24',qty:1,price:52000,discount:1000}],subtotal:52000,discount:1000,gst:9180,total:51000,paid:51000,due:0,paymentMode:'Card'},
+  {id:5,saleNo:'INV-005',date:'2026-06-16',customerId:3,customerName:'Amit Kumar',customerMobile:'9876543212',items:[{productId:4,name:'Samsung A55',qty:1,price:29999,discount:1000},{productId:12,name:'Phone Cover Samsung',qty:1,price:249,discount:0}],subtotal:30248,discount:1000,gst:5205,total:29248,paid:29448,due:-200,paymentMode:'UPI'},
+  {id:6,saleNo:'INV-006',date:'2026-06-16',customerId:4,customerName:'Pooja Singh',customerMobile:'9876543213',items:[{productId:14,name:'USB-C Cable 1m',qty:2,price:499,discount:0},{productId:15,name:'20W Fast Charger',qty:1,price:799,discount:0}],subtotal:1797,discount:0,gst:323,total:1797,paid:1797,due:0,paymentMode:'UPI'},
+  {id:7,saleNo:'INV-007',date:'2026-06-15',customerId:5,customerName:'Vikram Yadav',customerMobile:'9876543214',items:[{productId:7,name:'Realme 12 Pro',qty:1,price:21999,discount:500}],subtotal:21999,discount:500,gst:3870,total:21499,paid:20299,due:1200,paymentMode:'Cash'},
+  {id:8,saleNo:'INV-008',date:'2026-06-15',customerId:9,customerName:'Mamta Srivastava',customerMobile:'9876543218',items:[{productId:6,name:'Redmi 13C',qty:1,price:8999,discount:0},{productId:16,name:'65W GaN Charger',qty:1,price:1999,discount:0}],subtotal:10998,discount:0,gst:1980,total:10998,paid:10498,due:500,paymentMode:'Cash'},
+  {id:9,saleNo:'INV-009',date:'2026-06-14',customerId:7,customerName:'Kavita Mishra',customerMobile:'9876543216',items:[{productId:17,name:'Wireless Earbuds',qty:1,price:1499,discount:0},{productId:20,name:'Mobile Stand',qty:1,price:199,discount:0}],subtotal:1698,discount:0,gst:306,total:1698,paid:1398,due:300,paymentMode:'UPI'},
+  {id:10,saleNo:'INV-010',date:'2026-06-14',customerId:10,customerName:'Deepak Jaiswal',customerMobile:'9876543219',items:[{productId:18,name:'Power Bank 10000mAh',qty:1,price:1299,discount:0},{productId:11,name:'Tempered Glass',qty:3,price:99,discount:0}],subtotal:1596,discount:0,gst:287,total:1596,paid:1596,due:0,paymentMode:'Cash'},
+  {id:11,saleNo:'INV-011',date:'2026-06-13',customerId:1,customerName:'Rahul Sharma',customerMobile:'9876543210',items:[{productId:13,name:'Phone Cover iPhone 15',qty:2,price:499,discount:0}],subtotal:998,discount:0,gst:180,total:998,paid:998,due:0,paymentMode:'UPI'},
+  {id:12,saleNo:'INV-012',date:'2026-06-12',customerId:8,customerName:'Rajesh Tiwari',customerMobile:'9876543217',items:[{productId:2,name:'iPhone 14',qty:1,price:58000,discount:2000}],subtotal:58000,discount:2000,gst:10080,total:56000,paid:56000,due:0,paymentMode:'Card'}
+],
+repairs:[
+  {id:1,jobNo:'REP-001',date:'2026-06-18',customerName:'Raju Chauhan',customerMobile:'9898989898',device:'iPhone 13',imei:'354851234567890',issue:'Screen cracked, display lines',status:'In Progress',advance:500,totalEstimate:3500,technicianNote:'Ordered original screen, ETA 2 days',colour:'Blue',password:'1234'},
+  {id:2,jobNo:'REP-002',date:'2026-06-17',customerName:'Meena Gupta',customerMobile:'9787878787',device:'Samsung Galaxy M32',imei:'',issue:'Battery draining fast',status:'Ready',advance:200,totalEstimate:800,technicianNote:'Battery replaced, tested ok',colour:'Black',password:''},
+  {id:3,jobNo:'REP-003',date:'2026-06-17',customerName:'Pappu Singh',customerMobile:'9676767676',device:'Redmi 9A',imei:'',issue:'Charging port loose',status:'Delivered',advance:300,totalEstimate:600,technicianNote:'Port replaced and tested',colour:'Green',password:'0000'},
+  {id:4,jobNo:'REP-004',date:'2026-06-16',customerName:'Anita Verma',customerMobile:'9565656565',device:'Vivo Y21',imei:'',issue:'Camera not working',status:'Waiting for Parts',advance:400,totalEstimate:1200,technicianNote:'Back camera module ordered',colour:'White',password:''},
+  {id:5,jobNo:'REP-005',date:'2026-06-15',customerName:'Sunil Patel',customerMobile:'9454545454',device:'Oppo A17',imei:'',issue:'Speaker muffled, mic issue',status:'In Progress',advance:0,totalEstimate:900,technicianNote:'Both speaker and mic need replacement',colour:'Black',password:''},
+  {id:6,jobNo:'REP-006',date:'2026-06-14',customerName:'Nisha Rai',customerMobile:'9343434343',device:'iPhone SE 2020',imei:'',issue:'Power button stuck',status:'Ready',advance:200,totalEstimate:600,technicianNote:'Button replaced, works fine',colour:'Black',password:'1111'},
+  {id:7,jobNo:'REP-007',date:'2026-06-12',customerName:'Mohan Das',customerMobile:'9232323232',device:'Samsung A53',imei:'',issue:'Network issue, no SIM detected',status:'Delivered',advance:500,totalEstimate:1500,technicianNote:'Network IC reflowed, SIM slot replaced',colour:'Orange',password:''}
+],
+expenses:[
+  {id:1,date:'2026-06-18',category:'Purchase',amount:45000,note:'Samsung S24 stock - 1 unit',paidTo:'Distributor A',paymentMode:'NEFT'},
+  {id:2,date:'2026-06-17',category:'Electricity',amount:1800,note:'June electricity bill',paidTo:'UPPCL',paymentMode:'UPI'},
+  {id:3,date:'2026-06-16',category:'Purchase',amount:22000,note:'Redmi Note 13 stock - 2 units',paidTo:'Distributor B',paymentMode:'Cash'},
+  {id:4,date:'2026-06-15',category:'Salary',amount:12000,note:'Staff salary June - Priya',paidTo:'Priya Sharma',paymentMode:'Cash'},
+  {id:5,date:'2026-06-15',category:'Salary',amount:10000,note:'Staff salary June - Ajay',paidTo:'Ajay Singh',paymentMode:'Cash'},
+  {id:6,date:'2026-06-14',category:'Rent',amount:8000,note:'June shop rent',paidTo:'Landlord Ramji Lal',paymentMode:'Cash'},
+  {id:7,date:'2026-06-13',category:'Purchase',amount:15000,note:'Accessories stock - cables, covers, glass',paidTo:'Accessories Wholesale',paymentMode:'UPI'},
+  {id:8,date:'2026-06-12',category:'Marketing',amount:2500,note:'Facebook ads June',paidTo:'Meta',paymentMode:'Card'},
+  {id:9,date:'2026-06-10',category:'Maintenance',amount:800,note:'AC service and cleaning',paidTo:'Technician',paymentMode:'Cash'},
+  {id:10,date:'2026-06-08',category:'Miscellaneous',amount:500,note:'Stationery and packing materials',paidTo:'Local Market',paymentMode:'Cash'}
+],
+recurring:[
+  {id:1,name:'Shop Rent',amount:8000,frequency:'monthly',nextDue:'2026-07-01',category:'Rent',vendor:'Landlord Ramji Lal',active:true},
+  {id:2,name:'Electricity Bill',amount:1800,frequency:'monthly',nextDue:'2026-07-10',category:'Electricity',vendor:'UPPCL',active:true},
+  {id:3,name:'Staff Salary - Priya',amount:12000,frequency:'monthly',nextDue:'2026-07-15',category:'Salary',vendor:'Priya Sharma',active:true},
+  {id:4,name:'Staff Salary - Ajay',amount:10000,frequency:'monthly',nextDue:'2026-07-15',category:'Salary',vendor:'Ajay Singh',active:true},
+  {id:5,name:'Facebook Ads',amount:2500,frequency:'monthly',nextDue:'2026-07-13',category:'Marketing',vendor:'Meta',active:true}
+],
+engage:[]
+};
 // Set SHOPERPRO_API_URL to your server URL when deploying online.
 // Leave as empty string '' to run in local/Electron mode (uses localStorage only).
 const SHOPERPRO_API_URL = '';  // e.g. 'https://yourdomain.com'
@@ -5744,7 +5892,7 @@ function contactSupportWA(){
 // ════════════════════════════════════════════════════════════════
 // ── Portal inline panel functions ──────────────────────────────────────────
 function pssClickExisting(){
-  if(SHOPERPRO_API_URL) pssOpenPanel('login');
+  if(SHOPERPRO_API_URL) pssOpenPanel('license');
   else {
     // License key required - no key means no access (blocks fresh-install bypass)
     if(!DB.settings.activated || !DB.settings.licenseKey){
@@ -5765,12 +5913,13 @@ function pssOpenPanel(type){
   if(form){ form.style.display='flex'; }
   var err=document.getElementById('pss-inline-err');
   if(err){ err.style.display='none'; err.textContent=''; }
-  ['login','register','admin'].forEach(function(t){
+  ['login','register','admin','license'].forEach(function(t){
     var el=document.getElementById('pss-panel-'+t);
     if(el) el.style.display=(t===type?'block':'none');
   });
   if(type==='admin'){var p=document.getElementById('pss-adm-pass');if(p){p.value='';}}
-  var focusMap={login:'pss-mobile',register:'pss-reg-shop',admin:'pss-adm-pass'};
+  if(type==='license'){pssLicStep(1);var k=document.getElementById('pss-lic-key');if(k)k.value='';}
+  var focusMap={login:'pss-mobile',register:'pss-reg-key',admin:'pss-adm-pass',license:'pss-lic-key'};
   setTimeout(function(){ var el=document.getElementById(focusMap[type]); if(el)el.focus(); },60);
 }
 function pssClosePanel(){
@@ -5815,17 +5964,19 @@ function pssLogin(){
   }).catch(function(){ pssShowErr('Connection error. Check your network.'); btn.disabled=false; btn.textContent='Sign In →'; });
 }
 function pssRegister(){
+  var licKey=(document.getElementById('pss-reg-key')||{}).value||'';licKey=licKey.trim().toUpperCase();
   var shop=document.getElementById('pss-reg-shop').value.trim();
   var name=document.getElementById('pss-reg-name').value.trim();
   var mobile=document.getElementById('pss-reg-mobile').value.replace(/\D/g,'');
   var pin=document.getElementById('pss-reg-pin').value.trim();
   var btn=document.getElementById('pss-reg-btn');
+  if(SHOPERPRO_API_URL&&!licKey){ pssShowErr('License key from Ravi is required.'); return; }
   if(!shop||!mobile||!pin){ pssShowErr('Shop name, mobile number, and PIN are required.'); return; }
   if(mobile.length<10){ pssShowErr('Enter a valid 10-digit mobile number.'); return; }
   if(!/^\d{4,6}$/.test(pin)){ pssShowErr('PIN must be 4 to 6 digits.'); return; }
   btn.disabled=true; btn.textContent='Setting up…';
   document.getElementById('pss-inline-err').style.display='none';
-  _api.post('/api/auth/register',{shopName:shop,ownerName:name||'Owner',mobile:mobile,pin:pin}).then(function(res){
+  _api.post('/api/auth/register',{shopName:shop,ownerName:name||'Owner',mobile:mobile,pin:pin,licenseKey:licKey||undefined}).then(function(res){
     if(res.error){ pssShowErr(res.error); btn.disabled=false; btn.textContent='Register & Start →'; return; }
     _api.setToken(res.token);
     localStorage.setItem('shoperpro_last_shop',res.shopName||shop);
@@ -5850,6 +6001,88 @@ async function pssAdminLogin(){
   showAdminPage('adm-dashboard');
 }
 
+function pssLicStep(n){
+  [1,2,3].forEach(function(i){var el=document.getElementById('pss-lic-step'+i);if(el)el.style.display=(i===n?'block':'none');});
+  if(n===1){var k=document.getElementById('pss-lic-key');if(k)setTimeout(function(){k.focus();},60);}
+  if(n===3){var p=document.getElementById('pss-lic-pin');if(p){p.value='';setTimeout(function(){p.focus();},60);}}
+}
+function pssLicenseVerify(){
+  var key=(document.getElementById('pss-lic-key')||{}).value||'';key=key.trim().toUpperCase();
+  if(!key||key.replace(/-/g,'').length<16){pssShowErr('Enter a valid 16-character license key.');return;}
+  var btn=document.getElementById('pss-lic-find-btn');
+  if(btn){btn.disabled=true;btn.textContent='Searching…';}
+  document.getElementById('pss-inline-err').style.display='none';
+  _api.post('/api/auth/verify-license',{licenseKey:key}).then(function(res){
+    if(btn){btn.disabled=false;btn.textContent='Find My Shop →';}
+    if(res.error){pssShowErr(res.error||'Error verifying key.');return;}
+    if(!res.found){pssShowErr('No shop found for this license key. Check the key and try again.');return;}
+    var sn=document.getElementById('pss-lic-shopname');if(sn)sn.textContent=res.shopName||'Your Shop';
+    var ul=document.getElementById('pss-lic-users');
+    if(ul){
+      ul.innerHTML='';
+      (res.users||[]).forEach(function(u){
+        var initials=(u.name||'?').split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
+        var roleLabel=u.role==='owner'?'Owner':u.role==='manager'?'Manager':'Staff';
+        var btn2=document.createElement('button');
+        btn2.className='pss-user-btn';
+        btn2.innerHTML='<div class="pss-user-avatar">'+initials+'</div><div><div class="pss-user-info-name">'+u.name+'</div><div class="pss-user-info-role">'+roleLabel+'</div></div><div style="margin-left:auto;color:rgba(255,255,255,.25);font-size:18px">&#8250;</div>';
+        btn2.onclick=function(){pssSelectUser(u.mobile,u.name,res.shopName);};
+        ul.appendChild(btn2);
+      });
+    }
+    window._pssLicKey=key;
+    pssLicStep(2);
+  }).catch(function(){if(btn){btn.disabled=false;btn.textContent='Find My Shop →';}pssShowErr('Connection error. Check your network.');});
+}
+function pssSelectUser(mobile,name,shopName){
+  window._pssSelectedMobile=mobile;
+  var g=document.getElementById('pss-lic-greeting');if(g)g.textContent='Welcome, '+name+'!';
+  var s=document.getElementById('pss-lic-shop-sub');if(s)s.textContent=(shopName||'Your Shop')+' — enter your PIN to continue';
+  pssLicStep(3);
+}
+function pssLicenseLogin(){
+  var mobile=window._pssSelectedMobile||'';
+  var pin=(document.getElementById('pss-lic-pin')||{}).value||'';pin=pin.trim();
+  var btn=document.getElementById('pss-lic-login-btn');
+  if(!mobile){pssShowErr('No user selected. Go back and select a user.');return;}
+  if(!pin){pssShowErr('Please enter your PIN.');return;}
+  if(btn){btn.disabled=true;btn.textContent='Signing in…';}
+  document.getElementById('pss-inline-err').style.display='none';
+  _api.post('/api/auth/login',{mobile:mobile,pin:pin}).then(function(res){
+    if(btn){btn.disabled=false;btn.textContent='Sign In →';}
+    if(res.error){pssShowErr(res.error);return;}
+    _api.setToken(res.token);
+    localStorage.setItem('shoperpro_last_shop',res.shopName||'My Shop');
+    localStorage.setItem('shoperpro_last_user',res.username||mobile);
+    return _api.get('/api/data').then(function(d){
+      if(d.data&&Object.keys(d.data).length>0){DB=d.data;localStorage.setItem(DB_KEY,JSON.stringify(DB));}
+      migrateDB();
+      document.getElementById('portal-select-screen').style.display='none';
+      continueBootApp();
+    });
+  }).catch(function(){if(btn){btn.disabled=false;btn.textContent='Sign In →';}pssShowErr('Connection error. Check your network.');});
+}
+function _exitDemoMode(){
+  window._demoMode=false;
+  var b=document.getElementById('demo-mode-banner');if(b)b.remove();
+  showPortalSelect();
+}
+function pssClickDemo(){
+  DB=JSON.parse(JSON.stringify(DEMO_DB));
+  window._demoMode=true;
+  document.getElementById('portal-select-screen').style.display='none';
+  initTheme();
+  document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  showUserSelectScreen();
+  setTimeout(function(){
+    var existing=document.getElementById('demo-mode-banner');if(existing)existing.remove();
+    var banner=document.createElement('div');
+    banner.id='demo-mode-banner';
+    banner.innerHTML='&#127947; <strong>DEMO MODE</strong> &nbsp;&mdash;&nbsp; Sample data only &bull; All changes reset on reload &nbsp;|&nbsp; <a href="#" onclick="_exitDemoMode();return false" style="color:#fef3c7;font-weight:800;text-decoration:underline">Exit Demo</a>';
+    banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#92400e,#b45309);color:#fef3c7;text-align:center;padding:7px 16px;font-size:12px;font-weight:600;letter-spacing:.1px;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+    document.body.insertBefore(banner,document.body.firstChild);
+  },400);
+}
 function bootApp(){
   // Web/hosted mode: require login first, then load data from server
   if(SHOPERPRO_API_URL){
