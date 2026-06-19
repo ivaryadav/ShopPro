@@ -92,6 +92,10 @@ db.exec(`
   );
 `);
 try { db.exec('ALTER TABLE cloud_backups ADD COLUMN shop_name TEXT'); } catch(_) {}
+try { db.exec('ALTER TABLE tenants ADD COLUMN license_key_hash TEXT'); } catch(_) {}
+try { db.exec('ALTER TABLE tenants ADD COLUMN license_expiry TEXT'); } catch(_) {}
+try { db.exec('ALTER TABLE tenants ADD COLUMN license_plan TEXT NOT NULL DEFAULT \'monthly\''); } catch(_) {}
+try { db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_tenants_license ON tenants(license_key_hash) WHERE license_key_hash IS NOT NULL'); } catch(_) {}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getLocalIp() {
@@ -203,10 +207,57 @@ app.get('/health', (_req, res) =>
   res.json({ status: 'ok', mode: 'sqlite-local', time: new Date().toISOString() })
 );
 
-// ── POST /api/auth/register ──────────────────────────────────────────────────
+// ── POST /api/auth/verify-license — check license key, return shop info ─────
+app.post('/api/auth/verify-license', rateLimit(20, 5 * 60 * 1000), (req, res) => {
+  const { licenseKey } = req.body;
+  if (!licenseKey || !/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(licenseKey)) {
+    return res.status(400).json({ error: 'Invalid license key format' });
+  }
+  const keyHash = require('crypto').createHash('sha256').update(licenseKey.toUpperCase()).digest('hex');
+  try {
+    const tenant = db.prepare('SELECT id, shop_name, license_plan, license_expiry, status, suspend_reason FROM tenants WHERE license_key_hash = ?').get(keyHash);
+    if (!tenant) {
+      // Key not registered yet - valid format but no shop yet
+      return res.json({ found: false, keyHash });
+    }
+    if (tenant.status === 'terminated') {
+      return res.status(403).json({ error: 'This license has been terminated. Contact Ravi for assistance.' });
+    }
+    if (tenant.status === 'paused') {
+      return res.status(403).json({ error: 'This account is paused. Contact Ravi to restore access.', reason: tenant.suspend_reason });
+    }
+    // Check expiry
+    if (tenant.license_expiry && tenant.license_plan !== 'lifetime') {
+      const expMs = new Date(tenant.license_expiry).getTime();
+      if (Date.now() > expMs) {
+        return res.status(403).json({ error: 'License expired on ' + tenant.license_expiry + '. Contact Ravi to renew.' });
+      }
+    }
+    // Get users for this tenant (names only - no passwords returned)
+    const users = db.prepare("SELECT display_name, role, mobile FROM users WHERE tenant_id = ? AND is_active = 1 ORDER BY role DESC, created_at").all(tenant.id);
+    res.json({
+      found: true,
+      shopName: tenant.shop_name,
+      plan: tenant.license_plan || 'monthly',
+      expiry: tenant.license_expiry || null,
+      users: users.map(u => ({ name: u.display_name || u.mobile, role: u.role, mobile: u.mobile }))
+    });
+  } catch (e) {
+    console.error('Verify license error:', e);
+    res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
+// ── POST /api/auth/register — requires a valid license key issued by admin ────
 app.post('/api/auth/register', rateLimit(5, 10 * 60 * 1000), (req, res) => {
-  const { shopName, ownerName, mobile, pin } = req.body;
+  const { shopName, ownerName, mobile, pin, licenseKey, licenseExpiry, licensePlan } = req.body;
   const mob = (mobile || '').replace(/\D/g, '');
+  if (!licenseKey) {
+    return res.status(400).json({ error: 'A license key from Ravi is required to register. Contact +91 94511 00556.' });
+  }
+  if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(licenseKey)) {
+    return res.status(400).json({ error: 'Invalid license key format. Keys look like XXXX-XXXX-XXXX-XXXX.' });
+  }
   if (!shopName || !mob || !pin) {
     return res.status(400).json({ error: 'Shop name, mobile number, and PIN are required' });
   }
@@ -216,30 +267,38 @@ app.post('/api/auth/register', rateLimit(5, 10 * 60 * 1000), (req, res) => {
   if (!/^\d{4,6}$/.test(pin)) {
     return res.status(400).json({ error: 'PIN must be 4 to 6 digits' });
   }
+  const keyHash = require('crypto').createHash('sha256').update(licenseKey.toUpperCase()).digest('hex');
   try {
+    // Check if this license key is already registered to a shop
+    const existingTenant = db.prepare('SELECT id, shop_name FROM tenants WHERE license_key_hash = ?').get(keyHash);
+    if (existingTenant) {
+      return res.status(409).json({ error: 'This license key is already registered to ' + existingTenant.shop_name + '. Please sign in instead.' });
+    }
     const existingMob = db.prepare('SELECT id FROM users WHERE mobile = ?').get(mob);
     if (existingMob) {
       return res.status(409).json({ error: 'This mobile number is already registered. Please sign in.' });
     }
-    const existing = db.prepare('SELECT id FROM tenants WHERE LOWER(shop_name) = LOWER(?)').get(shopName);
-    if (existing) {
-      return res.status(409).json({ error: 'Shop name already taken — please sign in instead.' });
-    }
     const hash   = bcrypt.hashSync(pin, 10);
-    const tenant = db.prepare('INSERT INTO tenants (shop_name) VALUES (?) RETURNING *').get(shopName);
-    const user   = db.prepare(
+    const tenant = db.prepare(
+      'INSERT INTO tenants (shop_name, license_key_hash, license_expiry, license_plan) VALUES (?,?,?,?) RETURNING *'
+    ).get(shopName, keyHash, licenseExpiry || null, licensePlan || 'monthly');
+    const user = db.prepare(
       'INSERT INTO users (tenant_id, username, display_name, mobile, password_hash, role) VALUES (?,?,?,?,?,?) RETURNING *'
     ).get(tenant.id, mob, ownerName || 'Owner', mob, hash, 'owner');
     db.prepare('INSERT INTO tenant_data (tenant_id, data) VALUES (?,?)').run(tenant.id, '{}');
-
     res.status(201).json({
       message: 'Shop registered',
       token: makeToken(user, tenant),
       shopName: tenant.shop_name,
       username: user.display_name,
       role: user.role,
+      licenseExpiry: tenant.license_expiry,
+      licensePlan: tenant.license_plan,
     });
   } catch (e) {
+    if (e.message && e.message.includes('UNIQUE')) {
+      return res.status(409).json({ error: 'License key or mobile already registered.' });
+    }
     console.error('Register error:', e);
     res.status(500).json({ error: 'Registration failed' });
   }
@@ -267,11 +326,14 @@ app.post('/api/auth/login', rateLimit(10, 5 * 60 * 1000), (req, res) => {
     db.prepare("UPDATE users SET last_login = datetime('now') WHERE id = ?").run(row.id);
     const tenant = { id: row.tid, shop_name: row.shop_name };
     const user   = { id: row.id, role: row.role };
+    const tenantInfo = db.prepare('SELECT license_expiry, license_plan FROM tenants WHERE id = ?').get(row.tid);
     res.json({
       token: makeToken(user, tenant),
       shopName: row.shop_name,
       username: row.display_name || row.username,
       role: row.role,
+      licenseExpiry: tenantInfo ? tenantInfo.license_expiry : null,
+      licensePlan: tenantInfo ? tenantInfo.license_plan : 'monthly',
     });
   } catch (e) {
     console.error('Login error:', e);
