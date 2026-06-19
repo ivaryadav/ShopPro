@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.18">
-<title>ShopERP Pro v8.18</title>
+<meta name="shoperpro-version" content="v8.19">
+<title>ShopERP Pro v8.19</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -2955,7 +2955,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.18 · Licensed</div>
+        <div class="sb-footer-ver">v8.19 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -13391,28 +13391,34 @@ function pageSettings(){
           <div style="font-size:12px;font-weight:800;color:var(--text);letter-spacing:2px;font-family:monospace;word-break:break-all" id="settings-machine-id">loading...</div>
           <button onclick="var m=document.getElementById('settings-machine-id').textContent;navigator.clipboard&&navigator.clipboard.writeText(m).then(function(){toast('Machine ID copied!','success')})" style="margin-top:8px;font-size:10px;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.3);color:var(--accent);border-radius:6px;padding:4px 10px;cursor:pointer">Copy</button>
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
-          <div style="display:flex;gap:10px;align-items:flex-start">
-            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:10px;color:#fff;margin-top:1px">1</div>
-            <div style="font-size:12px;color:var(--text2);line-height:1.5">Click <strong style="color:var(--text)">Export Migration Package</strong> below — saves all your data to a file</div>
+        <div style="display:flex;gap:0;margin-bottom:14px">
+          <div style="display:flex;flex-direction:column;align-items:center;margin-right:10px">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:10px;color:#fff">1</div>
+            <div style="width:2px;flex:1;background:var(--border);margin:3px 0"></div>
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:10px;color:#fff">2</div>
+            <div style="width:2px;flex:1;background:var(--border);margin:3px 0"></div>
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:10px;color:#fff">3</div>
+            <div style="width:2px;flex:1;background:var(--border);margin:3px 0"></div>
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:10px;color:#fff">4</div>
           </div>
-          <div style="display:flex;gap:10px;align-items:flex-start">
-            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:10px;color:#fff;margin-top:1px">2</div>
-            <div style="font-size:12px;color:var(--text2);line-height:1.5">Copy the file to your new computer via USB drive or Google Drive</div>
-          </div>
-          <div style="display:flex;gap:10px;align-items:flex-start">
-            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:10px;color:#fff;margin-top:1px">3</div>
-            <div style="font-size:12px;color:var(--text2);line-height:1.5">On the new machine — open ShopERP Pro and click <strong style="color:var(--text)">Restore from old machine</strong></div>
-          </div>
-          <div style="display:flex;gap:10px;align-items:flex-start">
-            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:10px;color:#fff;margin-top:1px">4</div>
-            <div style="font-size:12px;color:var(--text2);line-height:1.5">Your data restores instantly — then WhatsApp Ravi with the new Machine ID to get your license key for the new machine</div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:0">
+            <div style="font-size:12px;color:var(--text2);line-height:1.5;padding-bottom:10px">On <strong style="color:var(--text)">this machine</strong> — click <strong style="color:var(--text)">Export Migration Package</strong> below. It saves all your data to a file.</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.5;padding-bottom:10px">Copy the file to your <strong style="color:var(--text)">new computer</strong> via USB drive or Google Drive</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.5;padding-bottom:10px">On the <strong style="color:var(--text)">new machine</strong> — open ShopERP Pro, go to <strong style="color:var(--text)">Settings → Data tab</strong> and click <strong style="color:var(--accent)">Import Migration File</strong> below</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.5">Data restores instantly — WhatsApp Ravi with the new Machine ID to get your new license key</div>
           </div>
         </div>
-        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="exportMigration()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Export Migration Package
-        </button>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="exportMigration()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Migration Package
+          </button>
+          <button class="btn btn-ghost" style="width:100%;justify-content:center;border-style:dashed" onclick="document.getElementById('mig-import-settings').click()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import Migration File (from old machine)
+          </button>
+          <input type="file" id="mig-import-settings" accept=".json" style="display:none" onchange="doImport(this)">
+        </div>
       </div>
     </div>
   </div>`;
