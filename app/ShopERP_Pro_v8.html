@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.17">
-<title>ShopERP Pro v8.17</title>
+<meta name="shoperpro-version" content="v8.18">
+<title>ShopERP Pro v8.18</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -1805,11 +1805,12 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
           </button>
         </div>
 
-        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);text-align:center">
-          <a href="#" onclick="document.getElementById('migrate-import-file').click();return false;" style="font-size:11px;color:var(--text2);text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--text2);text-align:center;margin-bottom:8px">Switching from another computer?</div>
+          <button onclick="document.getElementById('migrate-import-file').click()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;background:var(--bg2);border:1.5px dashed var(--border);border-radius:10px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:border-color .15s,background .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.background='var(--bg3)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--bg2)'">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Restore from old machine
-          </a>
+          </button>
           <input type="file" id="migrate-import-file" accept=".json" style="display:none" onchange="doImport(this)">
         </div>
         <div class="auth-footer">
@@ -2954,7 +2955,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.17 · Licensed</div>
+        <div class="sb-footer-ver">v8.18 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
