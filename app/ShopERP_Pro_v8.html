@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.16">
-<title>ShopERP Pro v8.16</title>
+<meta name="shoperpro-version" content="v8.17">
+<title>ShopERP Pro v8.17</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -2954,7 +2954,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.16 · Licensed</div>
+        <div class="sb-footer-ver">v8.17 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3738,6 +3738,7 @@ function waActMachineId(){
 
 // After a key is validated: route to correct screen and attempt cloud restore on new machine
 function _postActivationRoute(licKey){
+  localStorage.removeItem('_sproMigPending');
   var hasData=DB.settings.setupDone&&DB.users.some(function(u){return u.pinSet;});
   if(hasData){
     // Same machine or already has local data — go straight to login
@@ -4884,9 +4885,130 @@ function migrateAdminDB(){
 }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+// ── Migration welcome screen ──
+function showMigrationWelcomeScreen(){
+  var raw=localStorage.getItem('_sproMigPending')||'{}';
+  var mig={};try{mig=JSON.parse(raw);}catch(e){}
+  var shopName=mig.shopName||DB.settings&&DB.settings.shopName||'Your Shop';
+  var mid=getAppMachineId()||'';
+  var el=document.getElementById('activation-screen');
+  if(!el)return;
+  el.style.display='flex';
+  el.innerHTML=`
+    <div class="al" style="background:linear-gradient(160deg,#021a08 0%,#052e10 60%,#021a08 100%);display:flex;flex-direction:column;padding:32px 32px 40px">
+      <div style="position:absolute;inset:0;opacity:.4;pointer-events:none;background:radial-gradient(circle,rgba(74,222,128,.07) 1px,transparent 1px);background-size:28px 28px"></div>
+      <div style="position:relative;z-index:2;display:flex;align-items:center;gap:10px;flex-shrink:0">
+        <div class="al-brand-logo">${_sproLogoSVG(38,36)}</div>
+        <div class="al-brand-wordmark">Shop<em>ERP</em> Pro</div>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;z-index:1;min-height:0;padding:20px 0">
+        <div style="text-align:center;width:100%">
+          <svg width="96" height="96" viewBox="0 0 100 100" fill="none" style="display:block;margin:0 auto 16px">
+            <circle cx="50" cy="50" r="48" fill="rgba(34,197,94,.15)" stroke="rgba(34,197,94,.4)" stroke-width="2"/>
+            <path d="M28 52l14 14 30-30" stroke="#22c55e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div style="font-size:20px;font-weight:800;color:#f0fdf4;letter-spacing:-.3px;margin-bottom:4px">Data Restored!</div>
+          <div style="font-size:12px;color:#86efac;margin-bottom:20px">${esc(shopName)} — all records are here</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+            <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:10px;padding:10px 6px">
+              <div style="font-size:18px;font-weight:800;color:#4ade80">${mig.customers||0}</div>
+              <div style="font-size:10px;color:#86efac;margin-top:2px">Customers</div>
+            </div>
+            <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:10px;padding:10px 6px">
+              <div style="font-size:18px;font-weight:800;color:#4ade80">${mig.products||0}</div>
+              <div style="font-size:10px;color:#86efac;margin-top:2px">Products</div>
+            </div>
+            <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:10px;padding:10px 6px">
+              <div style="font-size:18px;font-weight:800;color:#4ade80">${mig.sales||0}</div>
+              <div style="font-size:10px;color:#86efac;margin-top:2px">Sales</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:10px;padding:10px 6px">
+              <div style="font-size:18px;font-weight:800;color:#4ade80">${mig.repairs||0}</div>
+              <div style="font-size:10px;color:#86efac;margin-top:2px">Repairs</div>
+            </div>
+            <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:10px;padding:10px 6px">
+              <div style="font-size:18px;font-weight:800;color:#4ade80">${mig.expenses||0}</div>
+              <div style="font-size:10px;color:#86efac;margin-top:2px">Expenses</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="position:relative;z-index:2;flex-shrink:0">
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:12px 14px;text-align:center;margin-bottom:12px">
+          <div style="font-size:10px;color:#86efac;font-weight:600;letter-spacing:1px;margin-bottom:4px">STEP 2 — SHARE THIS MACHINE ID WITH RAVI</div>
+          <div style="font-size:12px;font-weight:800;color:#f0fdf4;letter-spacing:2px;font-family:monospace;word-break:break-all" id="mig-mid-display">loading...</div>
+          <button id="mig-copy-btn" style="margin-top:8px;font-size:10px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#4ade80;border-radius:6px;padding:4px 10px;cursor:pointer">Copy ID</button>
+        </div>
+        <a id="mig-wa-link" href="#" target="_blank"
+          style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25d366;border-radius:12px;padding:12px;color:#fff;font-weight:700;font-size:13px;text-decoration:none;margin-bottom:12px">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.121 1.532 5.856L0 24l6.334-1.51A11.933 11.933 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.012-1.374l-.36-.214-3.727.888.936-3.618-.235-.372A9.818 9.818 0 1112 21.818z"/></svg>
+          WhatsApp Ravi for Key
+        </a>
+        <div style="font-size:10px;color:rgba(134,239,172,.6);text-align:center;margin-bottom:8px">Already have your key? Enter it below</div>
+        <input class="act-key-input" id="act-input" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19"
+          style="text-transform:uppercase;letter-spacing:2px;font-size:15px;text-align:center;background:rgba(0,0,0,.4);border-color:rgba(34,197,94,.3);color:#4ade80">
+        <div class="auth-err" id="act-err" style="margin:6px 0;text-align:center"></div>
+        <button class="auth-btn-primary" style="margin-top:8px;background:linear-gradient(135deg,#16a34a,#15803d)" onclick="doActivation()">Activate License Key</button>
+      </div>
+    </div>
+    <div class="ar">
+      <div style="width:100%;max-width:420px;padding:40px 32px">
+        <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">Migration Complete</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:28px">Your shop data is on this machine. One last step — activate your license.</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:12px;color:#fff;margin-top:1px">1</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Data Restored</div>
+              <div style="font-size:12px;color:var(--text2)">All your customers, products, sales, and repairs are on this machine.</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:50%;background:#f59e0b;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:12px;color:#fff;margin-top:1px">2</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Share Machine ID with Ravi</div>
+              <div style="font-size:12px;color:var(--text2)">Copy your Machine ID from the left panel and WhatsApp it to Ravi. He will generate a new key for this machine.</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:12px;color:var(--text2);margin-top:1px">3</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Enter License Key</div>
+              <div style="font-size:12px;color:var(--text2)">Once you receive the key, enter it on the left and click Activate. Done!</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:28px;padding:14px 16px;background:var(--bg2);border-radius:12px;border:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:6px">YOUR NEW MACHINE ID</div>
+          <div style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:2px;font-family:monospace;word-break:break-all" id="mig-mid-display-r">loading...</div>
+        </div>
+      </div>
+    </div>`;
+  // Wire up dynamic parts after DOM is set
+  var midEl=document.getElementById('mig-mid-display');
+  var midElR=document.getElementById('mig-mid-display-r');
+  if(midEl)midEl.textContent=mid||'Not available';
+  if(midElR)midElR.textContent=mid||'Not available';
+  var copyBtn=document.getElementById('mig-copy-btn');
+  if(copyBtn)copyBtn.onclick=function(){
+    if(navigator.clipboard)navigator.clipboard.writeText(mid).then(function(){toast('Machine ID copied!','success');});
+  };
+  var waLink=document.getElementById('mig-wa-link');
+  if(waLink)waLink.href='https://wa.me/917666666679?text='+encodeURIComponent('Hi Ravi, I moved ShopERP Pro to a new machine. My new Machine ID is: '+mid+'. Please send my new license key.');
+  var inp=document.getElementById('act-input');
+  if(inp){
+    inp.oninput=function(){formatActKey(this);};
+    inp.onkeydown=function(e){if(e.key==='Enter')doActivation();};
+  }
+}
+
 // ── Portal selection ──
 function showPortalSelect(){
   window._expiredRenderLock=false;
+  var _migPending=localStorage.getItem('_sproMigPending');
+  if(_migPending){showMigrationWelcomeScreen();return;}
   // Hide every possible screen before showing portal
   ['web-login-screen','admin-login-screen','admin-panel','suspended-screen','welcome-back-screen','new-user-screen',
    'activation-screen','setup-pin-screen','user-select-screen','pin-login-screen','forgot-pin-screen','app'].forEach(function(id){
@@ -6163,6 +6285,10 @@ function showPage(page){
           const id=getAppMachineId();
           el.textContent=id||'Not available';
         }
+      },
+      settings:()=>{
+        const el=document.getElementById('settings-machine-id');
+        if(el){el.textContent=getAppMachineId()||'Not available';}
       },
     };
     if(postRender[page])postRender[page]();
@@ -13257,15 +13383,30 @@ function pageSettings(){
       <div class="card" style="border:1.5px solid rgba(79,142,247,.25);background:rgba(79,142,247,.04)">
         <div class="card-title" style="display:flex;align-items:center;gap:8px">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="7" height="18" rx="1"/><rect x="15" y="3" width="7" height="18" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><polyline points="12 9 15 12 12 15"/></svg>
-          Machine Migration
+          Move to a New Machine
         </div>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Switching to a new computer? Export a migration package from this machine, copy it to the new one, import it there — then contact Ravi for a new license key tied to the new machine.</p>
-        <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:14px;font-size:12px;line-height:1.8;color:var(--text2)">
-          <div style="font-weight:700;color:var(--text);margin-bottom:6px">Steps</div>
-          <div><span style="color:var(--accent);font-weight:700">1.</span> Click <strong>Export Migration Package</strong> below on this machine</div>
-          <div><span style="color:var(--accent);font-weight:700">2.</span> Copy the file to your new computer via USB or Google Drive</div>
-          <div><span style="color:var(--accent);font-weight:700">3.</span> On the new machine — open ShopERP Pro → click <strong>Restore from old machine</strong> on the activation screen</div>
-          <div><span style="color:var(--accent);font-weight:700">4.</span> All data restores — then WhatsApp Ravi with the new Machine ID to get a new license key</div>
+        <div style="background:var(--bg2);border-radius:10px;border:1px solid var(--border);padding:12px 14px;margin-bottom:14px">
+          <div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:4px">YOUR MACHINE ID (this computer)</div>
+          <div style="font-size:12px;font-weight:800;color:var(--text);letter-spacing:2px;font-family:monospace;word-break:break-all" id="settings-machine-id">loading...</div>
+          <button onclick="var m=document.getElementById('settings-machine-id').textContent;navigator.clipboard&&navigator.clipboard.writeText(m).then(function(){toast('Machine ID copied!','success')})" style="margin-top:8px;font-size:10px;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.3);color:var(--accent);border-radius:6px;padding:4px 10px;cursor:pointer">Copy</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:10px;color:#fff;margin-top:1px">1</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.5">Click <strong style="color:var(--text)">Export Migration Package</strong> below — saves all your data to a file</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:10px;color:#fff;margin-top:1px">2</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.5">Copy the file to your new computer via USB drive or Google Drive</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:10px;color:#fff;margin-top:1px">3</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.5">On the new machine — open ShopERP Pro and click <strong style="color:var(--text)">Restore from old machine</strong></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;font-size:10px;color:#fff;margin-top:1px">4</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.5">Your data restores instantly — then WhatsApp Ravi with the new Machine ID to get your license key for the new machine</div>
+          </div>
         </div>
         <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="exportMigration()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -13644,7 +13785,17 @@ function doImport(input){
     try{
       var parsed=JSON.parse(e.target.result);
       if(parsed._migration){
-        // Migration package — strip license so new machine must activate fresh
+        // Save stats so migration welcome screen can show what was restored
+        localStorage.setItem('_sproMigPending',JSON.stringify({
+          shopName:(parsed.settings&&parsed.settings.shopName)||'',
+          customers:(parsed.customers||[]).length,
+          products:(parsed.inventory||[]).length,
+          sales:(parsed.sales||[]).length,
+          repairs:(parsed.repairs||[]).length,
+          expenses:(parsed.expenses||[]).length,
+          migratedAt:parsed._migratedAt||new Date().toISOString()
+        }));
+        // Strip migration metadata and all machine-bound license fields
         delete parsed._migration;delete parsed._migratedFrom;delete parsed._migratedAt;
         parsed.settings=parsed.settings||{};
         parsed.settings.activated=false;
@@ -13656,8 +13807,7 @@ function doImport(input){
         delete parsed.settings._adminExpiryDate;
         delete parsed._licenseExpiredMode;
         DB=parsed;saveDB();
-        toast('Migration data imported! Enter your new license key to activate on this machine.','success');
-        setTimeout(()=>location.reload(),1200);
+        setTimeout(function(){location.reload();},600);
       } else {
         DB=parsed;saveDB();toast('Data restored!','success');setTimeout(()=>location.reload(),800);
       }
