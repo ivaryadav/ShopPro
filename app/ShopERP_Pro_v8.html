@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.15">
-<title>ShopERP Pro v8.15</title>
+<meta name="shoperpro-version" content="v8.16">
+<title>ShopERP Pro v8.16</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -1765,6 +1765,7 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
 </div>
     <div class="ar">
       <div class="ar-inner">
+        <a href="#" onclick="showPortalSelect();return false;" class="auth-back-link">&#8592; Back to portal</a>
         <div class="auth-section-label">License Activation</div>
         <div class="auth-heading">Activate your<br>software.</div>
         <div class="auth-subhead">Two steps. Done in 30 seconds.</div>
@@ -1804,6 +1805,13 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
           </button>
         </div>
 
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);text-align:center">
+          <a href="#" onclick="document.getElementById('migrate-import-file').click();return false;" style="font-size:11px;color:var(--text2);text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Restore from old machine
+          </a>
+          <input type="file" id="migrate-import-file" accept=".json" style="display:none" onchange="doImport(this)">
+        </div>
         <div class="auth-footer">
           Need a key? <strong>+91 94511 00556</strong> · Ravi (WhatsApp) &nbsp;·&nbsp; <strong>v8.0 Final</strong>
         </div>
@@ -2946,7 +2954,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.15 · Licensed</div>
+        <div class="sb-footer-ver">v8.16 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3797,7 +3805,10 @@ function doActivation(){
       var _actEp=r.expiryDate.split('-');
       DB.settings.licenseExpiryMs=new Date(parseInt(_actEp[0]),parseInt(_actEp[1])-1,parseInt(_actEp[2]),23,59,59,999).getTime();
       DB.settings.licensePlan=r.plan;DB.settings.licenseMachineId=machineId;
-      DB.settings.activated=true;saveDB();
+      DB.settings.activated=true;
+      delete DB._licenseExpiredMode;delete DB._licenseExpiredDays;
+      window._licenseExpiredMode=false;
+      saveDB();
       err.textContent='';
       _postActivationRoute(raw);
       return;
@@ -3809,7 +3820,10 @@ function doActivation(){
       if(_AK.includes(raw)){
         DB.settings.licenseKey=raw;
         DB.settings.licenseExpiry=new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0];
-        DB.settings.activated=true;saveDB();
+        DB.settings.activated=true;
+        delete DB._licenseExpiredMode;delete DB._licenseExpiredDays;
+        window._licenseExpiredMode=false;
+        saveDB();
         err.textContent='';
         _postActivationRoute(raw);
         return;
@@ -3825,7 +3839,10 @@ function doActivation(){
   if(_AK.includes(raw)){
     DB.settings.licenseKey=raw;
     DB.settings.licenseExpiry=new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0];
-    DB.settings.activated=true;saveDB();
+    DB.settings.activated=true;
+    delete DB._licenseExpiredMode;delete DB._licenseExpiredDays;
+    window._licenseExpiredMode=false;
+    saveDB();
     err.textContent='';
     _postActivationRoute(raw);
   } else {
@@ -3893,6 +3910,121 @@ function _sproLogoSVG(w,h){
       <animateMotion dur="2.4s" begin="-1.2" repeatCount="indefinite" calcMode="linear" path="M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z"/>
     </circle>
   </svg>`;
+}
+function _expiredBigLogo(){
+  var id='ebl'+Math.random().toString(36).slice(2,7);
+  /* shape path in 92×88 user space, scaled ×3 and centered in 300×300 viewport:
+     translate = (150 - 46*3, 148 - 44*3) = (12, 16) */
+  var S=3, tx=12, ty=16;
+  var tri='M 51,6 L 84,68 A 10,10 0 0,0 78,76 L 14,76 A 10,10 0 0,0 8,68 L 41,6 A 10,10 0 0,0 51,6 Z';
+  var inf='M 46,50 C 38,35 18,35 18,50 C 18,65 38,65 46,50 C 54,35 74,35 74,50 C 74,65 54,65 46,50 Z';
+  return`<svg viewBox="0 0 300 300" width="260" height="260" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;display:block">
+      <defs>
+        <radialGradient id="${id}-bg" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ef4444" stop-opacity=".32"/>
+          <stop offset="55%" stop-color="#ef4444" stop-opacity=".1"/>
+          <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="${id}-fill" x1=".25" y1="0" x2=".75" y2="1">
+          <stop offset="0%" stop-color="#2a0404"/>
+          <stop offset="50%" stop-color="#180202"/>
+          <stop offset="100%" stop-color="#0a0101"/>
+        </linearGradient>
+        <linearGradient id="${id}-shine" x1="0" y1="0" x2=".5" y2=".7">
+          <stop offset="0%" stop-color="rgba(255,255,255,.25)"/>
+          <stop offset="40%" stop-color="rgba(255,255,255,.06)"/>
+          <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+        </linearGradient>
+        <linearGradient id="${id}-red" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#ff6b6b"/>
+          <stop offset="50%" stop-color="#ef4444"/>
+          <stop offset="100%" stop-color="#ff6b6b"/>
+        </linearGradient>
+        <filter id="${id}-gf" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="4" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="${id}-halo" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="10" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <clipPath id="${id}-clip">
+          <path transform="translate(${tx},${ty}) scale(${S})" d="${tri}"/>
+        </clipPath>
+      </defs>
+
+      <!-- smooth float -->
+      <g>
+        <animateTransform attributeName="transform" type="translate"
+          values="0,0;0,-11;0,0" dur="3.8s" repeatCount="indefinite"
+          calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1"/>
+
+        <!-- ambient glow circle -->
+        <circle cx="150" cy="150" r="138" fill="url(#${id}-bg)">
+          <animate attributeName="opacity" values=".5;1;.5" dur="3s" repeatCount="indefinite"/>
+        </circle>
+
+        <!-- rotating outer ring 1 -->
+        <circle cx="150" cy="150" r="132" fill="none" stroke="rgba(239,68,68,.18)" stroke-width="1" stroke-dasharray="5 10">
+          <animateTransform attributeName="transform" type="rotate" from="0 150 150" to="360 150 150" dur="26s" repeatCount="indefinite"/>
+        </circle>
+        <!-- rotating outer ring 2 -->
+        <circle cx="150" cy="150" r="124" fill="none" stroke="rgba(239,68,68,.1)" stroke-width=".8" stroke-dasharray="2 8">
+          <animateTransform attributeName="transform" type="rotate" from="0 150 150" to="-360 150 150" dur="18s" repeatCount="indefinite"/>
+        </circle>
+
+        <!-- 3D extrusion depth layers -->
+        <g transform="translate(${tx},${ty}) scale(${S})">
+          <path transform="translate(5,8)"  d="${tri}" fill="#280000" opacity=".8"/>
+          <path transform="translate(4,6)"  d="${tri}" fill="#360000" opacity=".7"/>
+          <path transform="translate(2.5,4)" d="${tri}" fill="#440000" opacity=".6"/>
+          <path transform="translate(1.2,2)" d="${tri}" fill="#520000" opacity=".5"/>
+        </g>
+
+        <!-- main face -->
+        <g transform="translate(${tx},${ty}) scale(${S})">
+          <!-- base dark-red fill -->
+          <path d="${tri}" fill="url(#${id}-fill)"/>
+          <!-- glass shine -->
+          <path d="${tri}" fill="url(#${id}-shine)"/>
+          <!-- red glow halo border -->
+          <path d="${tri}" fill="none" stroke="#ef4444" stroke-width="2" filter="url(#${id}-halo)" opacity=".6">
+            <animate attributeName="opacity" values=".3;.8;.3" dur="2s" repeatCount="indefinite"/>
+          </path>
+          <!-- crisp red border -->
+          <path d="${tri}" fill="none" stroke="#ff6b6b" stroke-width="1.2">
+            <animate attributeName="opacity" values=".7;1;.7" dur="2s" repeatCount="indefinite"/>
+          </path>
+          <!-- glass highlight edge (top-left) -->
+          <path d="M 48,8 L 81,66" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M 43,8 L 15,66" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="1.2" stroke-linecap="round"/>
+        </g>
+
+        <!-- S-curve + dots clipped inside triangle -->
+        <g clip-path="url(#${id}-clip)">
+          <g transform="translate(${tx},${ty}) scale(${S})">
+            <!-- red glow behind curve -->
+            <path d="${inf}" fill="none" stroke="rgba(239,68,68,.35)" stroke-width="7" stroke-linecap="round" filter="url(#${id}-gf)">
+              <animate attributeName="opacity" values=".2;.6;.2" dur="2.4s" repeatCount="indefinite"/>
+            </path>
+            <!-- main red S-curve -->
+            <path d="${inf}" fill="none" stroke="url(#${id}-red)" stroke-width="2.6" stroke-linecap="round">
+              <animate attributeName="opacity" values=".5;1;.5" dur="2.4s" repeatCount="indefinite"/>
+            </path>
+            <!-- leading dot - bright red glowing -->
+            <circle r="4.5" fill="#ff4444" filter="url(#${id}-gf)">
+              <animateMotion dur="2.4s" begin="0s" repeatCount="indefinite" calcMode="linear"
+                path="${inf}"/>
+            </circle>
+            <!-- trailing dot - lighter red -->
+            <circle r="2.4" fill="rgba(255,150,150,.9)">
+              <animateMotion dur="2.4s" begin="-1.2s" repeatCount="indefinite" calcMode="linear"
+                path="${inf}"/>
+            </circle>
+          </g>
+        </g>
+      </g>
+    </svg>`;
 }
 function applyAppBranding(){
   const s=DB.settings;
@@ -4293,6 +4425,9 @@ function startApp(user){
   document.getElementById('u-name').textContent=user.name;
   const roleLabel=user.role==='owner'?(DB.settings.ownerRoleLabel||'Administrator'):user.role==='superadmin'?'Super Admin':'Staff Member';
   document.getElementById('u-role').textContent=roleLabel;
+  // Reset any nav hiding done by _applyLicenseExpiredLock so renewed users see full nav
+  document.querySelectorAll('.nav-item,.nav-section').forEach(el=>el.style.display='');
+  document.querySelectorAll('.topbar-right .btn').forEach(el=>el.style.display='');
   const isOwnerLike=user.role==='owner'||user.role==='superadmin';
   document.querySelectorAll('.owner-only').forEach(el=>el.style.display=isOwnerLike?'flex':'none');
   document.getElementById('owner-nav-section').style.display=isOwnerLike?'block':'none';
@@ -4319,7 +4454,7 @@ function startApp(user){
     delete DB._expiryWarning;
     showExpiryBanner(days,level);
     // 24 hours or less → show countdown timer in topbar
-    if(days<=1) startExpiryCountdown();
+    if(days===0) startExpiryCountdown();
     // Show popup modal for 7-day warning (once per day) or critical (every login)
     setTimeout(()=>showExpiryPopup(days,level), 800);
   }
@@ -4442,7 +4577,8 @@ function startExpiryCountdown(){
     if(diff<=0){
       clearInterval(window._countdownInterval);
       window._countdownInterval=null;
-      doLogout();
+      if(window._clockInterval){clearInterval(window._clockInterval);window._clockInterval=null;}
+      currentUser=null;
       showAdminExpiredScreen();
       return;
     }
@@ -4455,8 +4591,8 @@ function startExpiryCountdown(){
 
   if(window._countdownInterval)clearInterval(window._countdownInterval);
   ensureTimer();
-  updateTimer();
   window._countdownInterval=setInterval(updateTimer,1000);
+  updateTimer();
 }
 
 function doLogout(){
@@ -4750,6 +4886,7 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 
 // ── Portal selection ──
 function showPortalSelect(){
+  window._expiredRenderLock=false;
   // Hide every possible screen before showing portal
   ['web-login-screen','admin-login-screen','admin-panel','suspended-screen','welcome-back-screen','new-user-screen',
    'activation-screen','setup-pin-screen','user-select-screen','pin-login-screen','forgot-pin-screen','app'].forEach(function(id){
@@ -5669,7 +5806,6 @@ function continueBootApp(){
   // If activated but licenseExpiry is not properly set, treat as invalid
   if(!expiry||expiry===''){
     if(DB.settings.licenseKey!==_SAK){
-      showScreen('activation-screen');
       showExpiredScreen(0);
       return;
     }
@@ -5704,69 +5840,138 @@ function continueBootApp(){
 }
 
 function showExpiredScreen(daysAgo){
+  if(window._expiredRenderLock)return;
+  window._expiredRenderLock=true;
+  setTimeout(function(){window._expiredRenderLock=false;},1500);
   const mid=getAppMachineId();
   const shop=DB.settings.shopName||'Your Shop';
   const el=document.getElementById('activation-screen');
   if(!el)return;
+  const adminPhone=(ADMIN_DB&&ADMIN_DB.settings&&(ADMIN_DB.settings.devPhone||ADMIN_DB.settings.supportPhone||''))||'9451100556';
+  const cleanPhone=adminPhone.replace(/\D/g,'').length===10?'91'+adminPhone.replace(/\D/g,''):adminPhone.replace(/\D/g,'');
+  const waMsg=encodeURIComponent('Hello Ravi! 🙏\nMy *ShopERP Pro* license has expired.\n\nShop: *'+shop+'*\nMachine ID: *'+mid+'*\nExpired: '+daysAgo+' day'+(daysAgo!==1?'s':'')+' ago\n\nPlease send me a renewal key. Thank you!');
   el.querySelector('div').innerHTML=`
-    <div class="auth-logo-area">
-      <div style="font-size:48px">🔒</div>
-      <div class="auth-title" style="color:var(--red)">License Expired</div>
-      <div class="auth-sub">Your ShopERP Pro license expired ${daysAgo} day${daysAgo!==1?'s':''} ago</div>
-    </div>
-    <div class="auth-card" style="margin-bottom:12px">
-      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Your Machine ID</div>
-      <div style="background:var(--bg3);border:2px dashed var(--border2);border-radius:var(--r);padding:12px;text-align:center;margin-bottom:10px">
-        <div style="font-family:var(--mono);font-size:20px;font-weight:800;color:var(--accent);letter-spacing:3px">${mid}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:4px">Send this to your software provider to renew</div>
+    <div class="al" style="background:linear-gradient(160deg,#100303 0%,#200808 60%,#100303 100%);display:flex;flex-direction:column;padding:32px 32px 40px">
+      <div class="al-overlay" style="background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(120,0,0,.1) 55%,transparent 100%)"></div>
+      <!-- Brand -->
+      <div style="position:relative;z-index:2;display:flex;align-items:center;gap:10px;animation:aIn .6s .1s both;flex-shrink:0">
+        <div class="al-brand-logo">${_sproLogoSVG(38,36)}</div>
+        <div class="al-brand-wordmark">Shop<em>ERP</em> Pro</div>
       </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost" style="flex:1;justify-content:center;font-size:12px" onclick="copyActMachineId()">📋 Copy ID</button>
-        <button class="btn btn-wa" style="flex:1;justify-content:center;font-size:12px" onclick="waRenewalRequest()">💬 Request Renewal</button>
+      <!-- Logo — flex-centered in middle zone -->
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;z-index:1;min-height:0;padding:20px 0">
+        ${_expiredBigLogo()}
+      </div>
+      <!-- Bottom -->
+      <div style="position:relative;z-index:2;animation:aIn .6s .3s both;flex-shrink:0">
+        <div class="al-line" style="background:#ef4444"></div>
+        <div class="al-headline">License<br><em style="color:#ef4444">Expired</em></div>
+        <div class="al-sub">${daysAgo>0?'Expired '+daysAgo+' day'+(daysAgo!==1?'s':'')+' ago.':'Renewal required.'}<br>Enter renewal key to restore access.</div>
+        <div class="al-support" style="border-color:rgba(239,68,68,.2);background:rgba(239,68,68,.07)">
+          <div class="al-support-dot" style="background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.5)"></div>
+          <div class="al-support-text"><strong>${shop}</strong>Contact Ravi to get your renewal key</div>
+        </div>
       </div>
     </div>
-    <div class="auth-card">
-      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Enter Renewal Key</div>
-      <input class="act-key-input" id="act-input" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19"
-        oninput="formatActKey(this)" onkeydown="if(event.key==='Enter')doActivation()"
-        style="text-transform:uppercase;letter-spacing:2px;font-size:16px;text-align:center">
-      <div class="auth-err" id="act-err"></div>
-      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;font-size:14px;margin-top:10px" onclick="doActivation()">
-        Activate Renewal Key
-      </button>
-    </div>
-    <div class="auth-footer" style="margin-top:12px">Contact your software provider to get a renewal key.</div>`;
+    <div class="ar">
+      <div class="ar-inner">
+        <button onclick="showPortalSelect()" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.55);padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:28px;transition:.2s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">← Back to Portal</button>
+        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:6px 12px;margin-bottom:14px">
+          <span style="color:#ef4444;font-size:11px;font-weight:700">🔴 SUBSCRIPTION EXPIRED</span>
+        </div>
+        <div class="auth-heading" style="margin-bottom:6px">Renew Your<br>License</div>
+        <div class="auth-subhead">Share your Machine ID with Ravi, then enter<br>the renewal key below to restore access.</div>
+        <div class="auth-card" style="margin-bottom:12px">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Your Machine ID</div>
+          <div style="background:rgba(239,68,68,.06);border:1.5px dashed rgba(239,68,68,.3);border-radius:12px;padding:14px;text-align:center;margin-bottom:12px">
+            <div style="font-family:var(--mono);font-size:18px;font-weight:800;color:#ef4444;letter-spacing:3px;word-break:break-all">${mid}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:5px">Send this to Ravi for your renewal key</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onclick="navigator.clipboard&&navigator.clipboard.writeText('${mid}').then(function(){toast('Machine ID copied!','success')})" style="flex:1;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:rgba(255,255,255,.7);font-size:12px;font-weight:600;cursor:pointer;transition:.2s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">📋 Copy ID</button>
+            <a href="https://wa.me/${cleanPhone}?text=${waMsg}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border-radius:9px;font-size:12px;font-weight:700;text-decoration:none">💬 WhatsApp Ravi</a>
+          </div>
+        </div>
+        <div class="auth-card">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Enter Renewal Key</div>
+          <input class="act-key-input" id="act-input" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19"
+            oninput="formatActKey(this)" onkeydown="if(event.key==='Enter')doActivation()"
+            style="text-transform:uppercase;letter-spacing:2px;font-size:16px;text-align:center">
+          <div class="auth-err" id="act-err"></div>
+          <button class="auth-btn-primary" style="margin-top:12px" onclick="doActivation()">Activate Renewal Key</button>
+        </div>
+        <div class="auth-footer" style="margin-top:16px">ShopERP Pro · ${shop} · Contact Ravi to renew</div>
+      </div>
+    </div>`;
+  showScreen('activation-screen');
 }
 
 // ── Admin-controlled expiry screen (shown when countdown hits 0) ──────────────
 function showAdminExpiredScreen(){
+  if(window._expiredRenderLock)return;
+  window._expiredRenderLock=true;
+  setTimeout(function(){window._expiredRenderLock=false;},1500);
   var mid=getAppMachineId();
   var shop=DB.settings.shopName||'Your Shop';
   var adminPhone=(ADMIN_DB&&ADMIN_DB.settings&&(ADMIN_DB.settings.devPhone||ADMIN_DB.settings.supportPhone||''))||'9451100556';
-  var clean=adminPhone.replace(/\D/g,'');
-  if(!clean.startsWith('91')&&clean.length===10)clean='91'+clean;
-  var waMsg=encodeURIComponent('Hello Ravi! 🙏\nMy *ShopERP Pro* license has expired.\n\nShop: *'+shop+'*\nMachine ID: *'+mid+'*\n\nPlease renew my subscription. Thank you!');
+  var cleanPhone=adminPhone.replace(/\D/g,'');
+  if(cleanPhone.length===10)cleanPhone='91'+cleanPhone;
+  var waMsg=encodeURIComponent('Hello Ravi! 🙏\nMy *ShopERP Pro* license has expired.\n\nShop: *'+shop+'*\nMachine ID: *'+mid+'*\n\nPlease send me a renewal key. Thank you!');
   var el=document.getElementById('activation-screen');
-  if(!el){showScreen('activation-screen');el=document.getElementById('activation-screen');}
+  if(!el)return;
   el.querySelector('div').innerHTML=`
-    <div class="auth-logo-area">
-      <div style="font-size:52px">🔒</div>
-      <div class="auth-title" style="color:var(--red)">Your License Has Expired</div>
-      <div class="auth-sub" style="color:rgba(252,165,165,.9)">Contact Ravi to renew your subscription</div>
-    </div>
-    <div class="auth-card" style="margin-bottom:12px">
-      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Your Machine ID</div>
-      <div style="background:var(--bg3);border:2px dashed var(--border2);border-radius:var(--r);padding:14px;text-align:center;margin-bottom:14px">
-        <div style="font-family:var(--mono);font-size:22px;font-weight:800;color:var(--accent);letter-spacing:4px">${mid}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:6px">Share this ID with Ravi to get your renewal key</div>
+    <div class="al" style="background:linear-gradient(160deg,#100303 0%,#200808 60%,#100303 100%);display:flex;flex-direction:column;padding:32px 32px 40px">
+      <div class="al-overlay" style="background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(120,0,0,.1) 55%,transparent 100%)"></div>
+      <!-- Brand -->
+      <div style="position:relative;z-index:2;display:flex;align-items:center;gap:10px;animation:aIn .6s .1s both;flex-shrink:0">
+        <div class="al-brand-logo">${_sproLogoSVG(38,36)}</div>
+        <div class="al-brand-wordmark">Shop<em>ERP</em> Pro</div>
       </div>
-      <a href="https://wa.me/${clean}?text=${waMsg}" target="_blank"
-         style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:11px;font-weight:700;font-size:14px;text-decoration:none;box-sizing:border-box">
-        💬 WhatsApp Ravi for Renewal
-      </a>
+      <!-- Logo — flex-centered in middle zone -->
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;z-index:1;min-height:0;padding:20px 0">
+        ${_expiredBigLogo()}
+      </div>
+      <!-- Bottom -->
+      <div style="position:relative;z-index:2;animation:aIn .6s .3s both;flex-shrink:0">
+        <div class="al-line" style="background:#ef4444"></div>
+        <div class="al-headline">License<br><em style="color:#ef4444">Expired</em></div>
+        <div class="al-sub">Your subscription has ended.<br>Contact Ravi to get a renewal key.</div>
+        <div class="al-support" style="border-color:rgba(239,68,68,.2);background:rgba(239,68,68,.07)">
+          <div class="al-support-dot" style="background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.5)"></div>
+          <div class="al-support-text"><strong>${shop}</strong>WhatsApp Ravi for instant renewal</div>
+        </div>
+      </div>
     </div>
-    <div class="auth-footer" style="margin-top:8px;font-size:11px;color:var(--text3)">
-      ShopERP Pro - ${shop}
+    <div class="ar">
+      <div class="ar-inner">
+        <button onclick="showPortalSelect()" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.55);padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:28px;transition:.2s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">← Back to Portal</button>
+        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:6px 12px;margin-bottom:14px">
+          <span style="color:#ef4444;font-size:11px;font-weight:700">🔴 SUBSCRIPTION EXPIRED</span>
+        </div>
+        <div class="auth-heading" style="margin-bottom:6px">Renew Your<br>License</div>
+        <div class="auth-subhead">Share your Machine ID with Ravi and get<br>a renewal key to restore full access.</div>
+        <div class="auth-card" style="margin-bottom:12px">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Your Machine ID</div>
+          <div style="background:rgba(239,68,68,.06);border:1.5px dashed rgba(239,68,68,.3);border-radius:12px;padding:14px;text-align:center;margin-bottom:12px">
+            <div style="font-family:var(--mono);font-size:18px;font-weight:800;color:#ef4444;letter-spacing:3px;word-break:break-all">${mid}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:5px">Send this to Ravi for your renewal key</div>
+          </div>
+          <button onclick="navigator.clipboard&&navigator.clipboard.writeText('${mid}').then(function(){toast('Machine ID copied!','success')})" style="width:100%;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:rgba(255,255,255,.7);font-size:12px;font-weight:600;cursor:pointer;margin-bottom:12px;transition:.2s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">📋 Copy Machine ID</button>
+          <a href="https://wa.me/${cleanPhone}?text=${waMsg}" target="_blank"
+             style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border-radius:11px;font-weight:700;font-size:14px;text-decoration:none;box-sizing:border-box">
+            💬 WhatsApp Ravi for Renewal
+          </a>
+        </div>
+        <div class="auth-card" style="margin-top:12px">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Enter Renewal Key</div>
+          <input class="act-key-input" id="act-input" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19"
+            oninput="formatActKey(this)" onkeydown="if(event.key==='Enter')doActivation()"
+            style="text-transform:uppercase;letter-spacing:2px;font-size:16px;text-align:center">
+          <div class="auth-err" id="act-err"></div>
+          <button class="auth-btn-primary" style="margin-top:12px" onclick="doActivation()">Activate Renewal Key</button>
+        </div>
+        <div class="auth-footer" style="margin-top:16px">ShopERP Pro · ${shop} · Contact Ravi to renew</div>
+      </div>
     </div>`;
   showScreen('activation-screen');
 }
@@ -8663,7 +8868,7 @@ function showRepairInvoiceView(id,viewList,curIdx){
   var ex=document.getElementById('repair-inv-overlay');if(ex)ex.remove();
   var overlay=document.createElement('div');
   overlay.id='repair-inv-overlay';
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:5000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;backdrop-filter:blur(8px);padding:14px;gap:10px';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:6000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;backdrop-filter:blur(8px);padding:14px;gap:10px';
   // Toolbar
   var tb=document.createElement('div');
   tb.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;padding:8px 14px;background:rgba(255,255,255,.07);border-radius:12px;border:1px solid rgba(255,255,255,.1);flex-shrink:0';
@@ -10287,7 +10492,7 @@ function showRepairInvoiceViewNav(id,repairIds,curIdx){
   var ex=document.getElementById('repair-inv-overlay');if(ex)ex.remove();
   var overlay=document.createElement('div');
   overlay.id='repair-inv-overlay';
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:5000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:6000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
   var frame=document.createElement('iframe');
   frame.style.cssText='width:780px;max-width:95vw;height:90vh;border:none;border-radius:12px;background:#fff';
   frame.srcdoc=html;
@@ -10363,15 +10568,15 @@ function viewCustomer(id){
     +'<div style="flex:1;min-width:0">'
     +'<div style="font-size:19px;font-weight:800;color:var(--text)">'+escHtml(c.name)+'</div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:3px;font-size:12px;color:var(--text2)">'
-    +(c.phone?'<span>📞 <a href="https://wa.me/'+waPhone(c.phone)+'" target="_blank" style="color:var(--green);font-weight:600">'+c.phone+'</a></span>':'')
-    +(c.email?'<span>✉️ '+escHtml(c.email)+'</span>':'')
-    +(c.address?'<span>📍 '+escHtml(c.address)+'</span>':'')
+    +(c.phone?'<span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.22 1.22 2 2 0 012.18 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.48-.59a2 2 0 012.11.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg><a href="https://wa.me/'+waPhone(c.phone)+'" target="_blank" style="color:var(--green);font-weight:600">'+c.phone+'</a></span>':'')
+    +(c.email?'<span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> '+escHtml(c.email)+'</span>':'')
+    +(c.address?'<span style="display:inline-flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> '+escHtml(c.address)+'</span>':'')
     +'<span class="badge '+badgeCls+'" style="font-size:10px">'+c.type+'</span>'
     +'</div></div>'
     +'<div style="display:flex;gap:8px;flex-shrink:0">'
-    +'<button onclick="waCustomer('+id+')" style="padding:8px 16px;background:#25D366;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:6px"><i class="bi bi-whatsapp"></i> WA</button>'
-    +'<button onclick="editCustomer('+id+')" style="padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-weight:700;cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:6px"><i class="bi bi-pencil-fill"></i> Edit</button>'
-    +'<button onclick="document.getElementById(\'cust-profile-overlay\').remove()" style="width:36px;height:36px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#ef4444;border-radius:8px;font-weight:700;cursor:pointer;font-size:18px;display:inline-flex;align-items:center;justify-content:center"><i class="bi bi-x-lg"></i></button>'
+    +'<button onclick="waCustomer('+id+')" style="padding:8px 16px;background:#25D366;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> WhatsApp</button>'
+    +'<button onclick="editCustomer('+id+')" style="padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-weight:700;cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit</button>'
+    +'<button onclick="document.getElementById(\'cust-profile-overlay\').remove()" style="width:36px;height:36px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#ef4444;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
     +'</div>';
 
   // ── Scrollable body ──────────────────────────────────────────
@@ -10386,8 +10591,10 @@ function viewCustomer(id){
   // Tabs
   var tabBar=document.createElement('div');
   tabBar.style.cssText='display:flex;gap:4px;margin-bottom:16px;background:var(--bg3);padding:4px;border-radius:10px';
-  tabBar.innerHTML='<button id="vc-tab-sales" onclick="vcShowTab(\'sales\')" style="flex:1;padding:8px 16px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;background:var(--accent);color:#fff">🧾 Sales ('+sales.length+')</button>'
-    +'<button id="vc-tab-repairs" onclick="vcShowTab(\'repairs\')" style="flex:1;padding:8px 16px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;background:transparent;color:var(--text2)">🔧 Repairs ('+repairs.length+')</button>';
+  var _tabIcoSales='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>';
+  var _tabIcoRepairs='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>';
+  tabBar.innerHTML='<button id="vc-tab-sales" onclick="vcShowTab(\'sales\')" style="flex:1;padding:8px 16px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:7px">'+_tabIcoSales+' Sales ('+sales.length+')</button>'
+    +'<button id="vc-tab-repairs" onclick="vcShowTab(\'repairs\')" style="flex:1;padding:8px 16px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;background:transparent;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;gap:7px">'+_tabIcoRepairs+' Repairs ('+repairs.length+')</button>';
 
   // Panels
   var salesPanel=document.createElement('div');
@@ -10452,7 +10659,7 @@ function vcRenderSales(page){
       +'<td style="padding:11px 14px;font-size:13px;font-weight:700;font-family:var(--mono);white-space:nowrap">'+cur+(s.total||0).toLocaleString('en-IN')+'</td>'
       +'<td style="padding:11px 14px;font-size:12px;white-space:nowrap">'+cur+(s.paid||0).toLocaleString('en-IN')+'</td>'
       +'<td style="padding:11px 14px"><span style="background:'+sc+'22;color:'+sc+';font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap">'+st+'</span></td>'
-      +'<td style="padding:11px 14px"><button onclick="showInvoiceOverlay('+s.id+',['+idsStr+'],'+si+')" style="padding:4px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;color:var(--text);white-space:nowrap">🧾 View</button></td>'
+      +'<td style="padding:11px 14px"><button onclick="showInvoiceOverlay('+s.id+',['+idsStr+'],'+si+')" style="padding:5px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;color:var(--text);white-space:nowrap;display:inline-flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View</button></td>'
       +'</tr>';
   }).join('')||'<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--text3)">No sales yet</td></tr>';
 
@@ -10492,7 +10699,7 @@ function vcRenderRepairs(page){
       +'<td style="padding:11px 14px;font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">'+escHtml(r.issue||'')+'</td>'
       +'<td style="padding:11px 14px"><span class="badge '+statusColor(r.status)+'" style="font-size:10px;white-space:nowrap">'+r.status+'</span></td>'
       +'<td style="padding:11px 14px"><span style="background:'+sc+'22;color:'+sc+';font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap">'+st+'</span></td>'
-      +'<td style="padding:11px 14px"><button onclick="showRepairInvoiceViewNav('+r.id+',['+idsStr+'],'+ri+')" style="padding:4px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;color:var(--text);white-space:nowrap">🧾 View</button></td>'
+      +'<td style="padding:11px 14px"><button onclick="showRepairInvoiceViewNav('+r.id+',['+idsStr+'],'+ri+')" style="padding:5px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;color:var(--text);white-space:nowrap;display:inline-flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View</button></td>'
       +'</tr>';
   }).join('')||'<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--text3)">No repairs yet</td></tr>';
 
@@ -11814,7 +12021,7 @@ function printCAReport(){
   var ex=document.getElementById('ca-report-overlay');if(ex)ex.remove();
   var overlay=document.createElement('div');
   overlay.id='ca-report-overlay';
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:5000;display:flex;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:12px;gap:8px';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:6000;display:flex;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:12px;gap:8px';
   var tb=document.createElement('div');
   tb.style.cssText='width:920px;max-width:96vw;display:flex;gap:8px;justify-content:flex-end';
   var printBtn=document.createElement('button');
@@ -12684,9 +12891,17 @@ function pageSupport(){
         <div id="support-machine-id" style="font-family:var(--mono);font-size:18px;font-weight:800;color:#f87171;letter-spacing:3px">${midId}</div>
         <div style="font-size:10px;color:rgba(252,165,165,.5);margin-top:4px">Share this with your provider when requesting renewal</div>
       </div>
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px">
         <button onclick="navigator.clipboard.writeText('${midId}').then(()=>toast('Machine ID copied','success'))" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:9px 18px;color:#fca5a5;font-size:12px;font-weight:700;cursor:pointer">📋 Copy ID</button>
         <a href="https://wa.me/919451100556?text=${msg}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#25D366;border:none;border-radius:8px;padding:9px 18px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none">💬 Request Renewal on WhatsApp</a>
+      </div>
+      <div style="border-top:1px solid rgba(239,68,68,.2);padding-top:20px;text-align:left">
+        <div style="font-size:11px;font-weight:700;color:rgba(252,165,165,.7);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;text-align:center">Got your renewal key? Enter it below</div>
+        <input class="act-key-input" id="act-input" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19"
+          oninput="formatActKey(this)" onkeydown="if(event.key==='Enter')doActivation()"
+          style="text-transform:uppercase;letter-spacing:2px;font-size:16px;text-align:center;width:100%;box-sizing:border-box;background:rgba(0,0,0,.4);border-color:rgba(239,68,68,.4);color:#fca5a5">
+        <div class="auth-err" id="act-err" style="margin:6px 0;text-align:center"></div>
+        <button onclick="doActivation()" style="width:100%;padding:13px;background:linear-gradient(135deg,#dc2626,#b91c1c);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;letter-spacing:.3px">Activate Renewal Key</button>
       </div>
     </div>`;
   }
@@ -13038,6 +13253,24 @@ function pageSettings(){
           <hr class="divider">
           <button class="btn btn-danger" onclick="showConfirmReset()">🗑 Reset All Data</button>
         </div>
+      </div>
+      <div class="card" style="border:1.5px solid rgba(79,142,247,.25);background:rgba(79,142,247,.04)">
+        <div class="card-title" style="display:flex;align-items:center;gap:8px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="7" height="18" rx="1"/><rect x="15" y="3" width="7" height="18" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><polyline points="12 9 15 12 12 15"/></svg>
+          Machine Migration
+        </div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Switching to a new computer? Export a migration package from this machine, copy it to the new one, import it there — then contact Ravi for a new license key tied to the new machine.</p>
+        <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:14px;font-size:12px;line-height:1.8;color:var(--text2)">
+          <div style="font-weight:700;color:var(--text);margin-bottom:6px">Steps</div>
+          <div><span style="color:var(--accent);font-weight:700">1.</span> Click <strong>Export Migration Package</strong> below on this machine</div>
+          <div><span style="color:var(--accent);font-weight:700">2.</span> Copy the file to your new computer via USB or Google Drive</div>
+          <div><span style="color:var(--accent);font-weight:700">3.</span> On the new machine — open ShopERP Pro → click <strong>Restore from old machine</strong> on the activation screen</div>
+          <div><span style="color:var(--accent);font-weight:700">4.</span> All data restores — then WhatsApp Ravi with the new Machine ID to get a new license key</div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="exportMigration()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export Migration Package
+        </button>
       </div>
     </div>
   </div>`;
@@ -13407,8 +13640,52 @@ function importData(){document.getElementById('import-file').click();}
 function doImport(input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
-  reader.onload=e=>{try{DB=JSON.parse(e.target.result);saveDB();toast('Data restored!','success');setTimeout(()=>location.reload(),800);}catch{toast('Invalid backup file','error');}};
+  reader.onload=e=>{
+    try{
+      var parsed=JSON.parse(e.target.result);
+      if(parsed._migration){
+        // Migration package — strip license so new machine must activate fresh
+        delete parsed._migration;delete parsed._migratedFrom;delete parsed._migratedAt;
+        parsed.settings=parsed.settings||{};
+        parsed.settings.activated=false;
+        delete parsed.settings.licenseKey;
+        delete parsed.settings.licenseExpiry;
+        delete parsed.settings.licenseExpiryMs;
+        delete parsed.settings.licensePlan;
+        delete parsed.settings.licenseMachineId;
+        delete parsed.settings._adminExpiryDate;
+        delete parsed._licenseExpiredMode;
+        DB=parsed;saveDB();
+        toast('Migration data imported! Enter your new license key to activate on this machine.','success');
+        setTimeout(()=>location.reload(),1200);
+      } else {
+        DB=parsed;saveDB();toast('Data restored!','success');setTimeout(()=>location.reload(),800);
+      }
+    }catch{toast('Invalid backup file','error');}
+  };
   reader.readAsText(file);
+}
+function exportMigration(){
+  var data=JSON.parse(JSON.stringify(DB));
+  data._migration=true;
+  data._migratedFrom=getAppMachineId();
+  data._migratedAt=new Date().toISOString();
+  data.settings=data.settings||{};
+  // Strip machine-bound license — new machine needs its own key from Ravi
+  delete data.settings.licenseKey;
+  delete data.settings.activated;
+  delete data.settings.licenseExpiry;
+  delete data.settings.licenseExpiryMs;
+  delete data.settings.licensePlan;
+  delete data.settings.licenseMachineId;
+  delete data.settings._adminExpiryDate;
+  delete data._licenseExpiredMode;
+  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;
+  a.download='shoperpro_migration_'+localDateStr()+'.json';
+  a.click();URL.revokeObjectURL(url);
+  toast('Migration package exported. Copy it to your new machine, import it, then contact Ravi for a new license key.','success');
 }
 function showConfirmReset(){
   showConfirm(
@@ -14118,7 +14395,7 @@ function showRepairOverlay(repairId){
   const html=buildRepairInvoiceHTML(repairId);if(!html)return;
   const overlay=document.createElement('div');
   overlay.id='inv-overlay';
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:5000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);cursor:pointer';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:6000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);cursor:pointer';
   const frame=document.createElement('iframe');
   frame.style.cssText='width:780px;max-width:95vw;height:90vh;border:none;border-radius:12px;background:#fff;cursor:default';
   frame.srcdoc=html;
@@ -14321,7 +14598,7 @@ function showInvoiceOverlay(saleId,saleIds,curIdx){
   if(ex)ex.remove();
   var overlay=document.createElement('div');
   overlay.id='inv-overlay';
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(4,6,22,0.93);z-index:5000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);overflow-y:auto;padding:16px 16px 32px;gap:10px';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(4,6,22,0.93);z-index:6000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);overflow-y:auto;padding:16px 16px 32px;gap:10px';
   function mkBtn(label,bg,fg,click,dis){
     var b=document.createElement('button');
     b.innerHTML=label;
