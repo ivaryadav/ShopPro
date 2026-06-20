@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.30">
-<title>ShopERP Pro v8.30</title>
+<meta name="shoperpro-version" content="v8.31">
+<title>ShopERP Pro v8.31</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -3022,7 +3022,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.30 · Licensed</div>
+        <div class="sb-footer-ver">v8.31 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3266,14 +3266,16 @@ function runSelfTest() {
 // The 16-char alphanumeric keys below are the master activation codes.
 // Format: XXXX-XXXX-XXXX-XXXX  (shown with dashes for readability)
 // ─────────────────────────────────────────────────────────────────
-const _AK = [
-  'SH0P-3RP0-PR0X-2025',   // Standard shop license
-  'M0B1-SH0P-ER9A-FR33',   // Promo / free tier
-  'L1F3-T1M3-0NC3-PR0X',   // Lifetime license
-  'D3M0-K3Y0-0000-0001',   // Demo key
-];
-// Super Admin key - grants access to license management panel
-const _SAK = 'SUPR-ADM1-9999-PR0X';
+// SHA-256 of the normalized super-admin key (no plaintext stored in source)
+const _SAK_H='42b54bd10ca7689012b7c4be0041db32cdf00d5d7722cae55b8295f33c56c1d6';
+async function _checkSAK(key){
+  const clean=key.replace(/[-\s]/g,'').toUpperCase();
+  try{
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(clean));
+    const hex=Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    return hex===_SAK_H;
+  }catch{return false;}
+}
 // ─────────────────────────────────────────────────────────────────
 // LICENSE REGISTRY - Super Admin view of all deployed licenses
 const LICENSE_REGISTRY=[
@@ -3450,9 +3452,9 @@ let DB={
     shopName:'',tagline:'',ownerName:'',
     phone:'',address:'',city:'',
     currency:'₹',googleReviewLink:'',whatsappNum:'',
-    licenseKey:'M0B1-SH0P-ER9A-FR33',licenseExpiry:'2099-12-31',shopLogo:'',gstNo:'',countryCode:'91',
+    licenseKey:'',licenseExpiry:'',shopLogo:'',gstNo:'',countryCode:'91',
     ownerRoleLabel:'Owner',backupFreq:'Weekly',lastBackup:'',nextBackup:'',customCustTypes:[],
-    activated:true,setupDone:false,
+    activated:false,setupDone:false,
     termsNote:'All sales are final. No exchange without bill. Thank you!',
   },
   users:[],
@@ -3923,7 +3925,7 @@ function _postActivationRoute(licKey){
   }
 }
 
-function doActivation(){
+async function doActivation(){
   // Multiple screens share act-input/act-err IDs — pick the visible one
   var _allInp=document.querySelectorAll('#act-input');
   var inp=Array.from(_allInp).find(function(e){return e.offsetParent!==null;})||_allInp[0];
@@ -3952,10 +3954,12 @@ function doActivation(){
     setTimeout(()=>{inp.style.borderColor='';},2000);
     return;
   }
-  // Super admin
-  if(raw===_SAK){
-    DB.settings.licenseKey=raw;DB.settings.licenseExpiry='2099-12-31';
+  // Super admin check — compare hash only, never store or compare plaintext
+  const _isSAK=await _checkSAK(raw);
+  if(_isSAK){
+    DB.settings._superAdmin=true;DB.settings.licenseExpiry='2099-12-31';
     DB.settings.activated=true;DB.settings.setupDone=true;
+    delete DB.settings.licenseKey; // don't persist the plaintext key
     DB.users=[{id:0,name:'Super Admin',role:'superadmin',pin:'000000',pinSet:true}];
     saveDB();startApp(DB.users[0]);return;
   }
@@ -3971,59 +3975,32 @@ function doActivation(){
       DB.settings.activated=true;
       delete DB._licenseExpiredMode;delete DB._licenseExpiredDays;
       window._licenseExpiredMode=false;
-      saveDB();
-      err.textContent='';
-      _postActivationRoute(raw);
-      return;
+      saveDB();err.textContent='';_postActivationRoute(raw);return;
     } else if(r.valid&&r.expired){
       err.style.color='var(--orange)';
       err.textContent='⚠ This key has expired. Contact your software provider to renew.';return;
-    } else {
-      // Crypto engine rejected - try legacy keys as fallback
-      if(_AK.includes(raw)){
-        DB.settings.licenseKey=raw;
-        DB.settings.licenseExpiry=new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0];
-        DB.settings.activated=true;
-        delete DB._licenseExpiredMode;delete DB._licenseExpiredDays;
-        window._licenseExpiredMode=false;
-        saveDB();
-        err.textContent='';
-        _postActivationRoute(raw);
-        return;
-      }
-      err.style.color='var(--red)';
-      err.textContent='✕ Invalid key or wrong machine. Keys are tied to this specific computer.';
-      inp.style.borderColor='var(--red)';
-      setTimeout(function(){inp.style.borderColor='';err.style.color='';},2000);
-      return;
     }
   }
-  // No crypto engine - legacy mode
-  if(_AK.includes(raw)){
-    DB.settings.licenseKey=raw;
-    DB.settings.licenseExpiry=new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0];
-    DB.settings.activated=true;
-    delete DB._licenseExpiredMode;delete DB._licenseExpiredDays;
-    window._licenseExpiredMode=false;
-    saveDB();
-    err.textContent='';
-    _postActivationRoute(raw);
-  } else {
-    err.style.color='var(--red)';
-    err.textContent='✕ Invalid activation key. Contact your software provider.';
-    inp.style.borderColor='var(--red)';
-    setTimeout(()=>{inp.style.borderColor='';err.style.color='';},2000);
-  }
+  err.style.color='var(--red)';
+  err.textContent='✕ Invalid key or wrong machine. Keys are tied to this specific computer.';
+  inp.style.borderColor='var(--red)';
+  setTimeout(function(){inp.style.borderColor='';err.style.color='';},2000);
 }
-function isSuperAdmin(){return DB.settings.licenseKey===_SAK;}
+function isSuperAdmin(){return DB.settings._superAdmin===true;}
 
 // ── Role guard helper ─────────────────────────────────────────────────────────
 // Call at the top of any sensitive function. Returns true if allowed.
 // roles: array of allowed role strings, e.g. ['owner','superadmin']
 function _requireRole(roles, action){
   if(!currentUser){toast('Please log in first','error');return false;}
+  // Session integrity — detects console role tampering (e.g. currentUser.role = 'owner')
+  if(currentUser._sig!==undefined&&_sigOf(currentUser.id,currentUser.role)!==currentUser._sig){
+    toast('Session error — please log in again.','error');
+    setTimeout(doLogout,400);
+    return false;
+  }
   const r=currentUser.role;
-  if(roles.includes(r)||roles.includes('superadmin')&&isSuperAdmin())return true;
+  if(roles.includes(r))return true;
   toast('Access denied: '+(action||'this action')+' requires '+(roles[0]==='owner'?'owner':'manager or owner')+' access','error');
   return false;
 }
@@ -4040,6 +4017,20 @@ function _auditLog(action, detail){
     detail:detail||''
   });
   if(DB.auditLog.length>500)DB.auditLog=DB.auditLog.slice(0,500);
+}
+
+// ── Session integrity ─────────────────────────────────────────────────────────
+// Random key generated once per page load — not a global, lives in this closure.
+// Prevents console `currentUser.role = 'owner'` from passing _requireRole checks.
+const _SESSION_SIG_KEY=(function(){
+  try{return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(function(b){return b.toString(16).padStart(2,'0');}).join('');}
+  catch(e){return (Date.now()*Math.random()).toString(36)+(Math.random()).toString(36);}
+})();
+function _sigOf(id,role){
+  var s=String(id)+'|'+String(role)+'|'+_SESSION_SIG_KEY;
+  var h=2166136261; // FNV-1a 32-bit offset
+  for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(Math.imul(h,16777619))>>>0;}
+  return h.toString(36);
 }
 
 // ============================================================
@@ -4407,9 +4398,7 @@ function doForgotPinVerify(){
 
   // Check 1: matches the stored licence key (dash-normalised) - strongest proof of ownership
   const isOwnKey=storedClean.length>=12 && clean===storedClean;
-  // Check 2: known demo / super-admin hardcoded keys
-  const isHardcoded=_AK.map(function(k){return k.replace(/[-\s]/g,'').toUpperCase();}).includes(clean)
-                  ||clean===(_SAK||'').replace(/[-\s]/g,'').toUpperCase();
+  // (hardcoded universal-bypass keys removed — only own key or crypto engine accepted)
   // Check 3: crypto engine with 365-day lookback - accepts even expired keys (proves past ownership)
   // Also tries stored machine ID in case fingerprint shifted since activation.
   let isCryptoValid=false;
@@ -4424,7 +4413,7 @@ function doForgotPinVerify(){
     }
   }
 
-  if(isOwnKey||isHardcoded||isCryptoValid){
+  if(isOwnKey||isCryptoValid){
     const u=DB.users.find(x=>x.id===_loginUserId);
     if(!u){
       if(err){err.style.color='var(--red)';err.textContent='User not found. Go back and select a user.';}
@@ -4608,10 +4597,12 @@ let currentUser=null;
 function startApp(user){
   setTimeout(_showMigrationNotice,500);
   currentUser=user;
+  currentUser._sig=_sigOf(user.id,user.role);
   applyAppBranding();
   document.getElementById('u-av').textContent=(user.name||'U')[0].toUpperCase();
   document.getElementById('u-name').textContent=user.name;
-  const roleLabel=user.role==='owner'?(DB.settings.ownerRoleLabel||'Administrator'):user.role==='superadmin'?'Super Admin':'Staff Member';
+  const _roleLabelMap={owner:DB.settings.ownerRoleLabel||'Administrator',superadmin:'Super Admin',manager:'Manager',technician:'Technician',staff:'Staff Member'};
+  const roleLabel=_roleLabelMap[user.role]||'Staff Member';
   document.getElementById('u-role').textContent=roleLabel;
   // Reset any nav hiding done by _applyLicenseExpiredLock so renewed users see full nav
   document.querySelectorAll('.nav-item,.nav-section').forEach(el=>el.style.display='');
@@ -6270,7 +6261,18 @@ function bootApp(){
   loadDB();
   showPortalSelect();
 }
-function continueBootApp(){
+// One-time silent migration: if the stored licenseKey is the SAK, convert to _superAdmin flag
+// Uses hash comparison only — no plaintext SAK in source
+async function _migrateLegacySAK(){
+  var s=DB.settings;
+  if(s._superAdmin||!s.licenseKey)return;
+  if(await _checkSAK(s.licenseKey)){
+    s._superAdmin=true;delete s.licenseKey;saveDB();
+  }
+}
+
+async function continueBootApp(){
+  await _migrateLegacySAK();
   initMachineId();
   initTheme();
   document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
@@ -6308,19 +6310,16 @@ function continueBootApp(){
   if(!DB.settings.activated){showScreen('activation-screen');return;}
 
   // 2. Super admin → bypass all checks
-  if(DB.settings.licenseKey===_SAK){
+  if(isSuperAdmin()){
     startApp({id:0,name:'Super Admin',role:'superadmin',pin:'',pinSet:true});return;
   }
 
   // 3. Check license expiry - block from the day AFTER expiry date
   const expiry=DB.settings.licenseExpiry;
-  
+
   // If activated but licenseExpiry is not properly set, treat as invalid
   if(!expiry||expiry===''){
-    if(DB.settings.licenseKey!==_SAK){
-      showExpiredScreen(0);
-      return;
-    }
+    showExpiredScreen(0);return;
   }
   
   if(expiry&&expiry!=='2099-12-31'){
@@ -14129,20 +14128,30 @@ function showBackupReminder(){
 }
 function addStaffModal(){
   openModal('Add Staff Member',`
-  <div class="form-group"><label class="form-label">Staff Name *</label><input class="form-control" id="ns-name" placeholder="e.g. Ravi Kumar" maxlength="40" oninput="personNameInput(this,40)"></div>
+  <div class="form-group"><label class="form-label">Name *</label><input class="form-control" id="ns-name" placeholder="e.g. Priya Sharma" maxlength="40" oninput="personNameInput(this,40)"></div>
+  <div class="form-group" style="margin-top:10px">
+    <label class="form-label">Role</label>
+    <select class="form-control" id="ns-role">
+      <option value="manager">Manager — edit invoices, adjust stock, delete products/jobs</option>
+      <option value="staff" selected>Cashier / Staff — create sales, add customers</option>
+      <option value="technician">Technician — create &amp; manage repair jobs</option>
+    </select>
+  </div>
   <div class="form-group" style="margin-top:10px"><label class="form-label">WhatsApp Number <span style="font-weight:400;color:var(--text3)">(for PIN sharing)</span></label><input class="form-control" id="ns-phone" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit mobile number" oninput="phoneInput(this)"></div>
-  <div class="alert alert-info" style="font-size:12px;margin-top:10px">After adding, you can set their 6-digit PIN from the users list. The phone number is used to share a reset PIN via WhatsApp if they ever forget it.</div>`,
-  `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doAddStaff()">Add Staff</button>`);
+  <div class="alert alert-info" style="font-size:12px;margin-top:10px">Set their 6-digit PIN from the users list after adding. Phone is used to share a reset PIN via WhatsApp.</div>`,
+  `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doAddStaff()">Add</button>`);
 }
 function doAddStaff(){
   if(!_requireRole(['owner','superadmin'],'add staff'))return;
   const name=document.getElementById('ns-name').value.trim();
   const phone=(document.getElementById('ns-phone')?.value||'').replace(/\D/g,'');
   if(!name){toast('Staff name is required','error');return;}
+  const allowed=['manager','staff','technician'];
+  const role=allowed.includes(document.getElementById('ns-role')?.value)?document.getElementById('ns-role').value:'staff';
   const id=DB.nextUserId++;
-  DB.users.push({id,name,role:'staff',pin:'',pinSet:false,phone:phone||''});
-  _auditLog('user-add','name='+name+' phone='+(phone||'-'));
-  saveDB();closeModal();renderUsersList();toast(`${name} added. Set their PIN now.`,'success');
+  DB.users.push({id,name,role,pin:'',pinSet:false,phone:phone||''});
+  _auditLog('user-add','name='+name+' role='+role+' phone='+(phone||'-'));
+  saveDB();closeModal();renderUsersList();toast(name+' added as '+role+'. Set their PIN now.','success');
 }
 function removeStaff(id){
   if(!_requireRole(['owner','superadmin'],'remove staff'))return;
@@ -14177,7 +14186,7 @@ function saveSettings(){
   _auditLog('settings-save','shop='+s.shopName);
   saveDB();applyAppBranding();applyAuthBranding('us');applyAuthBranding('pl');toast('Settings saved','success');
 }
-function renewLicense(){
+async function renewLicense(){
   if(!_requireRole(['owner','superadmin'],'renew license'))return;
   const key=document.getElementById('new-lic').value.trim().toUpperCase();
   const clean=key.replace(/-/g,'');
@@ -14200,13 +14209,14 @@ function renewLicense(){
       toast('This key has expired. Please contact your software provider.','error');return;
     }
   }
-  // Legacy key fallback
-  if([..._AK,_SAK].includes(key)){
-    DB.settings.licenseKey=key;
-    DB.settings.licenseExpiry=key===_SAK?'2099-12-31':new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0];
-    _auditLog('license-change','legacy key used');
-    saveDB();toast('License activated successfully','success');showPage('settings');
-  } else {toast('Invalid license key','error');}
+  // Super-admin key check (hash-only, no plaintext comparison)
+  if(await _checkSAK(key)){
+    DB.settings._superAdmin=true;DB.settings.licenseExpiry='2099-12-31';
+    delete DB.settings.licenseKey;
+    _auditLog('license-change','super-admin key applied');
+    saveDB();toast('License activated successfully','success');showPage('settings');return;
+  }
+  toast('Invalid license key','error');
 }
 
 function copyMachineIdSettings(){
@@ -14247,11 +14257,8 @@ function doImport(input){
       if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)||!parsed.settings){
         toast('Invalid backup file: missing required data','error');return;
       }
-      // ── Strip dangerous/universal hardcoded keys from import ─────
-      var dangerKeys=[..._AK,_SAK];
-      if(parsed.settings&&dangerKeys.includes((parsed.settings.licenseKey||'').trim())){
-        parsed.settings.licenseKey='';parsed.settings.activated=false;
-      }
+      // ── Strip super-admin flag from import (cannot gain _superAdmin via import) ──
+      if(parsed.settings)parsed.settings._superAdmin=false;
       // ── Cap imported user roles — prevent escalation via import ──
       if(Array.isArray(parsed.users)){
         parsed.users=parsed.users.map(function(u){
@@ -14288,9 +14295,10 @@ function doImport(input){
         DB=parsed;saveDB();
         setTimeout(function(){location.reload();},600);
       } else {
-        // Full restore: preserve current machine's activation — cannot get free license via import
+        // Full restore: preserve current machine's activation — cannot gain license via import
         parsed.settings.licenseKey=DB.settings.licenseKey;
         parsed.settings.activated=DB.settings.activated;
+        parsed.settings._superAdmin=DB.settings._superAdmin;
         parsed.settings.licenseExpiry=DB.settings.licenseExpiry;
         parsed.settings.licenseExpiryMs=DB.settings.licenseExpiryMs;
         parsed.settings.licensePlan=DB.settings.licensePlan;
