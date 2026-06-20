@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.28">
-<title>ShopERP Pro v8.28</title>
+<meta name="shoperpro-version" content="v8.29">
+<title>ShopERP Pro v8.29</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -3022,7 +3022,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.28 · Licensed</div>
+        <div class="sb-footer-ver">v8.29 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3381,7 +3381,10 @@ engage:[]
 };
 // Set SHOPERPRO_API_URL to your server URL when deploying online.
 // Leave as empty string '' to run in local/Electron mode (uses localStorage only).
-const SHOPERPRO_API_URL = '';  // e.g. 'https://yourdomain.com'
+var SHOPERPRO_API_URL = '';  // e.g. 'https://yourdomain.com'
+// Auto-detect: if running in a real browser (not Electron), treat as web mode
+// so that all !!SHOPERPRO_API_URL checks work correctly with relative API URLs.
+if(!window.electronAPI && !SHOPERPRO_API_URL) SHOPERPRO_API_URL = window.location.origin;
 
 // ── Cloud Backup Config ───────────────────────────────────────────────────────
 // Optional: set to your server URL to enable auto cloud backup and cross-device restore.
