@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.29">
-<title>ShopERP Pro v8.29</title>
+<meta name="shoperpro-version" content="v8.30">
+<title>ShopERP Pro v8.30</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -3022,7 +3022,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.29 · Licensed</div>
+        <div class="sb-footer-ver">v8.30 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -4017,6 +4017,31 @@ function doActivation(){
 }
 function isSuperAdmin(){return DB.settings.licenseKey===_SAK;}
 
+// ── Role guard helper ─────────────────────────────────────────────────────────
+// Call at the top of any sensitive function. Returns true if allowed.
+// roles: array of allowed role strings, e.g. ['owner','superadmin']
+function _requireRole(roles, action){
+  if(!currentUser){toast('Please log in first','error');return false;}
+  const r=currentUser.role;
+  if(roles.includes(r)||roles.includes('superadmin')&&isSuperAdmin())return true;
+  toast('Access denied: '+(action||'this action')+' requires '+(roles[0]==='owner'?'owner':'manager or owner')+' access','error');
+  return false;
+}
+
+// ── Audit log helper ──────────────────────────────────────────────────────────
+// Writes a tamper-evident audit entry into DB.auditLog (max 500 entries).
+function _auditLog(action, detail){
+  if(!DB.auditLog)DB.auditLog=[];
+  DB.auditLog.unshift({
+    t:Date.now(),
+    by:currentUser?currentUser.name:'system',
+    role:currentUser?currentUser.role:'-',
+    action:action,
+    detail:detail||''
+  });
+  if(DB.auditLog.length>500)DB.auditLog=DB.auditLog.slice(0,500);
+}
+
 // ============================================================
 // BRANDING HELPERS
 // ============================================================
@@ -4988,10 +5013,12 @@ async function _verifyPin(user,entered){
   return false;
 }
 
-const _adminGuard={count:0,lockedUntil:0};
-function _adminLockCheck(errFn){const now=Date.now();if(_adminGuard.lockedUntil>now){const m=Math.ceil((_adminGuard.lockedUntil-now)/60000);errFn('Too many attempts. Try again in '+m+' min.');return false;}return true;}
-function _adminFailure(errFn){_adminGuard.count++;if(_adminGuard.count>=5){_adminGuard.lockedUntil=Date.now()+15*60*1000;_adminGuard.count=0;errFn('5 failed attempts - locked for 15 minutes.');}else{errFn('Incorrect password. '+(5-_adminGuard.count)+' attempt'+(5-_adminGuard.count===1?'':'s')+' remaining.');}}
-function _adminSuccess(){_adminGuard.count=0;sessionStorage.setItem('_sa',Date.now().toString());}
+// Admin brute-force guard — persisted in sessionStorage so page refresh doesn't reset it
+function _agGet(){try{return JSON.parse(sessionStorage.getItem('_ag')||'{"count":0,"lockedUntil":0}');}catch{return{count:0,lockedUntil:0};}}
+function _agSet(g){sessionStorage.setItem('_ag',JSON.stringify(g));}
+function _adminLockCheck(errFn){const g=_agGet();const now=Date.now();if(g.lockedUntil>now){const m=Math.ceil((g.lockedUntil-now)/60000);errFn('Too many attempts. Try again in '+m+' min.');return false;}return true;}
+function _adminFailure(errFn){const g=_agGet();g.count++;if(g.count>=5){g.lockedUntil=Date.now()+15*60*1000;g.count=0;_agSet(g);errFn('5 failed attempts - locked for 15 minutes.');}else{_agSet(g);errFn('Incorrect password. '+(5-g.count)+' attempt'+(5-g.count===1?'':'s')+' remaining.');}}
+function _adminSuccess(){const g={count:0,lockedUntil:0};_agSet(g);sessionStorage.setItem('_sa',Date.now().toString());}
 
 // ── Admin DB (separate from main app DB) ──
 const ADMIN_STORE_KEY = 'shoperpro_admin_v1';
@@ -5794,6 +5821,7 @@ function admResetPin(userId){
   if(!u){toast('User not found','error');return;}
   var _plainPin=newPin;
   _hashPin(_plainPin).then(function(hashed){
+    _auditLog('pin-reset','user='+u.name+' id='+u.id);
     u.pin=hashed;u.pinSet=true;_clearLockState(u.id);saveDB();
   });
   inp.value='';
@@ -8277,6 +8305,7 @@ function adjustStock(id){
   `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doAdjustStock(${id})">Adjust</button>`);
 }
 function doAdjustStock(id){
+  if(!_requireRole(['owner','superadmin','manager'],'adjust stock'))return;
   const p=DB.inventory.find(x=>x.id===id);if(!p)return;
   const qty=parseInt(document.getElementById('adj-qty').value)||0;
   if(qty<=0){toast('Quantity must be at least 1','error');const el=document.getElementById('adj-qty');if(el){el.style.borderColor='var(--red)';el.focus();setTimeout(()=>el.style.borderColor='',2000);}return;}
@@ -8285,9 +8314,11 @@ function doAdjustStock(id){
   if(type==='add')p.stock+=qty;
   else if(type==='remove')p.stock=Math.max(0,p.stock-qty);
   else p.stock=Math.max(0,qty);
+  _auditLog('stock-adjust','product='+p.name+' '+prev+'→'+p.stock+' type='+type);
   saveDB();closeModal();showPage('inventory');toast('Stock updated: '+prev+' → '+p.stock+' '+p.unit,'success');
 }
 function deleteProduct(id){
+  if(!_requireRole(['owner','superadmin','manager'],'delete product'))return;
   const p=DB.inventory.find(x=>x.id===id);if(!p)return;
   showConfirm(
     `Delete "${p.name}"? This cannot be undone.`,
@@ -9029,6 +9060,7 @@ function incSaleItemQty(i){
 // ── EDIT SALE ────────────────────────────────────────────────
 let editSaleOriginalItems=[];
 function editSale(id){
+  if(!_requireRole(['owner','superadmin','manager'],'edit invoice'))return;
   id=parseInt(id)||id;
   const s=DB.sales.find(x=>x.id===id||String(x.id)===String(id));if(!s){toast('Invoice not found','error');return;}
   const cur=DB.settings.currency||'₹';
@@ -9097,6 +9129,7 @@ function editSale(id){
 }
 
 function updateSale(id){
+  if(!_requireRole(['owner','superadmin','manager'],'update invoice'))return;
   const s=DB.sales.find(x=>x.id===id);if(!s)return;
   if(saleItems.length===0){toast('Add at least one item','error');return;}
   const custId=parseInt(document.getElementById('s-cust')?.value)||s.customerId;
@@ -9140,6 +9173,7 @@ function updateSale(id){
   const _savedId=s.id;
   saleItems=nsCart;editSaleOriginalItems=[];
   if(window._paySplits)window._paySplits['es-pay']=[];
+  _auditLog('sale-edit','invoice='+s.invoiceNo+' total='+total);
   saveDB();closeModal();showPage('sales');
   toast('Invoice '+s.invoiceNo+' updated','success');
   setTimeout(function(){
@@ -9540,6 +9574,7 @@ function filterRepairsTable(){
 function filterRepairStatus(s){repairsFilterStatus(s);}
 function statusColor(s){return{Received:'bg-blue',Diagnosing:'bg-purple',Repairing:'bg-orange',Ready:'bg-green',Delivered:'bg-teal'}[s]||'bg-blue';}
 function deleteJob(id){
+  if(!_requireRole(['owner','superadmin','manager'],'delete repair job'))return;
   id=parseInt(id)||id;
   const r=DB.repairs.find(x=>parseInt(x.id)===id);if(!r){toast('Job not found','error');return;}
   showConfirm(
@@ -9550,7 +9585,7 @@ function deleteJob(id){
         const prod=DB.inventory.find(p=>parseInt(p.id)===parseInt(part.productId));
         if(prod)prod.stock+=(+(part.qty)||0);
       });
-      DB.repairs=DB.repairs.filter(x=>x.id!==id);
+      _auditLog('repair-delete','job='+r.jobNo+' device='+r.device);DB.repairs=DB.repairs.filter(x=>x.id!==id);
       saveDB();updateRepairBadge();showPage('repairs');toast('Job deleted','info');
     }
   );
@@ -10252,6 +10287,7 @@ function saveWarrantyEdit(id){
 }
 function setJobStatus(id,status){
   var r=DB.repairs.find(function(x){return x.id===id;});if(!r)return;
+  _auditLog('repair-status','job='+r.jobNo+' status='+r.status+'→'+status);
   r.status=status;
   if(status==='Delivered'&&!r.delivered)r.delivered=localDateStr();
   saveDB();updateRepairBadge();
@@ -10455,6 +10491,7 @@ function saveJobChanges(id){
   var partsTotal=r.partsUsed.reduce(function(a,p){return a+p.qty*p.price;},0);
   r.finalCost=partsTotal+r.labourCharge;
   var cur=DB.settings.currency||'₹';
+  _auditLog('repair-update','job='+r.jobNo+' finalCost='+r.finalCost);
   saveDB();updateRepairBadge();
   toast('Saved - Parts: '+cur+partsTotal.toLocaleString('en-IN')+
         ' + Labour: '+cur+r.labourCharge.toLocaleString('en-IN')+
@@ -13580,6 +13617,7 @@ function pageSettings(){
     <button class="settings-tab" onclick="switchTab('tab-users',this)">👥 Users</button>
     <button class="settings-tab" onclick="switchTab('tab-license',this)">🔑 License</button>
     <button class="settings-tab" onclick="switchTab('tab-data',this)">💾 Data</button>
+    <button class="settings-tab" onclick="switchTab('tab-audit',this);renderAuditLog()">🔍 Audit Log</button>
   </div>
 
   <div id="tab-shop">
@@ -13782,6 +13820,17 @@ function pageSettings(){
         </div>
       </div>
     </div>
+  </div>
+
+  <div id="tab-audit" style="display:none">
+    <div class="card" style="max-width:900px">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Audit Log</span>
+        <button class="btn btn-ghost btn-sm" onclick="if(confirm('Clear all audit log entries?')){DB.auditLog=[];saveDB();renderAuditLog();}">Clear Log</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Last 500 critical actions — user management, settings, import, license changes, stock adjustments, invoice edits.</div>
+      <div id="audit-log-body" style="font-size:12px"></div>
+    </div>
   </div>`;
 }
 function uploadLogo(input){
@@ -13819,8 +13868,34 @@ function showUpiQRModal(){
     </div>`,
     `<button class="btn btn-primary" onclick="closeModal()">Done</button>`);
 }
+function renderAuditLog(){
+  var el=document.getElementById('audit-log-body');if(!el)return;
+  var log=DB.auditLog||[];
+  if(!log.length){el.innerHTML='<div style="color:var(--text3);padding:20px 0;text-align:center">No audit entries yet.</div>';return;}
+  el.innerHTML='<table style="width:100%;border-collapse:collapse">'+
+    '<thead><tr style="border-bottom:1px solid var(--border2);text-align:left">'+
+    '<th style="padding:6px 8px;color:var(--text3);font-weight:600;font-size:11px">Time</th>'+
+    '<th style="padding:6px 8px;color:var(--text3);font-weight:600;font-size:11px">By</th>'+
+    '<th style="padding:6px 8px;color:var(--text3);font-weight:600;font-size:11px">Role</th>'+
+    '<th style="padding:6px 8px;color:var(--text3);font-weight:600;font-size:11px">Action</th>'+
+    '<th style="padding:6px 8px;color:var(--text3);font-weight:600;font-size:11px">Detail</th>'+
+    '</tr></thead><tbody>'+
+    log.map(function(e){
+      var d=new Date(e.t);
+      var ds=d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+      var ac=e.action||'';
+      var col=ac.includes('delete')||ac.includes('reset')||ac.includes('remove')?'var(--red)':ac.includes('export')||ac.includes('import')||ac.includes('license')?'var(--orange)':'var(--text2)';
+      return'<tr style="border-bottom:1px solid var(--bg3)">'+
+        '<td style="padding:5px 8px;color:var(--text3);white-space:nowrap">'+ds+'</td>'+
+        '<td style="padding:5px 8px;font-weight:600">'+escHtml(e.by||'-')+'</td>'+
+        '<td style="padding:5px 8px;color:var(--text3)">'+escHtml(e.role||'-')+'</td>'+
+        '<td style="padding:5px 8px;font-family:var(--mono);font-size:11px;color:'+col+'">'+escHtml(ac)+'</td>'+
+        '<td style="padding:5px 8px;color:var(--text2);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escHtml(e.detail||'')+'">'+escHtml(e.detail||'-')+'</td>'+
+        '</tr>';
+    }).join('')+'</tbody></table>';
+}
 function switchTab(tabId,btn){
-  ['tab-shop','tab-users','tab-license','tab-data'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=id===tabId?'block':'none';});
+  ['tab-shop','tab-users','tab-license','tab-data','tab-audit'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=id===tabId?'block':'none';});
   document.querySelectorAll('.settings-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   if(tabId==='tab-users')renderUsersList();
@@ -14060,21 +14135,25 @@ function addStaffModal(){
   `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doAddStaff()">Add Staff</button>`);
 }
 function doAddStaff(){
+  if(!_requireRole(['owner','superadmin'],'add staff'))return;
   const name=document.getElementById('ns-name').value.trim();
   const phone=(document.getElementById('ns-phone')?.value||'').replace(/\D/g,'');
   if(!name){toast('Staff name is required','error');return;}
   const id=DB.nextUserId++;
   DB.users.push({id,name,role:'staff',pin:'',pinSet:false,phone:phone||''});
+  _auditLog('user-add','name='+name+' phone='+(phone||'-'));
   saveDB();closeModal();renderUsersList();toast(`${name} added. Set their PIN now.`,'success');
 }
 function removeStaff(id){
+  if(!_requireRole(['owner','superadmin'],'remove staff'))return;
   const u=DB.users.find(x=>x.id===id);if(!u)return;
   showConfirm(
     `Remove ${u.name} from the system? Their PIN and access will be deleted.`,
-    function(){DB.users=DB.users.filter(x=>x.id!==id);saveDB();renderUsersList();toast('Staff member removed','info');}
+    function(){_auditLog('user-remove','name='+u.name+' id='+id);DB.users=DB.users.filter(x=>x.id!==id);saveDB();renderUsersList();toast('Staff member removed','info');}
   );
 }
 function saveSettings(){
+  if(!_requireRole(['owner','superadmin'],'save settings'))return;
   const s=DB.settings;
   const phone=(document.getElementById('st-phone')?.value||'').replace(/\D/g,'');
   const wa=(document.getElementById('st-wa')?.value||'').replace(/\D/g,'');
@@ -14095,9 +14174,11 @@ function saveSettings(){
   if(phone)s.phone=phone;
   if(wa)s.whatsappNum=wa;
   if(gst)s.gstNo=gst;
+  _auditLog('settings-save','shop='+s.shopName);
   saveDB();applyAppBranding();applyAuthBranding('us');applyAuthBranding('pl');toast('Settings saved','success');
 }
 function renewLicense(){
+  if(!_requireRole(['owner','superadmin'],'renew license'))return;
   const key=document.getElementById('new-lic').value.trim().toUpperCase();
   const clean=key.replace(/-/g,'');
   if(!clean){toast('Please enter your renewal key','error');return;}
@@ -14113,6 +14194,7 @@ function renewLicense(){
     const r=validateKey(key,machineId);
     if(r.valid&&!r.expired){
       DB.settings.licenseKey=key;DB.settings.licenseExpiry=r.expiryDate;var _renEp=r.expiryDate.split('-');DB.settings.licenseExpiryMs=new Date(parseInt(_renEp[0]),parseInt(_renEp[1])-1,parseInt(_renEp[2]),23,59,59,999).getTime();DB.settings.licensePlan=r.plan;
+      _auditLog('license-change','plan='+r.plan+' expiry='+r.expiryDate);
       saveDB();toast('License activated: '+r.message,'success');showPage('settings');return;
     } else if(r.valid&&r.expired){
       toast('This key has expired. Please contact your software provider.','error');return;
@@ -14122,6 +14204,7 @@ function renewLicense(){
   if([..._AK,_SAK].includes(key)){
     DB.settings.licenseKey=key;
     DB.settings.licenseExpiry=key===_SAK?'2099-12-31':new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0];
+    _auditLog('license-change','legacy key used');
     saveDB();toast('License activated successfully','success');showPage('settings');
   } else {toast('Invalid license key','error');}
 }
@@ -14140,18 +14223,45 @@ function waMachineIdSettings(){
   openWA('',msg);
 }
 function exportData(){
-  const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  if(!_requireRole(['owner','superadmin'],'export backup'))return;
+  var exp=JSON.parse(JSON.stringify(DB));
+  // Strip device unlock passwords stored on repair records (stay in live DB only)
+  if(Array.isArray(exp.repairs))exp.repairs=exp.repairs.map(function(r){var c=Object.assign({},r);delete c.password;return c;});
+  // Strip machine ID so this backup cannot be used for offline PIN brute-force
+  if(exp.settings)delete exp.settings.licenseMachineId;
+  _auditLog('export-backup','records: sales='+(exp.sales||[]).length+' customers='+(exp.customers||[]).length);
+  const blob=new Blob([JSON.stringify(exp,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;
   a.download=`shoperpro_backup_${localDateStr()}.json`;a.click();URL.revokeObjectURL(url);
   toast('Backup exported','success');
 }
 function importData(){document.getElementById('import-file').click();}
 function doImport(input){
+  if(!_requireRole(['owner','superadmin'],'import data'))return;
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=e=>{
     try{
       var parsed=JSON.parse(e.target.result);
+      // ── Basic schema validation ─────────────────────────────────
+      if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)||!parsed.settings){
+        toast('Invalid backup file: missing required data','error');return;
+      }
+      // ── Strip dangerous/universal hardcoded keys from import ─────
+      var dangerKeys=[..._AK,_SAK];
+      if(parsed.settings&&dangerKeys.includes((parsed.settings.licenseKey||'').trim())){
+        parsed.settings.licenseKey='';parsed.settings.activated=false;
+      }
+      // ── Cap imported user roles — prevent escalation via import ──
+      if(Array.isArray(parsed.users)){
+        parsed.users=parsed.users.map(function(u){
+          // Existing user matched by id: preserve their current role
+          var existing=DB.users.find(function(x){return x.id===u.id;});
+          if(existing)return Object.assign({},u,{role:existing.role,pin:existing.pin,pinSet:existing.pinSet});
+          // New user from backup: allow owner/staff but strip superadmin
+          return Object.assign({},u,{role:u.role==='superadmin'?'owner':u.role||'staff'});
+        });
+      }
       if(parsed._migration){
         // Save stats so migration welcome screen can show what was restored
         localStorage.setItem('_sproMigPending',JSON.stringify({
@@ -14174,12 +14284,21 @@ function doImport(input){
         delete parsed.settings.licenseMachineId;
         delete parsed.settings._adminExpiryDate;
         delete parsed._licenseExpiredMode;
+        _auditLog('import-migration','shop='+((parsed.settings&&parsed.settings.shopName)||'?'));
         DB=parsed;saveDB();
         setTimeout(function(){location.reload();},600);
       } else {
-        DB=parsed;saveDB();toast('Data restored!','success');setTimeout(()=>location.reload(),800);
+        // Full restore: preserve current machine's activation — cannot get free license via import
+        parsed.settings.licenseKey=DB.settings.licenseKey;
+        parsed.settings.activated=DB.settings.activated;
+        parsed.settings.licenseExpiry=DB.settings.licenseExpiry;
+        parsed.settings.licenseExpiryMs=DB.settings.licenseExpiryMs;
+        parsed.settings.licensePlan=DB.settings.licensePlan;
+        parsed.settings.licenseMachineId=DB.settings.licenseMachineId;
+        _auditLog('import-restore','shop='+((parsed.settings&&parsed.settings.shopName)||'?'));
+        DB=parsed;saveDB();toast('Data restored!','success');setTimeout(function(){location.reload();},800);
       }
-    }catch{toast('Invalid backup file','error');}
+    }catch(err){toast('Invalid backup file','error');}
   };
   reader.readAsText(file);
 }
@@ -14219,7 +14338,7 @@ function showConfirmReset(){
     null, true
   );
 }
-function resetData(){localStorage.removeItem(DB_KEY);location.reload();}
+function resetData(){if(!_requireRole(['owner','superadmin'],'factory reset'))return;_auditLog('factory-reset','all data erased');saveDB();localStorage.removeItem(DB_KEY);location.reload();}
 
 // ============================================================
 // SUPER ADMIN PANEL
