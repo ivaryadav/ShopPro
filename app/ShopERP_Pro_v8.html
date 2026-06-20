@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.27">
-<title>ShopERP Pro v8.27</title>
+<meta name="shoperpro-version" content="v8.28">
+<title>ShopERP Pro v8.28</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -2607,7 +2607,7 @@ spline-viewer{width:100%;height:100%;border:none}
               </svg>
             </div>
             <div>
-              <div class="pss-item-title">Existing User</div>
+              <div class="pss-item-title" id="pss-existing-title">Existing User</div>
               <div class="pss-item-desc" id="pss-existing-desc">Sign in with mobile number &amp; PIN</div>
             </div>
             <div class="pss-item-arr">&#8250;</div>
@@ -2621,12 +2621,12 @@ spline-viewer{width:100%;height:100%;border:none}
               </svg>
             </div>
             <div>
-              <div class="pss-item-title">New User</div>
+              <div class="pss-item-title" id="pss-new-title">New User</div>
               <div class="pss-item-desc" id="pss-new-desc">First time setup - register your shop</div>
             </div>
             <div class="pss-item-arr">&#8250;</div>
           </div>
-          <div class="pss-item c-admin" onclick="pssOpenPanel('admin')">
+          <div id="pss-item-admin" class="pss-item c-admin" onclick="pssOpenPanel('admin')">
             <div class="pss-item-ico" style="background:rgba(248,113,113,.09);border:1px solid rgba(248,113,113,.2)">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 3L4 6.5V11C4 15.4183 7.58172 19.4 12 21C16.4183 19.4 20 15.4183 20 11V6.5L12 3Z" stroke="#F87171" stroke-width="1.8" stroke-linejoin="round"/>
@@ -2639,7 +2639,7 @@ spline-viewer{width:100%;height:100%;border:none}
             </div>
             <div class="pss-item-arr">&#8250;</div>
           </div>
-          <div class="pss-item c-demo" onclick="pssClickDemo()">
+          <div id="pss-item-demo" class="pss-item c-demo" onclick="pssClickDemo()">
             <div class="pss-item-ico" style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.22)">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="12" cy="12" r="9" stroke="#FBBF24" stroke-width="1.8"/>
@@ -3022,7 +3022,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.27 · Licensed</div>
+        <div class="sb-footer-ver">v8.28 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -5191,8 +5191,21 @@ function showPortalSelect(){
   }
   if(dlMsg)dlMsg.textContent=anyAvail?'Click to download the desktop version for the best offline experience':'Desktop downloads coming soon - contact your admin for the latest installer.';
   var el=document.getElementById('portal-select-screen'); if(el)el.style.display='flex';
-  var desc=document.getElementById('pss-existing-desc');
-  if(desc)desc.textContent=SHOPERPRO_API_URL?'Sign in with your username and password':'Enter your license key to continue';
+  var isWeb=!!SHOPERPRO_API_URL;
+  // Desktop: show only Existing User + New User. Web: show all 4.
+  var admItem=document.getElementById('pss-item-admin');
+  var demoItem=document.getElementById('pss-item-demo');
+  if(admItem)admItem.style.display=isWeb?'flex':'none';
+  if(demoItem)demoItem.style.display=isWeb?'flex':'none';
+  // Labels
+  var existingTitle=document.getElementById('pss-existing-title');
+  var existingDesc=document.getElementById('pss-existing-desc');
+  if(existingTitle)existingTitle.textContent=isWeb?'My Existing Shop':'Existing User';
+  if(existingDesc)existingDesc.textContent=isWeb?'Enter your license key to sign in to your shop':'Already activated — select your account';
+  var newTitle=document.getElementById('pss-new-title');
+  var newDesc=document.getElementById('pss-new-desc');
+  if(newTitle)newTitle.textContent=isWeb?'New Shop':'New User';
+  if(newDesc)newDesc.textContent=isWeb?'Register your shop with a license key from Ravi':'Copy your Machine ID and request a license key from Ravi';
   setTimeout(function(){if(window._hideSplineBadge)window._hideSplineBadge();},800);
 }
 function selectPortal(mode){
