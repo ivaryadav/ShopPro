@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.31">
-<title>ShopERP Pro v8.31</title>
+<meta name="shoperpro-version" content="v8.32">
+<title>ShopERP Pro v8.32</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -2693,7 +2693,8 @@ spline-viewer{width:100%;height:100%;border:none}
         <!-- FIRST TIME SETUP -->
         <div id="pss-panel-register" style="display:none">
           <div class="pss-form-title">New Shop Setup</div>
-          <div class="pss-form-note">A <strong>license key from Ravi</strong> is required. Contact +91 94511 00556 to get one.</div>
+          <div class="pss-form-note">A <strong>license key from Ravi</strong> is required — no Machine ID needed for web setup. Tap below to WhatsApp Ravi with your shop name and ask for a <strong>Web/Hosted key</strong>.</div>
+          <button type="button" class="pss-fbtn" style="background:linear-gradient(135deg,#25D366,#128C7E);margin-bottom:14px" onclick="pssRequestWebKey()">💬 WhatsApp Ravi for a Key</button>
           <div class="pss-field">
             <label class="pss-flabel">License Key *</label>
             <input class="pss-finput" id="pss-reg-key" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19" style="text-transform:uppercase;letter-spacing:2px;text-align:center" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/(.{4})(?=.)/g,'$1-').substring(0,19)">
@@ -3022,7 +3023,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.31 · Licensed</div>
+        <div class="sb-footer-ver">v8.32 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -4939,9 +4940,10 @@ function webLogin(){
         document.getElementById('web-login-screen').style.display='none';
         var ind=document.getElementById('autosave-ind');
         if(ind)ind.title='Synced to cloud · '+res.shopName;
+        _syncLicenseFromServer(res);
         // Check tenant status from server (works across all locations in real-time)
         return _api.get('/api/license/status').then(function(st){
-          if(st.status==='paused'||st.status==='terminated'){
+          if(st.status==='paused'||st.status==='terminated'||st.status==='expired'){
             showSuspendedScreen(st.status,st.reason||'');
             return;
           }
@@ -5325,6 +5327,8 @@ function admPageDashboard(){
 // ── Generate Key Page ──
 var _admSelectedPlan='monthly';
 var _admRenewId=null; // set when renewing existing customer
+var _admLicType='desktop'; // 'desktop' = machine-locked, 'web' = hosted, no machine ID
+var WEB_LICENSE_MID='WEBHOSTEDNOMID00'; // fixed 16-char placeholder used when generating web/hosted keys
 function admPageGenerate(){
   var cur=ADMIN_DB.settings.currency||'₹';
   return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:960px">
@@ -5338,12 +5342,20 @@ function admPageGenerate(){
       <div class="form-group"><label class="form-label">City</label><input class="form-control" id="ag-city" placeholder="e.g. Mehsana, Gujarat"></div>
       <div class="form-group"><label class="form-label">Notes</label><input class="form-control" id="ag-notes" placeholder="Optional"></div>
       <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
-      <div class="card-title">Machine ID *</div>
-      <div class="alert alert-info" style="margin-bottom:12px;font-size:11px">Ask customer to share their Machine ID from Settings → License tab.</div>
-      <div class="form-group"><label class="form-label">Machine ID</label>
-        <div style="display:flex;gap:8px"><input class="form-control" id="ag-machine" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform:uppercase;font-family:var(--mono)" maxlength="19" oninput="admMachineInput(this)">
-        <button class="btn btn-ghost" onclick="navigator.clipboard.readText().then(t=>{document.getElementById('ag-machine').value=t.trim().toUpperCase();})">📋</button></div>
+      <div class="card-title">License Type *</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button type="button" class="btn ${_admLicType==='desktop'?'btn-primary':'btn-ghost'}" id="ag-lictype-desktop" style="flex:1;justify-content:center;font-size:12px" onclick="admSetLicType('desktop')">🖥️ Desktop (Machine-Locked)</button>
+        <button type="button" class="btn ${_admLicType==='web'?'btn-primary':'btn-ghost'}" id="ag-lictype-web" style="flex:1;justify-content:center;font-size:12px" onclick="admSetLicType('web')">🌐 Web / Hosted (No Machine ID)</button>
       </div>
+      <div id="ag-machine-wrap" style="${_admLicType==='web'?'display:none':''}">
+        <div class="card-title">Machine ID *</div>
+        <div class="alert alert-info" style="margin-bottom:12px;font-size:11px">Ask customer to share their Machine ID from Settings → License tab.</div>
+        <div class="form-group"><label class="form-label">Machine ID</label>
+          <div style="display:flex;gap:8px"><input class="form-control" id="ag-machine" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform:uppercase;font-family:var(--mono)" maxlength="19" oninput="admMachineInput(this)">
+          <button class="btn btn-ghost" onclick="navigator.clipboard.readText().then(t=>{document.getElementById('ag-machine').value=t.trim().toUpperCase();})">📋</button></div>
+        </div>
+      </div>
+      <div id="ag-web-note" class="alert alert-info" style="font-size:11px;${_admLicType==='web'?'':'display:none'}">This key is not tied to any device. The customer enters it on the web "New Shop Setup" screen — no Machine ID needed.</div>
     </div>
     <div>
       <div class="card" style="margin-bottom:16px">
@@ -5362,22 +5374,48 @@ function admPageGenerate(){
   </div>`;
 }
 function admInitGenerate(){ admUpdatePlanInfo(); }
+function admSetLicType(type){
+  _admLicType=type;
+  var dBtn=document.getElementById('ag-lictype-desktop'),wBtn=document.getElementById('ag-lictype-web');
+  if(dBtn)dBtn.className='btn '+(type==='desktop'?'btn-primary':'btn-ghost');
+  if(wBtn)wBtn.className='btn '+(type==='web'?'btn-primary':'btn-ghost');
+  var mWrap=document.getElementById('ag-machine-wrap'),wNote=document.getElementById('ag-web-note');
+  if(mWrap)mWrap.style.display=type==='web'?'none':'';
+  if(wNote)wNote.style.display=type==='web'?'':'none';
+}
 function admMachineInput(el){ let v=el.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,16); el.value=v.match(/.{1,4}/g)?.join('-')||v; }
 function admSelectPlan(plan){ _admSelectedPlan=plan; document.querySelectorAll('.adm-plan-card').forEach(c=>c.classList.remove('selected')); var el=document.getElementById('aplan-'+plan); if(el)el.classList.add('selected'); admUpdatePlanInfo(); }
 function admUpdatePlanInfo(){ var info=document.getElementById('adm-plan-info'); if(!info)return; var p=PLANS[_admSelectedPlan]; if(!p)return; var isTest=!!p.testOnly; var expStr=isTest?'⚠ Test plan - expires '+new Date(Date.now()+p.days*86400000).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):_admSelectedPlan==='lifetime'?'✓ Lifetime - never expires':'✓ Valid for '+p.days+' days from today (expires '+new Date(Date.now()+p.days*86400000).toLocaleDateString('en-IN')+')'; info.textContent=expStr; info.style.color=isTest?'var(--orange)':'var(--text3)'; }
-function admDoGenerate(){
+async function admDoGenerate(){
   var shopName=(document.getElementById('ag-shop')||{value:''}).value.trim();
   var ownerName=(document.getElementById('ag-owner')||{value:''}).value.trim();
   var phone=(document.getElementById('ag-phone')||{value:''}).value.replace(/\D/g,'');
   var city=(document.getElementById('ag-city')||{value:''}).value.trim();
   var notes=(document.getElementById('ag-notes')||{value:''}).value.trim();
-  var machineId=(document.getElementById('ag-machine')||{value:''}).value.trim().toUpperCase();
+  var isWebLic=(_admLicType==='web');
+  var machineId=isWebLic?WEB_LICENSE_MID:(document.getElementById('ag-machine')||{value:''}).value.trim().toUpperCase();
   if(!shopName||!ownerName){toast('Shop name and owner name are required','error');return;}
-  var midClean=machineId.replace(/-/g,''); if(midClean.length!==16){toast('Machine ID must be 16 characters','error');return;}
+  if(!isWebLic){ var midClean=machineId.replace(/-/g,''); if(midClean.length!==16){toast('Machine ID must be 16 characters','error');return;} }
+  var genBtn=document.querySelector('[onclick="admDoGenerate()"]');
+  if(genBtn){genBtn.disabled=true;genBtn.textContent='Generating...';}
   try{
     var isRenew=(_admRenewId!==null);
     var custIdForKey=isRenew?_admRenewId:ADMIN_DB.nextId;
-    var key=generateKey(machineId,_admSelectedPlan,'CUST'+custIdForKey);
+    var key;
+    if(typeof generateKey==='function'){
+      // Electron / offline console — crypto engine runs locally
+      key=generateKey(machineId,_admSelectedPlan,'CUST'+custIdForKey);
+    } else {
+      // Web console — secret lives only on the server; ask it to mint the key
+      var genRes=await fetch(SHOPERPRO_API_URL+'/api/admin/generate-key',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-Admin-Key':ADMIN_PWD_HASH},
+        body:JSON.stringify({plan:_admSelectedPlan,machineId:isWebLic?undefined:machineId})
+      }).then(function(r){return r.json();});
+      if(genRes.error){ toast(genRes.error,'error'); if(genBtn){genBtn.disabled=false;genBtn.textContent='⚡ Generate License Key';} return; }
+      key=genRes.key;
+    }
+    var machineIdForRecord=isWebLic?'WEB / HOSTED (no device lock)':machineId;
     var plan=PLANS[_admSelectedPlan];
     var expiryDate=new Date(); expiryDate.setDate(expiryDate.getDate()+plan.days);
     var expiryStr=_admSelectedPlan==='lifetime'?'lifetime':expiryDate.toISOString().split('T')[0];
@@ -5386,7 +5424,7 @@ function admDoGenerate(){
       var existing=ADMIN_DB.customers.find(x=>x.id===_admRenewId);
       if(existing){
         existing.shopName=shopName; existing.ownerName=ownerName; existing.phone=phone;
-        existing.city=city; existing.notes=notes; existing.machineId=machineId;
+        existing.city=city; existing.notes=notes; existing.machineId=machineIdForRecord;
         existing.plan=_admSelectedPlan; existing.key=key; existing.status='active';
         existing.expiryDate=expiryStr;
         existing.revenue=(existing.revenue||0)+(ADMIN_DB.settings.plans[_admSelectedPlan]||plan.price);
@@ -5394,7 +5432,7 @@ function admDoGenerate(){
       }
       _admRenewId=null;
     } else {
-      var customer={id:ADMIN_DB.nextId++,shopName,ownerName,phone,city,notes,machineId,plan:_admSelectedPlan,key,status:'active',issuedDate:new Date().toISOString().split('T')[0],expiryDate:expiryStr,revenue:ADMIN_DB.settings.plans[_admSelectedPlan]||plan.price};
+      var customer={id:ADMIN_DB.nextId++,shopName,ownerName,phone,city,notes,machineId:machineIdForRecord,plan:_admSelectedPlan,key,status:'active',issuedDate:new Date().toISOString().split('T')[0],expiryDate:expiryStr,revenue:ADMIN_DB.settings.plans[_admSelectedPlan]||plan.price};
       ADMIN_DB.customers.push(customer);
       displayId=customer.id;
     }
@@ -5403,6 +5441,7 @@ function admDoGenerate(){
     if(out)out.innerHTML=`<div class="adm-key-display"><div class="adm-key-text">${key}</div><div style="font-size:11px;color:var(--text3);margin-top:8px">${plan.label} · ${_admSelectedPlan==='lifetime'?'Never expires':'Expires '+expiryDate.toLocaleDateString('en-IN')}</div></div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-ghost" onclick="navigator.clipboard.writeText('${key}').then(()=>toast('Copied!','success'))" style="flex:1;justify-content:center">📋 Copy Key</button><button class="btn btn-wa" onclick="admSendWA('${key}','${esc(shopName)}','${esc(ownerName)}','${phone}','${_admSelectedPlan}')" style="flex:1;justify-content:center">💬 WhatsApp</button></div><div class="alert alert-success" style="margin-top:12px;font-size:11px">✓ ${isRenew?'Renewed':'Key saved'}. Customer ID: #${displayId}</div>`;
     toast((isRenew?'Renewed ':'Key generated for ')+shopName,'success');
   }catch(e){ toast('Failed: '+e.message,'error'); }
+  finally{ if(genBtn){genBtn.disabled=false;genBtn.textContent='⚡ Generate License Key';} }
 }
 function admSendWA(key,shop,owner,phone,plan){
   var cc=ADMIN_DB.settings.countryCode||'91';
@@ -5416,17 +5455,27 @@ function admSendWA(key,shop,owner,phone,plan){
 function admPageValidate(){
   return`<div style="max-width:600px"><div class="card" style="margin-bottom:16px"><div class="card-title">Validate License Key</div>
     <div class="form-group"><label class="form-label">License Key</label><div style="display:flex;gap:8px"><input class="form-control" id="av-key" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform:uppercase;font-family:var(--mono);flex:1" maxlength="19"><button class="btn btn-ghost" onclick="navigator.clipboard.readText().then(t=>{document.getElementById('av-key').value=t.trim().toUpperCase();})">📋</button></div></div>
-    <div class="form-group"><label class="form-label">Machine ID</label><div style="display:flex;gap:8px"><input class="form-control" id="av-machine" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform:uppercase;font-family:var(--mono);flex:1" maxlength="19" oninput="admMachineInput(this)"><button class="btn btn-ghost" onclick="navigator.clipboard.readText().then(t=>{document.getElementById('av-machine').value=t.trim().toUpperCase();})">📋</button></div></div>
+    <div class="form-group"><label class="form-label">Machine ID <span style="color:var(--text3);font-weight:400">(leave blank for a Web/Hosted key)</span></label><div style="display:flex;gap:8px"><input class="form-control" id="av-machine" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform:uppercase;font-family:var(--mono);flex:1" maxlength="19" oninput="admMachineInput(this)"><button class="btn btn-ghost" onclick="navigator.clipboard.readText().then(t=>{document.getElementById('av-machine').value=t.trim().toUpperCase();})">📋</button></div></div>
     <button class="btn btn-primary" onclick="admDoValidate()" style="width:100%;justify-content:center;padding:10px">🔍 Validate Key</button></div>
     <div id="adm-validate-result"></div></div>`;
 }
-function admDoValidate(){
+async function admDoValidate(){
   var key=(document.getElementById('av-key')||{value:''}).value.trim();
   var mid=(document.getElementById('av-machine')||{value:''}).value.trim();
   var result=document.getElementById('adm-validate-result'); if(!result)return;
-  var r=validateKey(key,mid);
-  if(r.valid&&!r.expired) result.innerHTML='<div class="alert alert-success"><strong>✓ Valid License</strong><br>Plan: '+r.planLabel+' · Expires: '+r.expiryDate+' · '+r.message+'</div>';
-  else if(r.valid&&r.expired) result.innerHTML='<div class="alert alert-warn"><strong>⚠ Expired</strong><br>'+r.message+'</div>';
+  var r;
+  if(typeof validateKey==='function'){
+    r=validateKey(key,mid||WEB_LICENSE_MID);
+  } else {
+    result.innerHTML='<div style="padding:12px;color:var(--text3);font-size:12px">Checking…</div>';
+    r=await fetch(SHOPERPRO_API_URL+'/api/admin/validate-key',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Admin-Key':ADMIN_PWD_HASH},
+      body:JSON.stringify({key:key,machineId:mid||undefined})
+    }).then(function(resp){return resp.json();}).catch(function(){return {valid:false,message:'Connection error. Check your network.'};});
+  }
+  if(r.valid&&!r.expired) result.innerHTML='<div class="alert alert-success"><strong>✓ Valid License</strong><br>Plan: '+r.planLabel+' · Expires: '+r.expiryDate+' · '+(r.message||(r.daysLeft+' days remaining'))+'</div>';
+  else if(r.valid&&r.expired) result.innerHTML='<div class="alert alert-warn"><strong>⚠ Expired</strong><br>'+(r.message||('Expired on '+r.expiryDate))+'</div>';
   else result.innerHTML='<div class="alert alert-danger"><strong>✕ Invalid Key</strong><br>'+r.message+'</div>';
 }
 
@@ -6009,8 +6058,8 @@ function showSuspendedScreen(status, reason){
   var msgEl=document.getElementById('sus-message');
   var midEl=document.getElementById('sus-machine-id');
   var contactEl=document.getElementById('sus-contact-info');
-  if(titleEl)titleEl.textContent=status==='terminated'?'Account Terminated':'Account Paused';
-  if(msgEl)msgEl.innerHTML=(reason?'Reason: <strong>'+escHtml(reason)+'</strong><br><br>':'')+(status==='terminated'?'Your ShopERP Pro account has been terminated.':'Your ShopERP Pro account is temporarily paused.')+'<br>Please contact support to resolve this.';
+  if(titleEl)titleEl.textContent=status==='terminated'?'Account Terminated':status==='expired'?'License Expired':'Account Paused';
+  if(msgEl)msgEl.innerHTML=(reason?'Reason: <strong>'+escHtml(reason)+'</strong><br><br>':'')+(status==='terminated'?'Your ShopERP Pro account has been terminated.':status==='expired'?'Your ShopERP Pro license has expired.':'Your ShopERP Pro account is temporarily paused.')+'<br>Please contact support to '+(status==='expired'?'renew.':'resolve this.');
   if(midEl)midEl.textContent=mid;
   if(contactEl){
     var sp=ADMIN_DB.settings.devPhone||ADMIN_DB.settings.supportPhone||'';
@@ -6076,6 +6125,24 @@ function pssShowErr(msg){
   var err=document.getElementById('pss-inline-err');
   if(err){ err.textContent=msg; err.style.display='block'; }
 }
+// Server is authoritative for web/hosted licensing — always overwrite local
+// settings with what login/register/renew just returned, so Settings and
+// expiry warnings reflect reality instead of a stale/default local value.
+function _syncLicenseFromServer(res){
+  if(!res)return;
+  DB.settings.licenseExpiry=res.licenseExpiry||'2099-12-31';
+  if(res.licenseExpiry){
+    var _ep=res.licenseExpiry.split('-');
+    DB.settings.licenseExpiryMs=new Date(parseInt(_ep[0]),parseInt(_ep[1])-1,parseInt(_ep[2]),23,59,59,999).getTime();
+  } else {
+    delete DB.settings.licenseExpiryMs;
+  }
+  if(res.licensePlan)DB.settings.licensePlan=res.licensePlan;
+  DB.settings.activated=true;
+  delete DB._licenseExpiredMode;delete DB._licenseExpiredDays;
+  window._licenseExpiredMode=false;
+  saveDB();
+}
 function pssLogin(){
   var mobile=document.getElementById('pss-mobile').value.replace(/\D/g,'');
   var pin=document.getElementById('pss-pin').value.trim();
@@ -6100,10 +6167,18 @@ function pssLogin(){
     return _api.get('/api/data').then(function(d){
       if(d.data&&Object.keys(d.data).length>0){ DB=d.data; localStorage.setItem(DB_KEY,JSON.stringify(DB)); }
       migrateDB();
+      _syncLicenseFromServer(res);
       document.getElementById('portal-select-screen').style.display='none';
       continueBootApp();
     });
   }).catch(function(){ pssShowErr('Connection error. Check your network.'); btn.disabled=false; btn.textContent='Sign In →'; });
+}
+function pssRequestWebKey(){
+  var shop=(document.getElementById('pss-reg-shop')||{}).value||'';
+  var mobile=(document.getElementById('pss-reg-mobile')||{}).value||'';
+  var msg='Hello Ravi! 🙏\nI need a *Web/Hosted* license key for ShopERP Pro.\n\nShop name: '+(shop.trim()||'[add yours here]')+
+    (mobile.trim()?'\nMobile: '+mobile.trim():'')+'\n\n_Sent from ShopERP Pro web setup — no Machine ID needed._';
+  window.open('https://wa.me/919451100556?text='+encodeURIComponent(msg),'_blank');
 }
 function pssRegister(){
   var licKey=(document.getElementById('pss-reg-key')||{}).value||'';licKey=licKey.trim().toUpperCase();
@@ -6123,6 +6198,7 @@ function pssRegister(){
     _api.setToken(res.token);
     localStorage.setItem('shoperpro_last_shop',res.shopName||shop);
     localStorage.setItem('shoperpro_last_user',res.username||name||mobile);
+    _syncLicenseFromServer(res);
     document.getElementById('portal-select-screen').style.display='none';
     continueBootApp();
   }).catch(function(){ pssShowErr('Connection error. Check your network.'); btn.disabled=false; btn.textContent='Register & Start →'; });
@@ -6200,6 +6276,7 @@ function pssLicenseLogin(){
     return _api.get('/api/data').then(function(d){
       if(d.data&&Object.keys(d.data).length>0){DB=d.data;localStorage.setItem(DB_KEY,JSON.stringify(DB));}
       migrateDB();
+      _syncLicenseFromServer(res);
       document.getElementById('portal-select-screen').style.display='none';
       continueBootApp();
     });
@@ -13731,6 +13808,11 @@ function pageSettings(){
           <div>Plan: <strong style="color:var(--accent)">${s.licensePlan?s.licensePlan.charAt(0).toUpperCase()+s.licensePlan.slice(1):'Licensed'}</strong></div>
           <div>Valid till: <strong>${s.licenseExpiry==='2099-12-31'?'Lifetime ∞':(s.licenseExpiry||'-')}</strong></div>
         </div>
+        ${s.licenseKey?`<div style="background:var(--bg3);border:2px dashed var(--border2);border-radius:var(--r);padding:14px;text-align:center;margin-bottom:12px">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Your License Key</div>
+          <div id="current-lic-key-value" style="font-family:var(--mono);font-size:16px;font-weight:800;color:var(--accent);letter-spacing:2px;user-select:all;word-break:break-all">${escHtml(s.licenseKey)}</div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="copyCurrentLicenseKey()">📋 Copy</button>
+        </div>`:''}
         <hr class="divider">
         <div class="card-title" style="margin-top:4px">Activate / Renew Key</div>
         <div class="form-group">
@@ -14197,6 +14279,15 @@ async function renewLicense(){
     if(inp){inp.style.borderColor='var(--red)';setTimeout(()=>{inp.style.borderColor='';},2000);}
     return;
   }
+  // Web/hosted mode — the server is authoritative for expiry, so it decodes
+  // and applies the key itself rather than trusting anything computed here.
+  if(SHOPERPRO_API_URL){
+    const res=await _api.post('/api/auth/renew-license',{licenseKey:key}).catch(function(){return {error:'Connection error. Check your network.'};});
+    if(res.error){ toast(res.error,'error'); return; }
+    _syncLicenseFromServer(res);
+    _auditLog('license-change','plan='+res.licensePlan+' expiry='+(res.licenseExpiry||'lifetime'));
+    toast(res.message||'License renewed','success');showPage('settings');return;
+  }
   const machineId=getAppMachineId();
   // Try crypto validation first
   if(typeof validateKey==='function'){
@@ -14223,6 +14314,13 @@ function copyMachineIdSettings(){
   const id=getAppMachineId();
   navigator.clipboard.writeText(id)
     .then(()=>toast('Machine ID copied!','success'))
+    .catch(()=>toast('Copy failed - select and copy manually','error'));
+}
+function copyCurrentLicenseKey(){
+  const key=DB.settings.licenseKey||'';
+  if(!key)return;
+  navigator.clipboard.writeText(key)
+    .then(()=>toast('License key copied!','success'))
     .catch(()=>toast('Copy failed - select and copy manually','error'));
 }
 

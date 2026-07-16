@@ -18,6 +18,7 @@ const cors     = require('cors');
 const path     = require('path');
 const fs       = require('fs');
 const os       = require('os');
+const license  = require('./license');
 
 // Load .env file if present (no dotenv dependency needed)
 const envFile = path.join(__dirname, '.env');
@@ -129,12 +130,18 @@ function requireAuth(req, res, next) {
   }
 }
 
-// Blocks API calls if tenant is paused or terminated
+// Blocks API calls if tenant is paused, terminated, or license expired
 function requireActive(req, res, next) {
-  const t = db.prepare('SELECT status, suspend_reason FROM tenants WHERE id = ?').get(req.user.tenantId);
+  const t = db.prepare('SELECT status, suspend_reason, license_expiry, license_plan FROM tenants WHERE id = ?').get(req.user.tenantId);
   if (!t) return res.status(404).json({ error: 'Tenant not found' });
   if (t.status === 'paused')     return res.status(403).json({ error: 'Account paused',     status: 'paused',      reason: t.suspend_reason || '' });
   if (t.status === 'terminated') return res.status(403).json({ error: 'Account terminated', status: 'terminated',  reason: t.suspend_reason || '' });
+  if (t.license_plan !== 'lifetime' && t.license_expiry) {
+    const expMs = new Date(t.license_expiry).getTime();
+    if (Date.now() > expMs) {
+      return res.status(403).json({ error: 'License expired on ' + t.license_expiry + '. Contact Ravi (+91 94511 00556) to renew.', status: 'expired', expiry: t.license_expiry });
+    }
+  }
   next();
 }
 
@@ -195,7 +202,7 @@ app.use(function(req, res, next) {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none';"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://prod.spline.design https://app.spline.design; media-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src 'self' https://prod.spline.design https://unpkg.com; worker-src 'self' blob:; frame-ancestors 'none';"
   );
   next();
 });
@@ -250,7 +257,7 @@ app.post('/api/auth/verify-license', rateLimit(20, 5 * 60 * 1000), (req, res) =>
 
 // ── POST /api/auth/register — requires a valid license key issued by admin ────
 app.post('/api/auth/register', rateLimit(5, 10 * 60 * 1000), (req, res) => {
-  const { shopName, ownerName, mobile, pin, licenseKey, licenseExpiry, licensePlan } = req.body;
+  const { shopName, ownerName, mobile, pin, licenseKey } = req.body;
   const mob = (mobile || '').replace(/\D/g, '');
   if (!licenseKey) {
     return res.status(400).json({ error: 'A license key from Ravi is required to register. Contact +91 94511 00556.' });
@@ -267,6 +274,15 @@ app.post('/api/auth/register', rateLimit(5, 10 * 60 * 1000), (req, res) => {
   if (!/^\d{4,6}$/.test(pin)) {
     return res.status(400).json({ error: 'PIN must be 4 to 6 digits' });
   }
+  // Decode the key ourselves — never trust plan/expiry from the client.
+  // Web/hosted keys are all generated against the fixed WEB_LICENSE_MID.
+  const decoded = license.decodeKey(licenseKey, license.WEB_LICENSE_MID);
+  if (!decoded.valid) {
+    return res.status(400).json({ error: 'This license key was not recognized. Double-check it or contact Ravi (+91 94511 00556).' });
+  }
+  if (decoded.expired) {
+    return res.status(400).json({ error: 'This license key has already expired. Contact Ravi (+91 94511 00556) for a new one.' });
+  }
   const keyHash = require('crypto').createHash('sha256').update(licenseKey.toUpperCase()).digest('hex');
   try {
     // Check if this license key is already registered to a shop
@@ -281,7 +297,7 @@ app.post('/api/auth/register', rateLimit(5, 10 * 60 * 1000), (req, res) => {
     const hash   = bcrypt.hashSync(pin, 10);
     const tenant = db.prepare(
       'INSERT INTO tenants (shop_name, license_key_hash, license_expiry, license_plan) VALUES (?,?,?,?) RETURNING *'
-    ).get(shopName, keyHash, licenseExpiry || null, licensePlan || 'monthly');
+    ).get(shopName, keyHash, decoded.plan === 'lifetime' ? null : decoded.expiryDate, decoded.plan);
     const user = db.prepare(
       'INSERT INTO users (tenant_id, username, display_name, mobile, password_hash, role) VALUES (?,?,?,?,?,?) RETURNING *'
     ).get(tenant.id, mob, ownerName || 'Owner', mob, hash, 'owner');
@@ -372,10 +388,48 @@ app.post('/api/auth/add-staff', requireAuth, (req, res) => {
   }
 });
 
+// ── POST /api/auth/renew-license — apply a new key to this tenant ───────────
+app.post('/api/auth/renew-license', requireAuth, rateLimit(10, 10 * 60 * 1000), (req, res) => {
+  if (req.user.role !== 'owner') {
+    return res.status(403).json({ error: 'Only the owner can renew the license' });
+  }
+  const { licenseKey } = req.body;
+  if (!licenseKey) return res.status(400).json({ error: 'License key required' });
+  if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(licenseKey)) {
+    return res.status(400).json({ error: 'Invalid license key format. Keys look like XXXX-XXXX-XXXX-XXXX.' });
+  }
+  const decoded = license.decodeKey(licenseKey, license.WEB_LICENSE_MID);
+  if (!decoded.valid) {
+    return res.status(400).json({ error: 'This license key was not recognized. Double-check it or contact Ravi (+91 94511 00556).' });
+  }
+  if (decoded.expired) {
+    return res.status(400).json({ error: 'This license key has already expired. Contact Ravi (+91 94511 00556) for a new one.' });
+  }
+  const keyHash = require('crypto').createHash('sha256').update(licenseKey.toUpperCase()).digest('hex');
+  try {
+    const existing = db.prepare('SELECT id, shop_name FROM tenants WHERE license_key_hash = ? AND id != ?').get(keyHash, req.user.tenantId);
+    if (existing) {
+      return res.status(409).json({ error: 'This license key is already registered to ' + existing.shop_name + '.' });
+    }
+    const newExpiry = decoded.plan === 'lifetime' ? null : decoded.expiryDate;
+    db.prepare('UPDATE tenants SET license_key_hash = ?, license_expiry = ?, license_plan = ? WHERE id = ?')
+      .run(keyHash, newExpiry, decoded.plan, req.user.tenantId);
+    console.log(`[License] Tenant ${req.user.tenantId} renewed → ${decoded.plan} (expires ${newExpiry || 'never'})`);
+    res.json({ ok: true, licenseExpiry: newExpiry, licensePlan: decoded.plan, message: 'License renewed: ' + decoded.planLabel + (newExpiry ? ' — valid until ' + newExpiry : ' — never expires') });
+  } catch (e) {
+    console.error('Renew license error:', e);
+    res.status(500).json({ error: 'Renewal failed' });
+  }
+});
+
 // ── GET /api/license/status — called on app boot to check pause/terminate ────
 app.get('/api/license/status', requireAuth, (req, res) => {
-  const t = db.prepare('SELECT status, suspend_reason FROM tenants WHERE id = ?').get(req.user.tenantId);
-  res.json({ status: t?.status || 'active', reason: t?.suspend_reason || '' });
+  const t = db.prepare('SELECT status, suspend_reason, license_expiry, license_plan FROM tenants WHERE id = ?').get(req.user.tenantId);
+  if (!t) return res.status(404).json({ error: 'Tenant not found' });
+  if (t.license_plan !== 'lifetime' && t.license_expiry && Date.now() > new Date(t.license_expiry).getTime()) {
+    return res.json({ status: 'expired', reason: '', licenseExpiry: t.license_expiry, licensePlan: t.license_plan });
+  }
+  res.json({ status: t.status || 'active', reason: t.suspend_reason || '', licenseExpiry: t.license_expiry, licensePlan: t.license_plan });
 });
 
 // ── POST /api/admin/tenant/status — pause / terminate / restore (remote) ─────
@@ -388,6 +442,30 @@ app.post('/api/admin/tenant/status', requireAdminKey, rateLimit(30, 60 * 1000), 
   db.prepare('UPDATE tenants SET status = ?, suspend_reason = ? WHERE id = ?').run(status, reason, t.id);
   console.log(`[Admin] ${t.shop_name} → ${status}${reason ? ' ('+reason+')' : ''}`);
   res.json({ ok: true, shopName: t.shop_name, status, reason });
+});
+
+// ── POST /api/admin/generate-key — mint a license key (Super Admin only) ─────
+// The crypto secret lives only here on the server; browsers never see it.
+app.post('/api/admin/generate-key', requireAdminKey, rateLimit(60, 60 * 1000), (req, res) => {
+  const { plan, machineId } = req.body;
+  if (!plan || !license.PLANS[plan]) return res.status(400).json({ error: 'Unknown or missing plan' });
+  const mid = machineId ? machineId.replace(/-/g, '').toUpperCase() : license.WEB_LICENSE_MID;
+  if (machineId && mid.length !== 16) return res.status(400).json({ error: 'Machine ID must be 16 characters' });
+  try {
+    const key = license.generateKey(mid, plan);
+    const decoded = license.decodeKey(key, mid);
+    res.json({ key, plan, planLabel: license.PLANS[plan].label, expiryDate: decoded.expiryDate, hosted: !machineId });
+  } catch (e) {
+    res.status(500).json({ error: 'Key generation failed: ' + e.message });
+  }
+});
+
+// ── POST /api/admin/validate-key — decode/inspect a key (Super Admin only) ───
+app.post('/api/admin/validate-key', requireAdminKey, rateLimit(60, 60 * 1000), (req, res) => {
+  const { key, machineId } = req.body;
+  if (!key) return res.status(400).json({ error: 'key required' });
+  const mid = machineId ? machineId.replace(/-/g, '').toUpperCase() : license.WEB_LICENSE_MID;
+  res.json(license.decodeKey(key, mid));
 });
 
 // ── GET /api/admin/tenants — list all tenants with status ────────────────────
@@ -543,13 +621,147 @@ app.delete('/api/cloud/backup/:keyHash', requireAdminKey, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Strip the license crypto engine before serving HTML to browsers ─────────
+// Electron loads app/*.html directly from disk, bypassing this server, so it
+// still gets the full offline engine for machine-locked desktop activation.
+// Anything served over HTTP (this route) must NEVER contain MASTER_SECRET or
+// the functions that use it — otherwise any browser visitor could read the
+// page source and forge their own license keys.
+//
+// Each block below must match the source file's text exactly. If the source
+// changes and a block no longer matches, stripping fails LOUDLY (throws) so
+// we refuse to serve the page rather than risk leaking the secret silently.
+const _SECRET_BLOCKS = [
+  `const MASTER_SECRET = 'SH0P3RP0-PR0-M4ST3R-K3Y-D33P4K-2025-X9Z';`,
+  `function computeSegments(mid, planCode, expiryDays) {
+  const eD = (expiryDays >>> 0);
+  const pC = (planCode   >>> 0);
+  // Base string: machine + plan + expiry + secret (no custId)
+  const base = mid + '|' + pC + '|' + eD + '|' + MASTER_SECRET;
+  const h1 = fnv32(base + '~S1');
+  const h2 = fnv32(base + '~S2');
+  const h3 = fnv32(base + '~S3');
+  const h4 = fnv32(base + '~S4');
+  // XOR with plan and expiry constants to guarantee plan-distinct keys
+  const x1 = (h1 ^ ((eD & 0xFFFF) * pC)) >>> 0;
+  const x2 = (h2 ^ (pC * 0x9E37))        >>> 0;
+  const x3 = (h3 ^ (eD >> 4))             >>> 0;
+  const x4 = (h4 ^ (pC << 8))             >>> 0;
+  return [enc(x1, 4), enc(x2, 4), enc(x3, 4), enc(x4, 4)];
+}`,
+  `function generateKey(machineId, plan, custId) {
+  const p = PLANS[plan];
+  if (!p) throw new Error('Unknown plan: ' + plan);
+  const mid = machineId.replace(/-/g, '').toUpperCase().padEnd(16, '0').substring(0, 16);
+  const todayDays = Math.floor(Date.now() / 86400000);
+  const expiryDays = (todayDays + p.days) >>> 0;
+  const segs = computeSegments(mid, p.code, expiryDays);
+  return segs.join('-');
+}`,
+  `function validateKeyForReset(key, machineId){
+  var clean=key.replace(/-/g,'').toUpperCase();
+  if(clean.length!==16)return false;
+  for(var _ci=0;_ci<clean.length;_ci++){if(CS.indexOf(clean[_ci])<0)return false;}
+  var mid=machineId.replace(/-/g,'').toUpperCase().padEnd(16,'0').substring(0,16);
+  var todayDays=Math.floor(Date.now()/86400000);
+  var planKeys=Object.keys(PLANS);
+  for(var pi=0;pi<planKeys.length;pi++){
+    var p=PLANS[planKeys[pi]];
+    var lookback=Math.min(365,p.days+365);
+    for(var ago=0;ago<=lookback;ago++){
+      var expiryDays=(todayDays-ago+p.days)>>>0;
+      var segs=computeSegments(mid,p.code,expiryDays);
+      if(segs.join('')===clean)return true;
+    }
+  }
+  return false;
+}`,
+  `function validateKey(key, machineId) {
+  const clean = key.replace(/-/g, '').toUpperCase();
+  if (clean.length !== 16) return { valid: false, message: 'Key must be 16 characters (got ' + clean.length + ')' };
+  for (const c of clean) {
+    if (CS.indexOf(c) < 0) return { valid: false, message: 'Invalid character in key: ' + c };
+  }
+  const mid = machineId.replace(/-/g, '').toUpperCase().padEnd(16, '0').substring(0, 16);
+  const todayDays = Math.floor(Date.now() / 86400000);
+
+  // Try every plan × every possible issue date
+  for (const [planId, p] of Object.entries(PLANS)) {
+    for (let ago = 0; ago <= p.days; ago++) {
+      const expiryDays = (todayDays - ago + p.days) >>> 0;
+      const segs = computeSegments(mid, p.code, expiryDays);
+      if (segs.join('') === clean) {
+        const daysLeft = Math.max(0, expiryDays - todayDays);
+        const expired  = daysLeft <= 0;
+        const expDate  = new Date(expiryDays * 86400000).toISOString().split('T')[0];
+        return {
+          valid: true, expired,
+          plan: planId, planLabel: p.label,
+          expiryDate: expDate, daysLeft,
+          message: expired
+            ? 'Expired ' + (todayDays - expiryDays) + ' days ago'
+            : planId === 'lifetime'
+              ? 'Lifetime - never expires'
+              : daysLeft + ' day' + (daysLeft !== 1 ? 's' : '') + ' remaining (expires ' + expDate + ')',
+        };
+      }
+    }
+  }
+  return { valid: false, message: 'Key is invalid or belongs to a different machine' };
+}`,
+  `function runSelfTest() {
+  const mid   = 'A3F29B1C7E4D2F8A';
+  const wrong = 'FFFFFFFFFFFFFFFF';
+  const results = [];
+  const allKeys = [];
+  let pass = 0, fail = 0;
+
+  for (const planId of Object.keys(PLANS)) {
+    // Generate with various custIds - should produce SAME key (custId doesn't matter)
+    const key1 = generateKey(mid, planId, 'CUST1');
+    const key2 = generateKey(mid, planId, 'CUST99');
+    const key3 = generateKey(mid, planId, undefined);
+    const custIdIndependent = (key1 === key2 && key2 === key3);
+
+    const r1 = validateKey(key1, mid);    // correct machine
+    const r2 = validateKey(key1, wrong);  // wrong machine
+    const planMatch = r1.plan === planId;
+    const isUnique  = !allKeys.includes(key1);
+    allKeys.push(key1);
+
+    const ok = r1.valid && !r1.expired && !r2.valid && planMatch && isUnique && custIdIndependent;
+    if (ok) pass++; else fail++;
+    results.push({ planId, key: key1, valid: r1.valid, wrongValid: r2.valid, planMatch, isUnique, custIdIndependent, status: ok ? 'PASS' : 'FAIL' });
+  }
+  return { pass, fail, total: pass + fail, results };
+}`,
+];
+
+function stripLicenseSecrets(html) {
+  let out = html;
+  for (const block of _SECRET_BLOCKS) {
+    if (!out.includes(block)) {
+      throw new Error('License engine block not found while stripping (source may have changed): ' + block.slice(0, 50) + '...');
+    }
+    out = out.split(block).join('// [license engine — server-side only, see server/license.js]');
+  }
+  return out;
+}
+
 // ── Serve the ShopERP HTML (local/single-device mode) ────────────────────────
 // App runs in local mode — data stays in browser localStorage on this device.
 app.get('/', (req, res) => {
   if (!fs.existsSync(HTML_PATH)) {
     return res.status(404).send('ShopERP_Pro_v8.html not found. Make sure the app/ folder is next to server/');
   }
-  const html = fs.readFileSync(HTML_PATH, 'utf8');
+  const rawHtml = fs.readFileSync(HTML_PATH, 'utf8');
+  let html;
+  try {
+    html = stripLicenseSecrets(rawHtml);
+  } catch (e) {
+    console.error('[SECURITY] Refusing to serve HTML — license engine stripping failed:', e.message);
+    return res.status(500).send('Server misconfiguration — the app file could not be safely served. Contact admin.');
+  }
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
