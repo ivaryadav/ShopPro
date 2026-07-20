@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.32">
-<title>ShopERP Pro v8.32</title>
+<meta name="shoperpro-version" content="v8.33">
+<title>ShopERP Pro v8.33</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -3023,7 +3023,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.32 · Licensed</div>
+        <div class="sb-footer-ver">v8.33 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3399,19 +3399,67 @@ const _api = {
   token() { return sessionStorage.getItem('shoperpro_token') || ''; },
   setToken(t) { sessionStorage.setItem('shoperpro_token', t); },
   clearToken() { sessionStorage.removeItem('shoperpro_token'); },
+  // Refresh token, Wave 1 — deliberately in localStorage, not sessionStorage:
+  // the access token above is short-lived (15 min) and tab-scoped by design;
+  // the refresh token is what makes a login last up to 30 days across tab
+  // closes and browser restarts, which sessionStorage cannot do. This is the
+  // one storage-location expansion in this wave — see
+  // docs/architecture-review/SessionArchitecture.md for the tradeoff.
+  refreshToken() { return localStorage.getItem('shoperpro_refresh') || ''; },
+  setRefreshToken(t) { if(t) localStorage.setItem('shoperpro_refresh', t); },
+  clearRefreshToken() { localStorage.removeItem('shoperpro_refresh'); },
   headers() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + this.token() }; },
-  async get(path) {
-    const r = await fetch(SHOPERPRO_API_URL + path, { headers: this.headers() });
-    if (r.status === 401) { _api.clearToken(); showWebLoginScreen(); throw new Error('Session expired'); }
+  // Dedupes concurrent refresh attempts if several requests 401 around the
+  // same moment (realistic now that access tokens expire every 15 minutes).
+  async _tryRefresh() {
+    if(this._refreshPromise) return this._refreshPromise;
+    const rt = this.refreshToken();
+    if(!rt){ return false; }
+    this._refreshPromise = (async () => {
+      try{
+        const r = await fetch(SHOPERPRO_API_URL + '/api/auth/refresh', {
+          method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({refreshToken: rt})
+        });
+        if(!r.ok) return false;
+        const d = await r.json();
+        if(!d.token) return false;
+        _api.setToken(d.token);
+        _api.setRefreshToken(d.refreshToken);
+        return true;
+      }catch(e){ return false; }
+    })();
+    const result = await this._refreshPromise;
+    this._refreshPromise = null;
+    return result;
+  },
+  _sessionExpired() {
+    _api.clearToken(); _api.clearRefreshToken(); showWebLoginScreen(); throw new Error('Session expired');
+  },
+  async _fetch(path, opts) {
+    let r = await fetch(SHOPERPRO_API_URL + path, opts(this.headers()));
+    if (r.status === 401) {
+      if (await this._tryRefresh()) {
+        r = await fetch(SHOPERPRO_API_URL + path, opts(this.headers()));
+      }
+      if (r.status === 401) this._sessionExpired();
+    }
     if (r.status === 403) { const b=await r.json().catch(()=>{}); if(b&&b.status)showSuspendedScreen(b.status,b.reason||''); throw new Error(b?.error||'Forbidden'); }
+    if (r.status === 409) { const b=await r.json().catch(()=>({})); const err=new Error(b.error||'Conflict'); err.status=409; err.conflict=b; throw err; }
     return r.json();
+  },
+  async get(path) {
+    return this._fetch(path, (h) => ({ headers: h }));
   },
   async put(path, body) {
-    const r = await fetch(SHOPERPRO_API_URL + path, { method: 'PUT', headers: this.headers(), body: JSON.stringify(body) });
-    if (r.status === 401) { _api.clearToken(); showWebLoginScreen(); throw new Error('Session expired'); }
-    if (r.status === 403) { const b=await r.json().catch(()=>{}); if(b&&b.status)showSuspendedScreen(b.status,b.reason||''); throw new Error(b?.error||'Forbidden'); }
-    return r.json();
+    return this._fetch(path, (h) => ({ method: 'PUT', headers: h, body: JSON.stringify(body) }));
   },
+  // Deliberately NOT routed through _fetch()'s 401/403/409 interception:
+  // every existing caller of post() (login, register, renew-license, verify-
+  // license) treats a 401/409 as a normal business-logic response ("wrong
+  // PIN", "key already registered", ...) and reads res.error itself — those
+  // are not session-expiry signals the way a 401 from an authenticated GET/PUT
+  // always is. Changing this contract broke login error messages during this
+  // wave's own testing; kept as the original simple pass-through on purpose.
   async post(path, body) {
     const r = await fetch(SHOPERPRO_API_URL + path, { method: 'POST', headers: this.headers(), body: JSON.stringify(body) });
     return r.json();
@@ -3500,7 +3548,14 @@ function saveDB(){
   if(SHOPERPRO_API_URL && _api.token()){
     clearTimeout(window._apiSyncTimer);
     window._apiSyncTimer = setTimeout(function(){
-      _api.put('/api/data', { data: DB }).catch(function(){
+      _api.put('/api/data', { data: DB, expectedVersion: window._svrDataVersion }).then(function(res){
+        if(res && typeof res.version==='number') window._svrDataVersion = res.version;
+      }).catch(function(err){
+        if(err && err.status===409 && err.conflict){
+          if(typeof err.conflict.currentVersion==='number') window._svrDataVersion = err.conflict.currentVersion;
+          _handleSyncConflict(err.conflict);
+          return;
+        }
         var ind=document.getElementById('autosave-ind');
         if(ind){ind.textContent='⚠ Cloud sync failed';ind.style.color='var(--orange)';ind.style.opacity='1';}
       });
@@ -3511,6 +3566,46 @@ function saveDB(){
     clearTimeout(window._cloudBackupTimer);
     window._cloudBackupTimer = setTimeout(function(){ _pushCloudBackup(); }, 5000);
   }
+}
+// Web/hosted mode, Wave 0 — another device saved a newer version of this shop's
+// data before this save landed. Never overwritten silently (see
+// docs/architecture-review/ConflictResolution.md); surfaced via the app's
+// existing confirm-dialog primitive, no new UI.
+function _handleSyncConflict(conflict){
+  if(window._conflictPromptOpen) return;
+  window._conflictPromptOpen = true;
+  var ind=document.getElementById('autosave-ind');
+  if(ind){ind.textContent='⚠ Sync conflict';ind.style.color='var(--orange)';ind.style.opacity='1';}
+  var who = conflict && conflict.updatedByName ? (' by '+conflict.updatedByName) : '';
+  showConfirm(
+    'Newer data was saved to this shop from another device'+who+'. Your changes since then have NOT been uploaded, to avoid overwriting theirs. Reload the latest data now? You can redo any recent local changes after reloading.',
+    function(){
+      window._conflictPromptOpen=false;
+      _api.get('/api/data').then(function(d){
+        DB=d.data; window._svrDataVersion=d.version;
+        localStorage.setItem(DB_KEY,JSON.stringify(DB));
+        location.reload();
+      }).catch(function(){
+        if(ind){ind.textContent='⚠ Reload failed — try refreshing manually';ind.style.color='var(--red)';ind.style.opacity='1';}
+      });
+    },
+    function(){ window._conflictPromptOpen=false; },
+    false
+  );
+}
+// Wave 1 — invisible session heartbeat (web/hosted mode only). Keeps
+// user_sessions.last_activity meaningful even on a quiet screen where no
+// save has happened recently, and reports the current page — the same
+// signal Wave 3 (Realtime Presence, not yet built) will read over a
+// WebSocket instead of this polling call. No UI of any kind.
+function _initSessionHeartbeat(){
+  if(!(SHOPERPRO_API_URL && _api.token())) return;
+  if(window._heartbeatInterval) clearInterval(window._heartbeatInterval);
+  function beat(){
+    _api.post('/api/auth/heartbeat',{currentPage:window._currentAppPage||null}).catch(function(){});
+  }
+  beat();
+  window._heartbeatInterval=setInterval(beat,60000);
 }
 
 // ── Cloud backup helpers ─────────────────────────────────────────────────────
@@ -4297,7 +4392,7 @@ function setupPinConfirm(){
       } else if(_setupMode.startsWith('staff-')){
         const uid=parseInt(_setupMode.split('-')[1]);
         const u=DB.users.find(x=>x.id===uid);
-        if(u){u.pin=hashed;u.pinSet=true;_clearLockState(u.id);saveDB();toast('PIN set for '+u.name,'success');}
+        if(u){u.pin=hashed;u.pinSet=true;_clearLockState(u.id);saveDB();toast('PIN set for '+escHtml(u.name),'success');}
         if(currentUser){
           showApp();showPage('settings');
           setTimeout(function(){const tabs=[...document.querySelectorAll('.settings-tab')];const btn=tabs.find(b=>b.textContent.includes('User'));if(btn)switchTab('tab-users',btn);},150);
@@ -4464,7 +4559,7 @@ function doForgotPinSave(){
   if(!u){if(err){err.style.color='var(--red)';err.textContent='User not found. Please go back.';}return;}
   _hashPin(p1).then(function(hashed){
     u.pin=hashed;u.pinSet=true;_clearLockState(u.id);saveDB();
-    toast('PIN updated for '+u.name,'success');
+    toast('PIN updated for '+escHtml(u.name),'success');
   });
   // continue sync below (async, but sync-independent)
   // Reset the screen state for next use
@@ -4622,6 +4717,7 @@ function startApp(user){
   if(window._clockInterval)clearInterval(window._clockInterval);
   window._clockInterval=setInterval(updateClock,60000);
   initAutoBackupTimer();
+  _initSessionHeartbeat();
   if(!DB.recurringExpenses)DB.recurringExpenses=[];
   if(!DB.nextRecurringId)DB.nextRecurringId=1;
   setTimeout(applyRecurringExpenses,1500);
@@ -4824,7 +4920,10 @@ function wbContinue(){
   continueBootApp();
 }
 function wbSwitchAccount(){
+  if(_api.token()){ _api.post('/api/auth/logout',{}).catch(function(){}); } // best-effort, non-blocking
+  if(window._heartbeatInterval){clearInterval(window._heartbeatInterval);window._heartbeatInterval=null;}
   _api.clearToken();
+  _api.clearRefreshToken();
   localStorage.removeItem('shoperpro_last_shop');
   localStorage.removeItem('shoperpro_last_user');
   var el=document.getElementById('welcome-back-screen');if(el)el.style.display='none';
@@ -4927,6 +5026,7 @@ function webLogin(){
     .then(function(res){
       if(res.error){errEl.textContent=res.error;errEl.style.display='block';btn.disabled=false;btn.textContent='Sign In →';return;}
       _api.setToken(res.token);
+      _api.setRefreshToken(res.refreshToken);
       // Store for welcome-back screen
       localStorage.setItem('shoperpro_last_shop', res.shopName||shop||'My Shop');
       localStorage.setItem('shoperpro_last_user', user);
@@ -4936,6 +5036,7 @@ function webLogin(){
           DB=d.data;
           localStorage.setItem(DB_KEY,JSON.stringify(DB));
         }
+        window._svrDataVersion=d.version;
         migrateDB();
         document.getElementById('web-login-screen').style.display='none';
         var ind=document.getElementById('autosave-ind');
@@ -4972,6 +5073,7 @@ function webRegister(){
     .then(function(res){
       if(res.error){errEl.textContent=res.error;errEl.style.display='block';btn.disabled=false;btn.textContent='Create Shop →';return;}
       _api.setToken(res.token);
+      _api.setRefreshToken(res.refreshToken);
       document.getElementById('web-login-screen').style.display='none';
       continueBootApp();
     })
@@ -5439,7 +5541,7 @@ async function admDoGenerate(){
     saveAdminDB();
     var out=document.getElementById('adm-key-output');
     if(out)out.innerHTML=`<div class="adm-key-display"><div class="adm-key-text">${key}</div><div style="font-size:11px;color:var(--text3);margin-top:8px">${plan.label} · ${_admSelectedPlan==='lifetime'?'Never expires':'Expires '+expiryDate.toLocaleDateString('en-IN')}</div></div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-ghost" onclick="navigator.clipboard.writeText('${key}').then(()=>toast('Copied!','success'))" style="flex:1;justify-content:center">📋 Copy Key</button><button class="btn btn-wa" onclick="admSendWA('${key}','${esc(shopName)}','${esc(ownerName)}','${phone}','${_admSelectedPlan}')" style="flex:1;justify-content:center">💬 WhatsApp</button></div><div class="alert alert-success" style="margin-top:12px;font-size:11px">✓ ${isRenew?'Renewed':'Key saved'}. Customer ID: #${displayId}</div>`;
-    toast((isRenew?'Renewed ':'Key generated for ')+shopName,'success');
+    toast((isRenew?'Renewed ':'Key generated for ')+escHtml(shopName),'success');
   }catch(e){ toast('Failed: '+e.message,'error'); }
   finally{ if(genBtn){genBtn.disabled=false;genBtn.textContent='⚡ Generate License Key';} }
 }
@@ -5694,7 +5796,7 @@ function admPauseCustomer(id){
         document.getElementById('_glass-modal').remove();
         c.status='paused';c.suspendReason=r;saveAdminDB();showAdminPage('adm-customers');
         _admServerStatus(c.shopName,'paused',r);
-        toast('Account paused for '+c.shopName,'info');
+        toast('Account paused for '+escHtml(c.shopName),'info');
       }}
     ]
   });
@@ -5713,7 +5815,7 @@ function admTerminateCustomer(id){
         document.getElementById('_glass-modal').remove();
         c.status='terminated';c.suspendReason=r;saveAdminDB();showAdminPage('adm-customers');
         _admServerStatus(c.shopName,'terminated',r);
-        toast('Account terminated for '+c.shopName,'error');
+        toast('Account terminated for '+escHtml(c.shopName),'error');
       }}
     ]
   });
@@ -5722,7 +5824,7 @@ function admRestoreCustomer(id){
   var c=ADMIN_DB.customers.find(x=>x.id===id); if(!c)return;
   c.status='active'; c.suspendReason=''; saveAdminDB(); showAdminPage('adm-customers');
   _admServerStatus(c.shopName,'active','');
-  toast('Account restored for '+c.shopName,'success');
+  toast('Account restored for '+escHtml(c.shopName),'success');
 }
 function _admServerStatus(shopName, status, reason){
   if(!SHOPERPRO_API_URL) return; // local mode - no server to call
@@ -5731,7 +5833,7 @@ function _admServerStatus(shopName, status, reason){
     headers:{'Content-Type':'application/json','X-Admin-Key':ADMIN_PWD_HASH},
     body:JSON.stringify({shopName:shopName,status:status,reason:reason||''})
   }).then(function(r){
-    if(r.ok) toast('Server updated: '+shopName+' is now '+status,'success');
+    if(r.ok) toast('Server updated: '+escHtml(shopName)+' is now '+status,'success');
     else r.json().then(function(b){toast('Server: '+(b.error||'Could not update'),'error');}).catch(function(){});
   }).catch(function(){ toast('Server unreachable - local change saved only','warn'); });
 }
@@ -5990,7 +6092,7 @@ function admResetWebPin(userId,userName,mobile){
       var waLink=document.getElementById('wu-wa-'+userId);
       if(waLink)waLink.href='https://wa.me/91'+mobile+'?text='+encodeURIComponent('Hello '+userName+'! Your ShopERP Pro login PIN has been reset by admin.\n\nYour new PIN: *'+newPin+'*\n\nPlease change it after logging in.');
     }
-    toast('PIN reset for '+userName,'success');
+    toast('PIN reset for '+escHtml(userName),'success');
   }).catch(function(){inp.disabled=false;toast('Connection error','error');});
 }
 function admToggleWebUser(userId,enable,userName){
@@ -6166,6 +6268,7 @@ function pssLogin(){
     localStorage.setItem('shoperpro_last_user',res.username||mobile);
     return _api.get('/api/data').then(function(d){
       if(d.data&&Object.keys(d.data).length>0){ DB=d.data; localStorage.setItem(DB_KEY,JSON.stringify(DB)); }
+      window._svrDataVersion=d.version;
       migrateDB();
       _syncLicenseFromServer(res);
       document.getElementById('portal-select-screen').style.display='none';
@@ -6196,6 +6299,7 @@ function pssRegister(){
   _api.post('/api/auth/register',{shopName:shop,ownerName:name||'Owner',mobile:mobile,pin:pin,licenseKey:licKey||undefined}).then(function(res){
     if(res.error){ pssShowErr(res.error); btn.disabled=false; btn.textContent='Register & Start →'; return; }
     _api.setToken(res.token);
+    window._svrDataVersion=1; // matches the fresh tenant_data row's default version
     localStorage.setItem('shoperpro_last_shop',res.shopName||shop);
     localStorage.setItem('shoperpro_last_user',res.username||name||mobile);
     _syncLicenseFromServer(res);
@@ -6244,7 +6348,7 @@ function pssLicenseVerify(){
         var roleLabel=u.role==='owner'?'Owner':u.role==='manager'?'Manager':'Staff';
         var btn2=document.createElement('button');
         btn2.className='pss-user-btn';
-        btn2.innerHTML='<div class="pss-user-avatar">'+initials+'</div><div><div class="pss-user-info-name">'+u.name+'</div><div class="pss-user-info-role">'+roleLabel+'</div></div><div style="margin-left:auto;color:rgba(255,255,255,.25);font-size:18px">&#8250;</div>';
+        btn2.innerHTML='<div class="pss-user-avatar">'+escHtml(initials)+'</div><div><div class="pss-user-info-name">'+escHtml(u.name)+'</div><div class="pss-user-info-role">'+roleLabel+'</div></div><div style="margin-left:auto;color:rgba(255,255,255,.25);font-size:18px">&#8250;</div>';
         btn2.onclick=function(){pssSelectUser(u.mobile,u.name,res.shopName);};
         ul.appendChild(btn2);
       });
@@ -6275,6 +6379,7 @@ function pssLicenseLogin(){
     localStorage.setItem('shoperpro_last_user',res.username||mobile);
     return _api.get('/api/data').then(function(d){
       if(d.data&&Object.keys(d.data).length>0){DB=d.data;localStorage.setItem(DB_KEY,JSON.stringify(DB));}
+      window._svrDataVersion=d.version;
       migrateDB();
       _syncLicenseFromServer(res);
       document.getElementById('portal-select-screen').style.display='none';
@@ -6312,11 +6417,14 @@ function bootApp(){
           DB=d.data;
           localStorage.setItem(DB_KEY,JSON.stringify(DB));
         }
+        window._svrDataVersion=d.version;
         loadDB();
         showWelcomeBack();
       }).catch(function(){
-        // Token invalid/expired - always show portal selection in web mode
+        // Token invalid/expired (and refresh, attempted inside _api.get, also
+        // failed or had nothing to refresh with) - show portal selection
         _api.clearToken();
+        _api.clearRefreshToken();
         localStorage.removeItem('shoperpro_last_shop');
         localStorage.removeItem('shoperpro_last_user');
         localStorage.removeItem('shoperpro_portal_mode');
@@ -6706,6 +6814,7 @@ function showPage(page){
     toast('License expired - please contact us to renew.','error');
     page='support';
   }
+  window._currentAppPage=page; // read by the Wave 1 session heartbeat; also the hook Wave 3 (Realtime Presence) will use
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el=>{
     if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes(`'${page}'`))el.classList.add('active');
@@ -7792,7 +7901,7 @@ function posSaveQuickCust(){
   ]);
   if(!ok)return;
   const dup=DB.customers.find(c=>(c.phone||'').replace(/\D/g,'')===phone);
-  if(dup){closeModal();posSelectCust(dup.id,dup.name,dup.phone);toast('Existing customer selected: '+dup.name,'info');return;}
+  if(dup){closeModal();posSelectCust(dup.id,dup.name,dup.phone);toast('Existing customer selected: '+escHtml(dup.name),'info');return;}
   const c={id:DB.nextCustomer++,name,phone,email:'',address:'',type:'Regular',note:''};
   DB.customers.push(c);saveDB();
   closeModal();posSelectCust(c.id,c.name,c.phone);
@@ -8307,7 +8416,7 @@ function saveProduct(){
     ['p-imei', validateIMEI(imei)],
   ]);
   if(!ok)return;
-  if(imei){const dup=DB.inventory.find(x=>x.imei&&x.imei===imei);if(dup){fieldErr('p-imei','IMEI already registered to "'+dup.name+'"');toast('Duplicate IMEI - already linked to "'+dup.name+'"','error');return;}}
+  if(imei){const dup=DB.inventory.find(x=>x.imei&&x.imei===imei);if(dup){fieldErr('p-imei','IMEI already registered to "'+dup.name+'"');toast('Duplicate IMEI - already linked to "'+escHtml(dup.name)+'"','error');return;}}
   DB.inventory.push({
     id:DB.nextProduct++,name,
     category:document.getElementById('p-cat').value,
@@ -8356,7 +8465,7 @@ function updateProduct(id){
     ['ep-imei', validateIMEI(imei)],
   ]);
   if(!ok)return;
-  if(imei){const dup=DB.inventory.find(x=>x.id!==id&&x.imei&&x.imei===imei);if(dup){fieldErr('ep-imei','IMEI already registered to "'+dup.name+'"');toast('Duplicate IMEI - already linked to "'+dup.name+'"','error');return;}}
+  if(imei){const dup=DB.inventory.find(x=>x.id!==id&&x.imei&&x.imei===imei);if(dup){fieldErr('ep-imei','IMEI already registered to "'+dup.name+'"');toast('Duplicate IMEI - already linked to "'+escHtml(dup.name)+'"','error');return;}}
   p.name=name;
   p.category=document.getElementById('ep-cat').value;
   p.sku=document.getElementById('ep-sku').value.trim()||p.sku;
@@ -9075,7 +9184,7 @@ function addProdToSale(prod){
   const currentQty=ex?ex.qty:0;
   const availableStock=prod.stock;
   if(currentQty>=availableStock){
-    toast(`Only ${availableStock} unit${availableStock!==1?'s':''} of "${prod.name}" in stock`,'error');
+    toast(`Only ${availableStock} unit${availableStock!==1?'s':''} of "${escHtml(prod.name)}" in stock`,'error');
     return;
   }
   if(ex){ex.qty++;}
@@ -9123,7 +9232,7 @@ function incSaleItemQty(i){
   const prod=DB.inventory.find(p=>p.id===item.productId);
   const maxStock=prod?prod.stock:9999;
   if(item.qty>=maxStock){
-    toast(`Only ${maxStock} unit${maxStock!==1?'s':''} of "${item.name}" in stock`,'error');
+    toast(`Only ${maxStock} unit${maxStock!==1?'s':''} of "${escHtml(item.name)}" in stock`,'error');
     return;
   }
   item.qty++;
@@ -9272,7 +9381,7 @@ function saveSale(){
   saleItems.forEach(item=>{
     const prod=DB.inventory.find(p=>p.id===item.productId);
     if(prod && item.qty>prod.stock){
-      stockErrors.push(`"${item.name}": selling ${item.qty} but only ${prod.stock} in stock`);
+      stockErrors.push(`"${escHtml(item.name)}": selling ${item.qty} but only ${prod.stock} in stock`);
     }
   });
   if(stockErrors.length>0){
@@ -10273,7 +10382,7 @@ function addWarrantyPart(id){
   const pid=parseInt(document.getElementById('wpart-pick').value);
   const qty=parseInt(document.getElementById('wpart-qty').value)||1;
   const prod=DB.inventory.find(p=>p.id===pid);if(!prod)return;
-  if(prod.stock<qty){toast('Insufficient stock for '+prod.name,'error');return;}
+  if(prod.stock<qty){toast('Insufficient stock for '+escHtml(prod.name),'error');return;}
   if(!r.warrantyParts)r.warrantyParts=[];
   const ex=r.warrantyParts.find(p=>p.productId===pid);
   if(ex)ex.qty+=qty;else r.warrantyParts.push({productId:pid,name:prod.name,qty,price:prod.sellPrice});
@@ -10464,7 +10573,7 @@ function filterPartSearch(id, q){
 function selectPartFromSearch(jobId, pid){
   const p=DB.inventory.find(x=>x.id===pid);
   if(!p)return;
-  if(p.stock<=0){toast(`${p.name} is out of stock`,'error');return;}
+  if(p.stock<=0){toast(`${escHtml(p.name)} is out of stock`,'error');return;}
   // Fill hidden pick field for addJobPart compatibility
   const inp=document.getElementById(`part-search-${jobId}`);
   if(inp)inp.value=p.name;
@@ -10532,7 +10641,7 @@ function addJobPart(id,pidOverride){
   if(!pid){toast('Please select a part first','error');return;}
   const qty=parseInt(document.getElementById(`part-qty-${id}`)?.value)||1;
   const prod=DB.inventory.find(p=>p.id===pid);if(!prod)return;
-  if(prod.stock<qty){toast(`Only ${prod.stock} unit${prod.stock!==1?'s':''} of "${prod.name}" in stock`,'error');return;}
+  if(prod.stock<qty){toast(`Only ${prod.stock} unit${prod.stock!==1?'s':''} of "${escHtml(prod.name)}" in stock`,'error');return;}
   const ex=r.partsUsed.find(p=>p.productId===pid);
   if(ex)ex.qty+=qty;else r.partsUsed.push({productId:pid,name:prod.name,qty,price:prod.sellPrice});
   prod.stock=Math.max(0,prod.stock-qty);
@@ -11522,7 +11631,7 @@ function onExpCatChange(sel){
       opt.value=n;opt.textContent=n;
       sel.insertBefore(opt,sel.querySelector('[value="__new__"]'));
       sel.value=n;
-      toast('Category "'+n+'" added','success');
+      toast('Category "'+escHtml(n)+'" added','success');
     } else {
       sel.value=selected||EXP_CATS_DEFAULT[0];
     }
@@ -14233,7 +14342,7 @@ function doAddStaff(){
   const id=DB.nextUserId++;
   DB.users.push({id,name,role,pin:'',pinSet:false,phone:phone||''});
   _auditLog('user-add','name='+name+' role='+role+' phone='+(phone||'-'));
-  saveDB();closeModal();renderUsersList();toast(name+' added as '+role+'. Set their PIN now.','success');
+  saveDB();closeModal();renderUsersList();toast(escHtml(name)+' added as '+role+'. Set their PIN now.','success');
 }
 function removeStaff(id){
   if(!_requireRole(['owner','superadmin'],'remove staff'))return;

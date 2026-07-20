@@ -18,7 +18,10 @@ const cors     = require('cors');
 const path     = require('path');
 const fs       = require('fs');
 const os       = require('os');
+const crypto   = require('crypto');
 const license  = require('./license');
+const sessions = require('./sessions');
+const logger   = require('./logger');
 
 // Load .env file if present (no dotenv dependency needed)
 const envFile = path.join(__dirname, '.env');
@@ -30,9 +33,28 @@ if (fs.existsSync(envFile)) {
 }
 
 // ── Config ──────────────────────────────────────────────────────────────────
-const PORT       = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || ('shoperpro-local-' + require('crypto').randomBytes(16).toString('hex'));
-const DB_PATH    = path.join(__dirname, 'shoperpro.db');
+const PORT = process.env.PORT || 3000;
+
+// Wave 1 — JWT_SECRET is now mandatory. A per-boot random fallback meant every
+// server restart silently invalidated every session (see
+// docs/architecture-review/SecurityReview.md F-1); a real session table
+// (server/sessions.js) is only durable if the secret that signs its tokens
+// is durable too. Fail loudly at startup instead of degrading silently —
+// matches the existing pattern in stripLicenseSecrets() below.
+if (!process.env.JWT_SECRET) {
+  console.error('\n[FATAL] JWT_SECRET is not set in server/.env.');
+  console.error('Every server restart would otherwise log everyone out. Generate one with:');
+  console.error("  node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\"");
+  console.error('and add it to server/.env as JWT_SECRET=<the generated value>\n');
+  process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
+// DB_PATH — configurable so tests can point at an isolated, disposable file
+// instead of the real production database (see docs/architecture-review/
+// DatabaseIsolationPlan.md). Default is unchanged from before this existed:
+// an unset DB_PATH resolves to the exact same server/shoperpro.db it always
+// has — no behavior change for the normal `node local.js` production path.
+const DB_PATH    = process.env.DB_PATH || path.join(__dirname, 'shoperpro.db');
 const HTML_PATH  = path.join(__dirname, '..', 'app', 'ShopERP_Pro_v8.html');
 
 // ── Admin key — used by Super Admin panel to call remote control endpoints ──
@@ -40,6 +62,39 @@ const HTML_PATH  = path.join(__dirname, '..', 'app', 'ShopERP_Pro_v8.html');
 // Run:  echo -n 'YourAdminPassword' | shasum -a 256
 // Default = current admin password hash. CHANGE THIS if you change admin password.
 const ADMIN_KEY  = process.env.ADMIN_KEY || '2b5877210c3581cccac2431c0a5681ea1c5674ae71dbb5d664eda93e3965a3dd';
+
+// ── Startup validation ────────────────────────────────────────────────────────
+// OperationalReadinessPlan.md §2. Two checks, neither changing existing
+// behavior for a correctly-configured deployment:
+//
+// 1. ADMIN_KEY unset → warn loudly, don't fail. Unset is a legitimate
+//    default for local single-shop use (unlike JWT_SECRET above, which
+//    fails hard — an unset JWT_SECRET silently breaks every session on
+//    restart, a correctness bug; an unset ADMIN_KEY just means a known,
+//    fixed admin credential, a security posture question the operator
+//    should see plainly rather than discover later). Already visible via
+//    GET /health's startup.adminKeyIsDefault — this adds the boot-time
+//    visibility that check alone doesn't give an operator who never polls
+//    /health.
+// 2. DB_PATH's parent directory must exist and be writable before
+//    new Database(DB_PATH) is attempted, so a bad path fails with a clear,
+//    operator-actionable message instead of better-sqlite3's own raw
+//    "unable to open database file" (FailureScenarioReport.md scenario 2
+//    already confirmed the server fails closed here — this only improves
+//    the message, not the fail-closed behavior itself).
+if (!process.env.ADMIN_KEY) {
+  logger.warn('ADMIN_KEY not set — using the default admin key hash', {
+    hint: 'Set ADMIN_KEY in server/.env to use your own admin password. See GET /health for a live check.',
+  });
+}
+try {
+  fs.accessSync(path.dirname(DB_PATH), fs.constants.W_OK);
+} catch (e) {
+  console.error(`\n[FATAL] Cannot write to the database directory: ${path.dirname(DB_PATH)}`);
+  console.error(`DB_PATH is set to: ${DB_PATH}`);
+  console.error('Check that this directory exists and the server process has write permission.\n');
+  process.exit(1);
+}
 
 // ── SQLite database ──────────────────────────────────────────────────────────
 const db = new Database(DB_PATH);
@@ -76,13 +131,49 @@ db.exec(`
   );
 `);
 
-// Migrate existing DB — add columns if missing
-try { db.exec('ALTER TABLE users ADD COLUMN display_name TEXT'); } catch(_) {}
-try { db.exec('ALTER TABLE users ADD COLUMN mobile TEXT'); } catch(_) {}
-try { db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_mobile ON users(mobile) WHERE mobile IS NOT NULL'); } catch(_) {}
+// Migrate existing DB — add columns if missing.
+//
+// runMigration() replaces bare `try{db.exec(sql)}catch(_){}`: that pattern
+// swallowed EVERY error identically, including a genuine failure (a typo, a
+// locked file, a corrupted schema) — the server would boot as if nothing
+// went wrong, and the real symptom (e.g. "no such column: mobile") would
+// only surface later, at a call site far from the true cause. Confirmed via
+// live reproduction, see docs/architecture-review/FailureScenarioReport.md
+// scenario 8 and docs/architecture-review/MigrationSafetyReport.md.
+//
+// SQLite's own error messages are the only reliable signal available here
+// (there's no separate "already exists" error code to check) — matched
+// case-insensitively against the two shapes these specific statements can
+// legitimately produce on a re-run: "duplicate column name" (ALTER TABLE
+// ADD COLUMN) and "already exists" (CREATE TABLE/INDEX without IF NOT
+// EXISTS). Anything else is a genuine failure: logged loudly (not silently
+// swallowed) and recorded in migrationState.failures, which GET /health
+// reports — but does NOT crash the process. Startup migrations here are
+// independent, additive ALTER/CREATE statements (see failure-scenario
+// testing referenced above); a bad server generation on ONE historical
+// column shouldn't take down a server that has otherwise booted correctly
+// and would keep working for every tenant not touching that column — that
+// tradeoff (visibility over availability) is exactly what a general-purpose
+// process.exit(1) would get wrong, and is why this differs from the
+// JWT_SECRET fail-fast pattern above (that check has no legitimate
+// "already applied" case to distinguish; migrations do).
+const migrationState = { failures: [] };
+const BENIGN_MIGRATION_ERROR = /duplicate column name|already exists/i;
+function runMigration(sql, label) {
+  try {
+    db.exec(sql);
+  } catch (e) {
+    if (BENIGN_MIGRATION_ERROR.test(e.message)) return; // already applied — expected, not an error
+    logger.error(`[MIGRATION FAILED] ${label}`, { error: e.message });
+    migrationState.failures.push({ label, error: e.message, at: new Date().toISOString() });
+  }
+}
+runMigration('ALTER TABLE users ADD COLUMN display_name TEXT', 'users.display_name');
+runMigration('ALTER TABLE users ADD COLUMN mobile TEXT', 'users.mobile');
+runMigration('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_mobile ON users(mobile) WHERE mobile IS NOT NULL', 'idx_users_mobile');
 // Tenant status columns — support remote pause/terminate
-try { db.exec("ALTER TABLE tenants ADD COLUMN status TEXT NOT NULL DEFAULT 'active'"); } catch(_) {}
-try { db.exec("ALTER TABLE tenants ADD COLUMN suspend_reason TEXT NOT NULL DEFAULT ''"); } catch(_) {}
+runMigration("ALTER TABLE tenants ADD COLUMN status TEXT NOT NULL DEFAULT 'active'", 'tenants.status');
+runMigration("ALTER TABLE tenants ADD COLUMN suspend_reason TEXT NOT NULL DEFAULT ''", 'tenants.suspend_reason');
 // Cloud backup table — keyed by license key hash (machine-bound)
 db.exec(`
   CREATE TABLE IF NOT EXISTS cloud_backups (
@@ -92,11 +183,21 @@ db.exec(`
     backed_up_at TEXT DEFAULT (datetime('now'))
   );
 `);
-try { db.exec('ALTER TABLE cloud_backups ADD COLUMN shop_name TEXT'); } catch(_) {}
-try { db.exec('ALTER TABLE tenants ADD COLUMN license_key_hash TEXT'); } catch(_) {}
-try { db.exec('ALTER TABLE tenants ADD COLUMN license_expiry TEXT'); } catch(_) {}
-try { db.exec('ALTER TABLE tenants ADD COLUMN license_plan TEXT NOT NULL DEFAULT \'monthly\''); } catch(_) {}
-try { db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_tenants_license ON tenants(license_key_hash) WHERE license_key_hash IS NOT NULL'); } catch(_) {}
+runMigration('ALTER TABLE cloud_backups ADD COLUMN shop_name TEXT', 'cloud_backups.shop_name');
+runMigration('ALTER TABLE tenants ADD COLUMN license_key_hash TEXT', 'tenants.license_key_hash');
+runMigration('ALTER TABLE tenants ADD COLUMN license_expiry TEXT', 'tenants.license_expiry');
+runMigration("ALTER TABLE tenants ADD COLUMN license_plan TEXT NOT NULL DEFAULT 'monthly'", 'tenants.license_plan');
+// Wave 0 — optimistic concurrency for tenant_data (see docs/architecture-review/ConflictResolution.md)
+runMigration('ALTER TABLE tenant_data ADD COLUMN version INTEGER NOT NULL DEFAULT 1', 'tenant_data.version');
+runMigration('ALTER TABLE tenant_data ADD COLUMN updated_by INTEGER', 'tenant_data.updated_by');
+runMigration('CREATE UNIQUE INDEX IF NOT EXISTS idx_tenants_license ON tenants(license_key_hash) WHERE license_key_hash IS NOT NULL', 'idx_tenants_license');
+// Wave 1 — session architecture (see docs/architecture-review/SessionArchitecture.md)
+sessions.migrate(db, migrationState.failures);
+if (migrationState.failures.length > 0) {
+  logger.warn(`${migrationState.failures.length} migration statement(s) failed at startup`, {
+    hint: 'See [MIGRATION FAILED] lines above. Server is continuing to boot (these are additive schema changes; existing functionality not touching the affected column/table is unaffected), but check GET /health and investigate before relying on the affected feature.',
+  });
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getLocalIp() {
@@ -109,13 +210,9 @@ function getLocalIp() {
   return 'localhost';
 }
 
-function makeToken(user, tenant) {
-  return jwt.sign(
-    { userId: user.id, tenantId: tenant.id, role: user.role, shopName: tenant.shop_name },
-    JWT_SECRET,
-    { expiresIn: '7d' }
-  );
-}
+// Wave 1: token issuance now goes through sessions.createSession() (see
+// server/sessions.js), which both signs the access token AND writes the
+// user_sessions row it's tied to — replaces the old standalone makeToken().
 
 function requireAuth(req, res, next) {
   const header = req.headers['authorization'];
@@ -123,7 +220,12 @@ function requireAuth(req, res, next) {
     return res.status(401).json({ error: 'Missing Authorization header' });
   }
   try {
-    req.user = jwt.verify(header.slice(7), JWT_SECRET);
+    const payload = jwt.verify(header.slice(7), JWT_SECRET, { algorithms: ['HS256'] });
+    const check = sessions.checkSession(db, payload);
+    if (!check.ok) {
+      return res.status(401).json({ error: 'Session expired or was signed out elsewhere. Please log in again.' });
+    }
+    req.user = payload;
     next();
   } catch {
     res.status(401).json({ error: 'Session expired. Please log in again.' });
@@ -145,10 +247,21 @@ function requireActive(req, res, next) {
   next();
 }
 
-// Validates X-Admin-Key header for Super Admin remote control endpoints
+// Validates X-Admin-Key header for Super Admin remote control endpoints.
+// Uses a timing-safe comparison (S-10, SecurityHardeningReview.md) instead
+// of `!==`, which short-circuits on the first mismatched byte — a
+// textbook timing side-channel, however impractical to exploit over a
+// real network. crypto.timingSafeEqual() requires equal-length buffers, so
+// the length check must happen first (and is itself not a useful timing
+// oracle: key length is not a secret, unlike its content).
 function requireAdminKey(req, res, next) {
   const key = req.headers['x-admin-key'];
-  if (!key || key !== ADMIN_KEY) return res.status(401).json({ error: 'Invalid admin key' });
+  const keyBuf = Buffer.from(key || '', 'utf8');
+  const adminKeyBuf = Buffer.from(ADMIN_KEY, 'utf8');
+  const valid = key
+    && keyBuf.length === adminKeyBuf.length
+    && crypto.timingSafeEqual(keyBuf, adminKeyBuf);
+  if (!valid) return res.status(401).json({ error: 'Invalid admin key' });
   next();
 }
 
@@ -176,6 +289,20 @@ setInterval(function() {
   const now = Date.now();
   for (const [k, v] of _rateBuckets.entries()) { if (now > v.reset) _rateBuckets.delete(k); }
 }, 5 * 60 * 1000);
+
+// Wave 1 — session cleanup: mark idle sessions expired, hard-delete old
+// revoked/expired rows so user_sessions doesn't grow unbounded. Runs on boot
+// and every 30 minutes after.
+function _runSessionCleanup() {
+  try {
+    const result = sessions.runCleanup(db);
+    if (result.expired || result.deleted) {
+      console.log(`[Sessions] cleanup: ${result.expired} expired, ${result.deleted} deleted`);
+    }
+  } catch (e) { console.error('Session cleanup error:', e); }
+}
+_runSessionCleanup();
+setInterval(_runSessionCleanup, 30 * 60 * 1000);
 
 // ── Express app ──────────────────────────────────────────────────────────────
 const app = express();
@@ -210,9 +337,39 @@ app.use(function(req, res, next) {
 app.use(express.json({ limit: '5mb' }));
 
 // ── Health ───────────────────────────────────────────────────────────────────
-app.get('/health', (_req, res) =>
-  res.json({ status: 'ok', mode: 'sqlite-local', time: new Date().toISOString() })
-);
+// Previously a static {status:'ok'} with no actual check — reachable iff the
+// process is alive, regardless of whether the database or migrations are
+// actually working (OperationalReadinessPlan.md §1). Extended, additively,
+// with a real DB connectivity check, migration state, and startup
+// validation status — the three items that plan flagged as cheap/low-risk
+// to add. No existing field removed or renamed; a caller that only reads
+// `status`/`mode`/`time` sees identical behavior to before.
+app.get('/health', (_req, res) => {
+  let dbStatus = 'ok';
+  try {
+    db.prepare('SELECT 1').get();
+  } catch (e) {
+    dbStatus = 'error';
+    logger.error('[HEALTH] DB connectivity check failed', { error: e.message });
+  }
+  const migrationFailures = migrationState.failures.length;
+  const overallStatus = (dbStatus === 'ok' && migrationFailures === 0) ? 'ok' : 'degraded';
+  res.json({
+    status: overallStatus,
+    mode: 'sqlite-local',
+    time: new Date().toISOString(),
+    db: dbStatus,
+    migrationFailures,
+    startup: {
+      // jwtSecretConfigured is always true here — an unset JWT_SECRET exits
+      // the process before this route is ever registered (see the top of
+      // this file). Reported anyway so /health's startup block is a
+      // complete, self-contained record rather than a partial one.
+      jwtSecretConfigured: true,
+      adminKeyIsDefault: !process.env.ADMIN_KEY,
+    },
+  });
+});
 
 // ── POST /api/auth/verify-license — check license key, return shop info ─────
 app.post('/api/auth/verify-license', rateLimit(20, 5 * 60 * 1000), (req, res) => {
@@ -302,9 +459,11 @@ app.post('/api/auth/register', rateLimit(5, 10 * 60 * 1000), (req, res) => {
       'INSERT INTO users (tenant_id, username, display_name, mobile, password_hash, role) VALUES (?,?,?,?,?,?) RETURNING *'
     ).get(tenant.id, mob, ownerName || 'Owner', mob, hash, 'owner');
     db.prepare('INSERT INTO tenant_data (tenant_id, data) VALUES (?,?)').run(tenant.id, '{}');
+    const session = sessions.createSession(db, JWT_SECRET, { user, tenant, req });
     res.status(201).json({
       message: 'Shop registered',
-      token: makeToken(user, tenant),
+      token: session.accessToken,
+      refreshToken: session.refreshToken,
       shopName: tenant.shop_name,
       username: user.display_name,
       role: user.role,
@@ -343,8 +502,10 @@ app.post('/api/auth/login', rateLimit(10, 5 * 60 * 1000), (req, res) => {
     const tenant = { id: row.tid, shop_name: row.shop_name };
     const user   = { id: row.id, role: row.role };
     const tenantInfo = db.prepare('SELECT license_expiry, license_plan FROM tenants WHERE id = ?').get(row.tid);
+    const session = sessions.createSession(db, JWT_SECRET, { user, tenant, req });
     res.json({
-      token: makeToken(user, tenant),
+      token: session.accessToken,
+      refreshToken: session.refreshToken,
       shopName: row.shop_name,
       username: row.display_name || row.username,
       role: row.role,
@@ -355,6 +516,50 @@ app.post('/api/auth/login', rateLimit(10, 5 * 60 * 1000), (req, res) => {
     console.error('Login error:', e);
     res.status(500).json({ error: 'Login failed' });
   }
+});
+
+// ── POST /api/auth/refresh — exchange a refresh token for a new access token ─
+// Rotates both tokens on every use; see server/sessions.js for why.
+app.post('/api/auth/refresh', rateLimit(30, 5 * 60 * 1000), (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) return res.status(400).json({ error: 'refreshToken required' });
+  const result = sessions.refreshSession(db, JWT_SECRET, refreshToken);
+  if (!result.ok) {
+    return res.status(401).json({ error: 'Refresh token is invalid or has been revoked. Please log in again.' });
+  }
+  res.json({ token: result.accessToken, refreshToken: result.refreshToken });
+});
+
+// ── POST /api/auth/logout — revokes the session tied to the current token ────
+app.post('/api/auth/logout', requireAuth, (req, res) => {
+  if (req.user.sid) sessions.revokeSession(db, req.user.sid);
+  res.json({ ok: true });
+});
+
+// ── POST /api/auth/heartbeat — updates last_activity (+ optional page) ───────
+// Lightweight REST polling for now; Wave 3 (Realtime Presence, not yet built)
+// is the WebSocket upgrade of this same signal — this endpoint intentionally
+// gives it a session row and a current_page column to build on.
+app.post('/api/auth/heartbeat', requireAuth, (req, res) => {
+  if (!req.user.sid) return res.json({ ok: true, legacy: true });
+  sessions.touchHeartbeat(db, req.user.sid, (req.body && req.body.currentPage) || null);
+  res.json({ ok: true });
+});
+
+// ── GET /api/auth/sessions — list this tenant's active sessions (owner only) ─
+app.get('/api/auth/sessions', requireAuth, (req, res) => {
+  if (req.user.role !== 'owner') return res.status(403).json({ error: 'Only the owner can view active sessions' });
+  res.json({ sessions: sessions.listActiveSessions(db, req.user.tenantId) });
+});
+
+// ── POST /api/auth/sessions/:sessionId/revoke — force-logout one session ─────
+app.post('/api/auth/sessions/:sessionId/revoke', requireAuth, (req, res) => {
+  if (req.user.role !== 'owner') return res.status(403).json({ error: 'Only the owner can revoke a session' });
+  // Ownership check — only allow revoking a session that belongs to this tenant.
+  const row = db.prepare('SELECT tenant_id FROM user_sessions WHERE session_id = ?').get(req.params.sessionId);
+  if (!row || row.tenant_id !== req.user.tenantId) return res.status(404).json({ error: 'Session not found' });
+  sessions.revokeSession(db, req.params.sessionId);
+  res.json({ ok: true });
 });
 
 // ── POST /api/auth/add-staff ─────────────────────────────────────────────────
@@ -456,7 +661,8 @@ app.post('/api/admin/generate-key', requireAdminKey, rateLimit(60, 60 * 1000), (
     const decoded = license.decodeKey(key, mid);
     res.json({ key, plan, planLabel: license.PLANS[plan].label, expiryDate: decoded.expiryDate, hosted: !machineId });
   } catch (e) {
-    res.status(500).json({ error: 'Key generation failed: ' + e.message });
+    console.error('Key generation error:', e);
+    res.status(500).json({ error: 'Key generation failed' });
   }
 });
 
@@ -547,32 +753,86 @@ app.post('/api/admin/toggle-user', requireAdminKey, rateLimit(30, 60 * 1000), (r
 // ── GET /api/data ────────────────────────────────────────────────────────────
 app.get('/api/data', requireAuth, requireActive, (req, res) => {
   try {
-    const row = db.prepare('SELECT data, updated_at FROM tenant_data WHERE tenant_id = ?').get(req.user.tenantId);
-    if (!row) return res.json({ data: {}, updatedAt: null });
-    res.json({ data: JSON.parse(row.data || '{}'), updatedAt: row.updated_at });
+    const row = db.prepare('SELECT data, version, updated_at FROM tenant_data WHERE tenant_id = ?').get(req.user.tenantId);
+    if (!row) return res.json({ data: {}, version: 0, updatedAt: null });
+    res.json({ data: JSON.parse(row.data || '{}'), version: row.version, updatedAt: row.updated_at });
   } catch (e) {
     console.error('Load data error:', e);
     res.status(500).json({ error: 'Failed to load data' });
   }
 });
 
-// ── PUT /api/data ────────────────────────────────────────────────────────────
+// ── PUT /api/data — optimistic concurrency: caller must supply the version ───
+// it last read (expectedVersion). Never silently overwrites a newer save from
+// another device — see docs/architecture-review/ConflictResolution.md.
 app.put('/api/data', requireAuth, requireActive, (req, res) => {
-  const { data } = req.body;
+  const { data, expectedVersion } = req.body;
   if (!data || typeof data !== 'object') {
     return res.status(400).json({ error: 'data must be a JSON object' });
   }
+  if (typeof expectedVersion !== 'number') {
+    // Missing/old-client request — fail safe into the same conflict path
+    // below rather than guessing at what version it thinks it has.
+    return sendConflict(req, res);
+  }
   try {
-    db.prepare(
-      `INSERT INTO tenant_data (tenant_id, data, updated_at) VALUES (?, ?, datetime('now'))
-       ON CONFLICT(tenant_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`
-    ).run(req.user.tenantId, JSON.stringify(data));
-    res.json({ ok: true, savedAt: new Date().toISOString() });
+    const existing = db.prepare('SELECT version FROM tenant_data WHERE tenant_id = ?').get(req.user.tenantId);
+    if (!existing) {
+      // Tenant has no tenant_data row at all — some pre-existing accounts
+      // predate this column set (or any INSERT ever running for them; found
+      // during Wave 0/1 review). GET /api/data reports version:0 for this
+      // state, so 0 is the only expectedVersion that means "I know there's
+      // nothing here yet." Anything else means the client's assumption is
+      // stale even about that.
+      if (expectedVersion !== 0) return sendConflict(req, res);
+      try {
+        db.prepare(
+          `INSERT INTO tenant_data (tenant_id, data, version, updated_at, updated_by) VALUES (?, ?, 1, datetime('now'), ?)`
+        ).run(req.user.tenantId, JSON.stringify(data), req.user.userId);
+      } catch (insertErr) {
+        // Lost a race to a concurrent first save from another device for the
+        // same tenant (tenant_id is tenant_data's primary key, so the second
+        // INSERT throws) — no data was overwritten, just tell this caller to
+        // reload and retry with the real version.
+        return sendConflict(req, res);
+      }
+      return res.json({ ok: true, version: 1, savedAt: new Date().toISOString() });
+    }
+    const result = db.prepare(
+      `UPDATE tenant_data
+       SET data = ?, version = version + 1, updated_at = datetime('now'), updated_by = ?
+       WHERE tenant_id = ? AND version = ?`
+    ).run(JSON.stringify(data), req.user.userId, req.user.tenantId, expectedVersion);
+    if (result.changes === 0) {
+      return sendConflict(req, res);
+    }
+    const row = db.prepare('SELECT version, updated_at FROM tenant_data WHERE tenant_id = ?').get(req.user.tenantId);
+    res.json({ ok: true, version: row.version, savedAt: row.updated_at });
   } catch (e) {
     console.error('Save error:', e);
     res.status(500).json({ error: 'Failed to save data' });
   }
 });
+
+function sendConflict(req, res) {
+  try {
+    const row = db.prepare('SELECT version, updated_at, updated_by FROM tenant_data WHERE tenant_id = ?').get(req.user.tenantId);
+    let updatedByName = null;
+    if (row && row.updated_by) {
+      const u = db.prepare('SELECT display_name, mobile FROM users WHERE id = ?').get(row.updated_by);
+      if (u) updatedByName = u.display_name || u.mobile;
+    }
+    res.status(409).json({
+      error: 'This shop\'s data was updated from another device. Reload to get the latest version before saving again.',
+      currentVersion: row ? row.version : 0,
+      currentUpdatedAt: row ? row.updated_at : null,
+      updatedByName,
+    });
+  } catch (e) {
+    console.error('Conflict lookup error:', e);
+    res.status(409).json({ error: 'This shop\'s data was updated from another device. Reload to get the latest version before saving again.' });
+  }
+}
 
 // ── GET /api/data/users ──────────────────────────────────────────────────────
 app.get('/api/data/users', requireAuth, (req, res) => {
@@ -785,7 +1045,16 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('║  Current key (first 16 chars):                    ║');
   console.log(`║  ${ADMIN_KEY.slice(0,16)}...${' '.repeat(34)}║`);
   console.log('╠════════════════════════════════════════════════════╣');
-  console.log('║  Data saved to: server/shoperpro.db               ║');
   console.log('║  Press Ctrl+C to stop                             ║');
-  console.log('╚════════════════════════════════════════════════════╝\n');
+  console.log('╚════════════════════════════════════════════════════╝');
+  // Printed outside the fixed-width box since DB_PATH can be arbitrarily
+  // long (e.g. a temp test file path) — and deliberately loud when it's not
+  // the default, so a test run is never mistakable for a production one.
+  const isDefaultDbPath = DB_PATH === path.join(__dirname, 'shoperpro.db');
+  if (isDefaultDbPath) {
+    console.log(`Data saved to: ${DB_PATH}\n`);
+  } else {
+    console.log(`\n⚠️  NON-DEFAULT DATABASE — DB_PATH override in effect:`);
+    console.log(`   ${DB_PATH}\n`);
+  }
 });

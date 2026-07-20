@@ -7,7 +7,19 @@
     "start": "node index.js",
     "start:local": "node local.js",
     "dev": "nodemon index.js",
-    "dev:local": "nodemon local.js"
+    "dev:local": "nodemon local.js",
+    "lint": "node scripts/lint.js",
+    "test:unit": "node test/wave0-concurrency.test.js",
+    "test:integration": "node test/wave1-sessions.test.js",
+    "test:migration": "node test/migration-idempotency.test.js",
+    "test:concurrency": "node test/concurrency-stress.test.js",
+    "test:security": "node test/xss-regression.test.js",
+    "test:migration-safety": "node test/migration-safety.test.js",
+    "test:security-phase2": "node test/security-phase2.test.js",
+    "test:operational": "node test/operational-hardening-phase2.test.js",
+    "test": "npm run test:unit && npm run test:integration && npm run test:migration && npm run test:concurrency && npm run test:security && npm run test:migration-safety && npm run test:security-phase2 && npm run test:operational",
+    "backup:verify": "node scripts/backup-verify.js",
+    "validate:migrations": "node scripts/validate-migrations.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

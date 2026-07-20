@@ -1,0 +1,24 @@
+-- ═══════════════════════════════════════════════════════════════════════
+-- Rollback for: 2026-07-19-backfill-missing-tenant-data.sql
+-- ═══════════════════════════════════════════════════════════════════════
+-- Targets the EXACT tenant_ids identified as missing a row at dry-run time
+-- (captured below, before execution) — not a heuristic like "version=1 AND
+-- data='{}'", which could false-positive against a genuinely new tenant
+-- registered normally after this migration ran. This only removes rows
+-- this specific migration run is responsible for creating.
+--
+-- Affected tenant_ids at dry-run time (Phase 1, before execution):
+--   1  Dada Mobile
+--   2  Dada Mobiles
+--   3  Dada Mobiless
+--   4  Vision Communication
+--
+-- Safe to run even if some of these tenants have since saved real data
+-- through the app — in that case their row's version will be > 1, and this
+-- rollback deletes it regardless, which is the correct rollback behavior
+-- (undo means undo, including any data saved into the backfilled row since).
+-- If that's ever NOT the desired outcome, restore from the pre-migration
+-- backup instead (server/backups/shoperpro_pre_backfill_<timestamp>.db).
+-- ═══════════════════════════════════════════════════════════════════════
+
+DELETE FROM tenant_data WHERE tenant_id IN (1, 2, 3, 4);
