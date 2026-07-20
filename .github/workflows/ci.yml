@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Lint, migrate, test, stress
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install server dependencies
+        working-directory: server
+        run: npm install --no-audit --no-fund
+
+      # ── Lint ──────────────────────────────────────────────────────────
+      # No eslint config exists in this project; this is a deliberately
+      # narrow syntax-check sweep (see server/scripts/lint.js) rather than
+      # introducing a linter + its own opinions unprompted.
+      - name: Lint (syntax check)
+        working-directory: server
+        run: npm run lint
+
+      # ── Unit tests ────────────────────────────────────────────────────
+      # Optimistic concurrency on /api/data (Wave 0).
+      - name: Unit tests — data integrity / concurrency
+        working-directory: server
+        run: npm run test:unit
+
+      # ── Integration tests ─────────────────────────────────────────────
+      # Session lifecycle, refresh rotation, tenant isolation (Wave 1).
+      - name: Integration tests — sessions
+        working-directory: server
+        run: npm run test:integration
+
+      # ── Migration tests ───────────────────────────────────────────────
+      # Repeated boots against the same DB file must be idempotent and
+      # lose no data.
+      - name: Migration tests — idempotency
+        working-directory: server
+        run: npm run test:migration
+
+      # ── Concurrency / stress tests ────────────────────────────────────
+      # 2 / 5 / 10 / 20 simulated concurrent actors — concurrent saves,
+      # refresh-token races, tenant isolation under load.
+      - name: Concurrency stress tests
+        working-directory: server
+        run: npm run test:concurrency
+
+      # Tenant isolation, session revocation, theft-detection outside the
+      # refresh grace window, and cross-tenant authorization boundaries are
+      # exercised as part of the integration and concurrency suites above,
+      # not a separate job — see docs/architecture-review/CISetupReport.md
+      # for why these were combined rather than split into a nominal
+      # "security" step that would just re-run the same assertions under a
+      # different label.
+
+      # ── XSS regression ────────────────────────────────────────────────
+      # S-1/S-2 (SecurityHardeningReview.md): confirmed stored XSS fixes.
+      # Guards against a future edit silently dropping an escHtml() wrapper.
+      - name: Security tests — XSS regression (S-1/S-2)
+        working-directory: server
+        run: npm run test:security
+
+      # ── Migration safety ──────────────────────────────────────────────
+      # Genuine migration failures must be logged loudly and recorded, not
+      # silently swallowed identically to "already applied" — see
+      # MigrationSafetyReport.md.
+      - name: Migration safety tests
+        working-directory: server
+        run: npm run test:migration-safety
+
+      # ── Security phase 2 ───────────────────────────────────────────────
+      # S-7/S-9/S-10 (SecurityHardeningReview.md / SecurityHardeningPhase2.md):
+      # JWT algorithm pinning, admin-key timing-safe comparison, error
+      # disclosure fix.
+      - name: Security tests — phase 2 (S-7/S-9/S-10)
+        working-directory: server
+        run: npm run test:security-phase2
+
+      # ── Operational hardening phase 2 ─────────────────────────────────
+      # Startup validation, backup-verify.js, structured logger,
+      # validate-migrations.js — see OperationalHardeningPhase2.md.
+      - name: Operational hardening tests — phase 2
+        working-directory: server
+        run: npm run test:operational
