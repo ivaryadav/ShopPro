@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Menu, shell, dialog, ipcMain } = require('electron');
 const path = require('path');
+const { pathToFileURL } = require('url');
 
 // Keep reference to prevent garbage collection
 let mainWindow;
@@ -17,7 +18,6 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false,  // Allow data: URLs for local file (QR codes, logos)
       preload: path.join(__dirname, 'preload.js')
     }
   });
@@ -31,13 +31,31 @@ function createWindow() {
     mainWindow.focus();
   });
 
-  // Open external links in browser, not Electron
+  // Open external links in browser, not Electron. Only http/https are
+  // handed to the OS browser; everything else is denied outright rather
+  // than falling through to Electron's default "open a new, unrestricted
+  // window" behavior — no legitimate app flow calls window.open() with
+  // anything but an http(s) URL (checked: no other scheme appears at any
+  // window.open call site in app/ShopERP_Pro_v8.html), so this narrows an
+  // unused allowance rather than changing real behavior.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('http') || url.startsWith('https')) {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
       shell.openExternal(url);
-      return { action: 'deny' };
     }
-    return { action: 'allow' };
+    return { action: 'deny' };
+  });
+
+  // Restrict full-document navigation to the app's own local file — same
+  // spirit as setWindowOpenHandler above but for in-place navigation
+  // (location.href, a plain <a href> click), which setWindowOpenHandler
+  // does not govern. Client-side page switching (showPage()-style DOM
+  // updates) is not a real navigation and never reaches this handler.
+  // pathToFileURL (not string concatenation) so this is correct on
+  // Windows too — a raw 'file://' + a Windows path (backslashes, a drive
+  // letter) does not produce a valid file:// URL.
+  const appRoot = pathToFileURL(path.join(__dirname, 'app') + path.sep).href;
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith(appRoot)) event.preventDefault();
   });
 
   mainWindow.on('closed', () => {
