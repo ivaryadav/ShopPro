@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.47">
-<title>ShopERP Pro v8.47</title>
+<meta name="shoperpro-version" content="v8.48">
+<title>ShopERP Pro v8.48</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -3193,7 +3193,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.47 · Licensed</div>
+        <div class="sb-footer-ver">v8.48 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3432,21 +3432,14 @@ function runSelfTest() {
 // ██████╔╝███████╗ ╚████╔╝ ███████╗███████╗╚██████╔╝██║     ███████╗██║  ██║
 // ╚═════╝ ╚══════╝  ╚═══╝  ╚══════╝╚══════╝ ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═╝
 //
-// ACTIVATION KEYS - NEVER EXPOSE TO END USERS - DEVELOPER EYES ONLY
-// These are hardcoded. Users never see this screen logic or these keys.
-// The 16-char alphanumeric keys below are the master activation codes.
-// Format: XXXX-XXXX-XXXX-XXXX  (shown with dashes for readability)
-// ─────────────────────────────────────────────────────────────────
-// SHA-256 of the normalized super-admin key (no plaintext stored in source)
-const _SAK_H='42b54bd10ca7689012b7c4be0041db32cdf00d5d7722cae55b8295f33c56c1d6';
-async function _checkSAK(key){
-  const clean=key.replace(/[-\s]/g,'').toUpperCase();
-  try{
-    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(clean));
-    const hex=Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-    return hex===_SAK_H;
-  }catch{return false;}
-}
+// The universal Super Admin Key bypass (hash-only comparison, no plaintext
+// key in source) that used to live here has been removed as of the final
+// production-hardening pass — see docs/right-click-review/BackdoorRemoval.md.
+// It was a hardcoded, undocumented, un-auditable bypass that granted a
+// permanent license + owner-equivalent access on ANY installation; the
+// admin console's existing Generate Key flow already covers legitimate
+// recovery (a real, machine-locked, per-customer key with an audit trail),
+// so no replacement mechanism was needed.
 // ─────────────────────────────────────────────────────────────────
 // LICENSE REGISTRY - Super Admin view of all deployed licenses
 const LICENSE_REGISTRY=[
@@ -4231,15 +4224,6 @@ async function doActivation(){
     inp.style.borderColor='var(--red)';
     setTimeout(()=>{inp.style.borderColor='';},2000);
     return;
-  }
-  // Super admin check — compare hash only, never store or compare plaintext
-  const _isSAK=await _checkSAK(raw);
-  if(_isSAK){
-    DB.settings._superAdmin=true;DB.settings.licenseExpiry='2099-12-31';
-    DB.settings.activated=true;DB.settings.setupDone=true;
-    delete DB.settings.licenseKey; // don't persist the plaintext key
-    DB.users=[{id:0,name:'Super Admin',role:'superadmin',pin:'000000',pinSet:true}];
-    saveDB();startApp(DB.users[0]);return;
   }
   const machineId=getAppMachineId();
   // Try crypto engine
@@ -5276,10 +5260,22 @@ function webRegister(){
 // PORTAL SELECTION + ADMIN DASHBOARD
 // ════════════════════════════════════════════════════════════════
 
-// ── Admin password: SHA-256 hash only - plaintext never in source ──
-// To change: run   echo -n 'NewPassword' | shasum -a 256
-// paste the result as ADMIN_PWD_HASH below and redeploy.
-const ADMIN_PWD_HASH='2b5877210c3581cccac2431c0a5681ea1c5674ae71dbb5d664eda93e3965a3dd';
+// ── Admin password ──────────────────────────────────────────────────────────
+// Web/hosted mode (SHOPERPRO_API_URL set): the server verifies the password
+// (bcrypt, auto-migrated from the legacy scheme — see server/local.js and
+// docs/production-hardening/PasswordMigration.md) via POST /api/admin/login
+// and returns a short-lived session token, which ADMIN_PWD_HASH now holds
+// for the rest of the session — every existing admin fetch call already
+// sends this same variable as X-Admin-Key, so nothing else needed to change.
+// Offline/local desktop mode (no server to verify against — same structural
+// constraint as the offline license system): unchanged, still a client-only
+// hash comparison, using its own separate constant below.
+let ADMIN_PWD_HASH='';
+// Offline/local-only fallback — no server exists in this mode, so a
+// client-embedded hash is unavoidable here (unrelated to, and not fixed by,
+// the web-mode bcrypt migration, since there's no server to bcrypt against).
+// To change: run   echo -n 'NewPassword' | shasum -a 256   and paste below.
+const _LOCAL_ADMIN_PWD_HASH='2b5877210c3581cccac2431c0a5681ea1c5674ae71dbb5d664eda93e3965a3dd';
 async function _adminHash(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 
 // ── PIN Security — SHA-256(machineId::salt::pin), machine-bound, never stored plain text ──
@@ -5544,9 +5540,16 @@ async function adminLogin(){
   var pass=document.getElementById('adm-pass').value;
   if(!pass){showErr('Password required.');return;}
   if(!_adminLockCheck(showErr))return;
-  var hash=await _adminHash(pass);
-  document.getElementById('adm-pass').value='';
-  if(hash!==ADMIN_PWD_HASH){_adminFailure(showErr);return;}
+  if(SHOPERPRO_API_URL){
+    var res=await fetch(SHOPERPRO_API_URL+'/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pass})}).then(function(r){return r.json();}).catch(function(){return {error:'Connection error. Check your network.'};});
+    document.getElementById('adm-pass').value='';
+    if(!res.adminToken){_adminFailure(showErr);return;}
+    ADMIN_PWD_HASH=res.adminToken;
+  } else {
+    var hash=await _adminHash(pass);
+    document.getElementById('adm-pass').value='';
+    if(hash!==_LOCAL_ADMIN_PWD_HASH){_adminFailure(showErr);return;}
+  }
   _adminSuccess();
   errEl.style.display='none';
   document.getElementById('admin-login-screen').style.display='none';
@@ -6817,12 +6820,11 @@ function pssLogin(){
   _api.post('/api/auth/login',{mobile:mobile,pin:pin,deviceId:deviceId}).then(function(res){
     if(res.error){
       btn.disabled=false; btn.textContent='Sign In →';
-      if(res.error.indexOf('not registered')!==-1){
-        // auto switch to register and pre-fill mobile
-        pssOpenPanel('register');
-        var rm=document.getElementById('pss-reg-mobile'); if(rm) rm.value=mobile;
-        pssShowErr('Mobile not found. Please complete First Time Setup below.');
-      } else { pssShowErr(res.error); }
+      // The server now returns an identical, generic message for "mobile
+      // not registered" and "wrong PIN" (Issue 3, AuthenticationReview.md —
+      // distinguishing them let an attacker enumerate registered mobile
+      // numbers), so this can no longer branch on the specific reason.
+      pssShowErr(res.error);
       return;
     }
     _api.setToken(res.token);
@@ -6912,9 +6914,16 @@ async function pssAdminLogin(){
   var pass=document.getElementById('pss-adm-pass').value;
   if(!pass){pssShowErr('Password required.');return;}
   if(!_adminLockCheck(pssShowErr))return;
-  var hash=await _adminHash(pass);
-  document.getElementById('pss-adm-pass').value='';
-  if(hash!==ADMIN_PWD_HASH){_adminFailure(pssShowErr);return;}
+  if(SHOPERPRO_API_URL){
+    var res=await fetch(SHOPERPRO_API_URL+'/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pass})}).then(function(r){return r.json();}).catch(function(){return {error:'Connection error. Check your network.'};});
+    document.getElementById('pss-adm-pass').value='';
+    if(!res.adminToken){_adminFailure(pssShowErr);return;}
+    ADMIN_PWD_HASH=res.adminToken;
+  } else {
+    var hash=await _adminHash(pass);
+    document.getElementById('pss-adm-pass').value='';
+    if(hash!==_LOCAL_ADMIN_PWD_HASH){_adminFailure(pssShowErr);return;}
+  }
   _adminSuccess();
   document.getElementById('pss-inline-err').style.display='none';
   document.getElementById('portal-select-screen').style.display='none';
@@ -7150,18 +7159,7 @@ function bootApp(){
   loadDB();
   showPortalSelect();
 }
-// One-time silent migration: if the stored licenseKey is the SAK, convert to _superAdmin flag
-// Uses hash comparison only — no plaintext SAK in source
-async function _migrateLegacySAK(){
-  var s=DB.settings;
-  if(s._superAdmin||!s.licenseKey)return;
-  if(await _checkSAK(s.licenseKey)){
-    s._superAdmin=true;delete s.licenseKey;saveDB();
-  }
-}
-
 async function continueBootApp(){
-  await _migrateLegacySAK();
   initMachineId();
   initTheme();
   document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
@@ -7461,14 +7459,7 @@ document.addEventListener('wheel', function(e){
     try{if(typeof console!=='undefined'&&console[m])console[m]=_noop;}catch(e){}
   });
 
-  // 2. Block right-click (context menu) on the auth/license screens
-  document.addEventListener('contextmenu',function(e){
-    var authIds=['portal-select-screen','activation-screen','new-user-screen','admin-login-screen','setup-pin-screen','user-select-screen','pin-login-screen'];
-    var inAuth=authIds.some(function(id){var el=document.getElementById(id);return el&&(el.style.display!=='none'&&!el.classList.contains('hidden'));});
-    if(inAuth){e.preventDefault();return false;}
-  });
-
-  // 3. Block common devtools keyboard shortcuts on auth screens
+  // 2. Block common devtools keyboard shortcuts on auth screens
   document.addEventListener('keydown',function(e){
     var authActive=['portal-select-screen','activation-screen','new-user-screen','pin-login-screen'].some(function(id){
       var el=document.getElementById(id);return el&&el.style.display!=='none'&&!el.classList.contains('hidden');
@@ -7481,7 +7472,7 @@ document.addEventListener('wheel', function(e){
     }
   },true);
 
-  // 4. Detect if DevTools is open (size change method) — warn and show machine-ID screen
+  // 3. Detect if DevTools is open (size change method) — warn and show machine-ID screen
   var _devCheck=function(){
     var t=new Date();
     (function(){})['constructor']('debugger')();
@@ -15153,13 +15144,6 @@ async function renewLicense(){
     } else if(r.valid&&r.expired){
       toast('This key has expired. Please contact your software provider.','error');return;
     }
-  }
-  // Super-admin key check (hash-only, no plaintext comparison)
-  if(await _checkSAK(key)){
-    DB.settings._superAdmin=true;DB.settings.licenseExpiry='2099-12-31';
-    delete DB.settings.licenseKey;
-    _auditLog('license-change','super-admin key applied');
-    saveDB();toast('License activated successfully','success');showPage('settings');return;
   }
   toast('Invalid license key','error');
 }
