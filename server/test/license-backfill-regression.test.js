@@ -156,13 +156,18 @@ async function main() {
 
     // ── Legacy /api/admin/tenant/status (pause/restore) still works ─────────
     const restorePaused = await req3('POST', '/api/admin/tenant/status', { admin: true, body: { shopName: 'Legacy Paused Shop', status: 'active' } });
-    assert(restorePaused.status === 200, 'the legacy admin pause/restore endpoint still works, completely unaffected by the new tenant_licenses table');
+    assert(restorePaused.status === 200, 'the legacy admin pause/restore endpoint still works');
     const pausedTenantAfter = db3.prepare('SELECT status FROM tenants WHERE id = ?').get(pausedTenant.id);
     assert(pausedTenantAfter.status === 'active', "the legacy restore actually flipped tenants.status back to 'active'");
-    // Note: this legacy action intentionally does NOT touch tenant_licenses —
-    // the two systems are independent by design (decision #9 in the plan).
+    // Blocker 1 fix (TenantStatusConsistency.md): this legacy action used to
+    // leave tenant_licenses.status completely untouched — the Independent
+    // Release Approval Board found that divergence let a "terminated" tenant
+    // keep working through any endpoint gated only by the newer license
+    // middleware. tenant_licenses.status is now the authoritative source
+    // every protected endpoint gates on, and this legacy action keeps it in
+    // sync on every call, so the two can no longer drift apart.
     const pausedLicAfter = db3.prepare('SELECT status FROM tenant_licenses WHERE tenant_id = ?').get(pausedTenant.id);
-    assert(pausedLicAfter.status === 'SUSPENDED', 'tenant_licenses.status is untouched by the legacy admin action — the two status systems are independent for legacy tenants');
+    assert(pausedLicAfter.status === 'ACTIVE', 'restoring via the legacy admin action now also syncs tenant_licenses.status back to ACTIVE (previously it stayed SUSPENDED forever)');
 
     // ── A brand-new signup, unaffected by any of the legacy tenants above ───
     const newSignup = await req3('POST', '/api/auth/signup', { body: {

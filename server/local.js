@@ -79,10 +79,12 @@ const mailer = require('./mailer');
 //    fails hard — an unset JWT_SECRET silently breaks every session on
 //    restart, a correctness bug; an unset ADMIN_KEY just means a known,
 //    fixed admin credential, a security posture question the operator
-//    should see plainly rather than discover later). Already visible via
-//    GET /health's startup.adminKeyIsDefault — this adds the boot-time
-//    visibility that check alone doesn't give an operator who never polls
-//    /health.
+//    should see plainly rather than discover later). Visible only at
+//    boot (console log + this warning) — deliberately NOT exposed via
+//    GET /health (TenantStatusConsistency.md, Blocker 3): that's a public,
+//    unauthenticated endpoint, and telling any caller for free whether a
+//    deployment is still on the known default admin-key hash is a real
+//    reconnaissance gift to an attacker.
 // 2. DB_PATH's parent directory must exist and be writable before
 //    new Database(DB_PATH) is attempted, so a bad path fails with a clear,
 //    operator-actionable message instead of better-sqlite3's own raw
@@ -91,7 +93,7 @@ const mailer = require('./mailer');
 //    the message, not the fail-closed behavior itself).
 if (!process.env.ADMIN_KEY) {
   logger.warn('ADMIN_KEY not set — using the default admin key hash', {
-    hint: 'Set ADMIN_KEY in server/.env to use your own admin password. See GET /health for a live check.',
+    hint: 'Set ADMIN_KEY in server/.env to use your own admin password. Check this server\'s boot log ("Custom key configured") for a live check.',
   });
 }
 try {
@@ -209,9 +211,19 @@ sessions.migrate(db, migrationState.failures);
 //
 // All additive: new tables, new columns on tenants/users. The legacy
 // tenants.status/suspend_reason/license_key_hash/license_expiry/license_plan
-// columns are frozen — never written by any code below — so requireActive(),
-// the old /api/auth/register, /api/auth/verify-license, /api/admin/tenant/status
-// and /api/admin/web-users all keep working exactly as before, unchanged.
+// columns keep their original meaning and every existing reader of them
+// (requireActive(), the old /api/auth/verify-license, /api/admin/tenants,
+// /api/admin/web-users) keeps working exactly as before, unchanged.
+//
+// One exception, added post-launch (TenantStatusConsistency.md, Blocker 1):
+// tenant_licenses.status is the single authoritative source of truth for
+// "is this tenant allowed to use the product" — every protected endpoint
+// gates on it (directly, or via requireActive() as a second, redundant
+// layer). /api/auth/register now also creates a tenant_licenses row (it
+// used to leave tenants without one, which is exactly the condition the
+// license middleware fails open on), and /api/admin/tenant/status now also
+// writes tenant_licenses.status in the same request it writes tenants.status,
+// so the two can no longer drift apart the way they did before this fix.
 db.exec(`
   CREATE TABLE IF NOT EXISTS subscription_plans (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -667,8 +679,15 @@ app.get('/health', (_req, res) => {
       // the process before this route is ever registered (see the top of
       // this file). Reported anyway so /health's startup block is a
       // complete, self-contained record rather than a partial one.
+      //
+      // Blocker 3 (TenantStatusConsistency.md): this used to also report
+      // adminKeyIsDefault here — telling any unauthenticated caller, for
+      // free, whether this deployment's admin credential is still on the
+      // known public default hash. That's a real reconnaissance gift to an
+      // attacker and this is a public, unauthenticated endpoint; an operator
+      // gets the identical signal privately from the boot-time console log
+      // ("Custom key configured: yes/no") instead, which isn't network-reachable.
       jwtSecretConfigured: true,
-      adminKeyIsDefault: !process.env.ADMIN_KEY,
     },
   });
 });
@@ -753,14 +772,32 @@ app.post('/api/auth/register', rateLimit(5, 10 * 60 * 1000), (req, res) => {
     if (existingMob) {
       return res.status(409).json({ error: 'This mobile number is already registered. Please sign in.' });
     }
-    const hash   = bcrypt.hashSync(pin, 10);
-    const tenant = db.prepare(
-      'INSERT INTO tenants (shop_name, license_key_hash, license_expiry, license_plan) VALUES (?,?,?,?) RETURNING *'
-    ).get(shopName, keyHash, decoded.plan === 'lifetime' ? null : decoded.expiryDate, decoded.plan);
-    const user = db.prepare(
-      'INSERT INTO users (tenant_id, username, display_name, mobile, password_hash, role) VALUES (?,?,?,?,?,?) RETURNING *'
-    ).get(tenant.id, mob, ownerName || 'Owner', mob, hash, 'owner');
-    db.prepare('INSERT INTO tenant_data (tenant_id, data) VALUES (?,?)').run(tenant.id, '{}');
+    const hash = bcrypt.hashSync(pin, 10);
+    // Blocker 1 fix (TenantStatusConsistency.md): this legacy endpoint used to
+    // leave a tenant with NO tenant_licenses row at all — the exact condition
+    // requireLicenseRead/Write fail open on. Every tenant, legacy or new, must
+    // now get one at creation so tenant_licenses.status (the single
+    // authoritative source of truth) is never missing for anyone. Wrapped in
+    // a transaction (Blocker 3) so a crash mid-sequence can never leave a
+    // tenant half-created with some of these five rows missing.
+    const registerTenant = db.transaction(() => {
+      const tenant = db.prepare(
+        'INSERT INTO tenants (shop_name, license_key_hash, license_expiry, license_plan) VALUES (?,?,?,?) RETURNING *'
+      ).get(shopName, keyHash, decoded.plan === 'lifetime' ? null : decoded.expiryDate, decoded.plan);
+      const user = db.prepare(
+        'INSERT INTO users (tenant_id, username, display_name, mobile, password_hash, role) VALUES (?,?,?,?,?,?) RETURNING *'
+      ).get(tenant.id, mob, ownerName || 'Owner', mob, hash, 'owner');
+      db.prepare('INSERT INTO tenant_data (tenant_id, data) VALUES (?,?)').run(tenant.id, '{}');
+      const billingCycle = ['monthly', 'halfyearly', 'yearly', 'lifetime'].includes(decoded.plan) ? decoded.plan : 'monthly';
+      const licKey = generateHostedLicenseKey();
+      db.prepare(
+        `INSERT INTO tenant_licenses (tenant_id, status, plan_code, billing_cycle, device_limit, license_key, expires_at, last_verified_at)
+         VALUES (?, 'ACTIVE', 'BASIC', ?, 5, ?, ?, datetime('now'))`
+      ).run(tenant.id, billingCycle, licKey, decoded.plan === 'lifetime' ? null : decoded.expiryDate);
+      addLicenseHistory(tenant.id, 'REGISTERED', { toStatus: 'ACTIVE', detail: 'legacy key-based registration (/api/auth/register)' });
+      return { tenant, user };
+    });
+    const { tenant, user } = registerTenant();
     const session = sessions.createSession(db, JWT_SECRET, { user, tenant, req });
     res.status(201).json({
       message: 'Shop registered',
@@ -818,19 +855,27 @@ app.post('/api/auth/signup', rateLimit(5, 10 * 60 * 1000), async (req, res) => {
     const verifyTokenHash = crypto.createHash('sha256').update(verifyToken).digest('hex');
     const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-    const tenant = db.prepare(
-      'INSERT INTO tenants (shop_name, address, gst_number) VALUES (?,?,?) RETURNING *'
-    ).get(shopName, address || '', gst || '');
-    db.prepare(
-      `INSERT INTO users (tenant_id, username, display_name, mobile, email, password_hash, role, email_verify_token_hash, email_verify_expires)
-       VALUES (?,?,?,?,?,?,?,?,?)`
-    ).run(tenant.id, mob, ownerName, mob, email, hash, 'owner', verifyTokenHash, verifyExpires);
-    db.prepare('INSERT INTO tenant_data (tenant_id, data) VALUES (?,?)').run(tenant.id, '{}');
-    db.prepare(
-      `INSERT INTO tenant_licenses (tenant_id, status, plan_code, requested_plan_code, device_limit, requested_devices_bucket, requested_modules)
-       VALUES (?, 'PENDING_APPROVAL', ?, ?, ?, ?, ?)`
-    ).run(tenant.id, plan.code, plan.code, plan.device_limit, devicesBucket, JSON.stringify(modules));
-    addLicenseHistory(tenant.id, 'REGISTERED', { toStatus: 'PENDING_APPROVAL', detail: `requested plan ${plan.code}` });
+    // Blocker 3 fix (TenantStatusConsistency.md): wrapped in a transaction so
+    // a crash mid-sequence can never leave a tenant with some of these four
+    // rows missing — in particular never a tenant with no tenant_licenses
+    // row, which is the exact condition the license middleware fails open on.
+    const signupTenant = db.transaction(() => {
+      const tenant = db.prepare(
+        'INSERT INTO tenants (shop_name, address, gst_number) VALUES (?,?,?) RETURNING *'
+      ).get(shopName, address || '', gst || '');
+      db.prepare(
+        `INSERT INTO users (tenant_id, username, display_name, mobile, email, password_hash, role, email_verify_token_hash, email_verify_expires)
+         VALUES (?,?,?,?,?,?,?,?,?)`
+      ).run(tenant.id, mob, ownerName, mob, email, hash, 'owner', verifyTokenHash, verifyExpires);
+      db.prepare('INSERT INTO tenant_data (tenant_id, data) VALUES (?,?)').run(tenant.id, '{}');
+      db.prepare(
+        `INSERT INTO tenant_licenses (tenant_id, status, plan_code, requested_plan_code, device_limit, requested_devices_bucket, requested_modules)
+         VALUES (?, 'PENDING_APPROVAL', ?, ?, ?, ?, ?)`
+      ).run(tenant.id, plan.code, plan.code, plan.device_limit, devicesBucket, JSON.stringify(modules));
+      addLicenseHistory(tenant.id, 'REGISTERED', { toStatus: 'PENDING_APPROVAL', detail: `requested plan ${plan.code}` });
+      return tenant;
+    });
+    const tenant = signupTenant();
 
     const verifyUrl = `${req.protocol}://${req.get('host')}/api/auth/verify-email?token=${verifyToken}`;
     try {
@@ -1020,7 +1065,7 @@ app.post('/api/auth/heartbeat', requireAuth, (req, res) => {
 });
 
 // ── GET /api/auth/sessions — list this tenant's active sessions (owner only) ─
-app.get('/api/auth/sessions', requireAuth, requireLicenseRead, (req, res) => {
+app.get('/api/auth/sessions', requireAuth, requireActive, requireLicenseRead, (req, res) => {
   if (req.user.role !== 'owner') return res.status(403).json({ error: 'Only the owner can view active sessions' });
   res.json({ sessions: sessions.listActiveSessions(db, req.user.tenantId) });
 });
@@ -1036,7 +1081,7 @@ app.post('/api/auth/sessions/:sessionId/revoke', requireAuth, (req, res) => {
 });
 
 // ── POST /api/auth/add-staff ─────────────────────────────────────────────────
-app.post('/api/auth/add-staff', requireAuth, requireLicenseWrite, (req, res) => {
+app.post('/api/auth/add-staff', requireAuth, requireActive, requireLicenseWrite, (req, res) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ error: 'Only the owner can add staff' });
   }
@@ -1187,6 +1232,30 @@ app.post('/api/admin/login', rateLimit(10, 5 * 60 * 1000), (req, res) => {
 });
 
 // ── POST /api/admin/tenant/status — pause / terminate / restore (remote) ─────
+// tenant_licenses.status is the single authoritative source of truth every
+// protected endpoint gates on (TenantStatusConsistency.md, Blocker 1). This
+// legacy action still writes tenants.status first, for full backward
+// compatibility with every existing reader of that column (requireActive(),
+// GET /api/admin/tenants, GET /api/admin/web-users) — but it now ALSO
+// synchronizes tenant_licenses.status in the same request, closing the gap
+// that let a "terminated" tenant keep working through any endpoint gated
+// only by the newer license middleware.
+function syncLegacyStatusToLicense(tenantId, legacyStatus, reason) {
+  const lic = db.prepare('SELECT status FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+  if (!lic) return; // no license row yet (should not happen post-fix; fail safe rather than throw)
+  const licStatus = legacyStatus === 'paused' ? 'SUSPENDED' : legacyStatus === 'terminated' ? 'ARCHIVED' : 'ACTIVE';
+  if (lic.status === licStatus) return; // already in sync, nothing to do
+  if (licStatus === 'SUSPENDED') {
+    db.prepare(`UPDATE tenant_licenses SET status = 'SUSPENDED', suspended_since = datetime('now'), updated_at = datetime('now') WHERE tenant_id = ?`).run(tenantId);
+    sessions.revokeAllTenantSessions(db, tenantId);
+  } else if (licStatus === 'ARCHIVED') {
+    db.prepare(`UPDATE tenant_licenses SET status = 'ARCHIVED', updated_at = datetime('now') WHERE tenant_id = ?`).run(tenantId);
+    sessions.revokeAllTenantSessions(db, tenantId);
+  } else {
+    db.prepare(`UPDATE tenant_licenses SET status = 'ACTIVE', read_only_since = NULL, suspended_since = NULL, updated_at = datetime('now') WHERE tenant_id = ?`).run(tenantId);
+  }
+  addLicenseHistory(tenantId, 'STATUS_CHANGED', { fromStatus: lic.status, toStatus: licStatus, detail: reason || ('legacy admin action: ' + legacyStatus), actor: 'admin' });
+}
 app.post('/api/admin/tenant/status', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
   const { shopName, status, reason = '' } = req.body;
   if (!shopName || !status) return res.status(400).json({ error: 'shopName and status required' });
@@ -1194,6 +1263,7 @@ app.post('/api/admin/tenant/status', requireAdminKey, rateLimit(30, 60 * 1000), 
   const t = db.prepare('SELECT id, shop_name FROM tenants WHERE LOWER(shop_name) = LOWER(?)').get(shopName);
   if (!t) return res.status(404).json({ error: 'Shop not found on this server' });
   db.prepare('UPDATE tenants SET status = ?, suspend_reason = ? WHERE id = ?').run(status, reason, t.id);
+  syncLegacyStatusToLicense(t.id, status, reason);
   console.log(`[Admin] ${t.shop_name} → ${status}${reason ? ' ('+reason+')' : ''}`);
   res.json({ ok: true, shopName: t.shop_name, status, reason });
 });
@@ -1667,7 +1737,7 @@ function sendConflict(req, res) {
 }
 
 // ── GET /api/data/users ──────────────────────────────────────────────────────
-app.get('/api/data/users', requireAuth, requireLicenseRead, (req, res) => {
+app.get('/api/data/users', requireAuth, requireActive, requireLicenseRead, (req, res) => {
   try {
     const users = db.prepare(
       'SELECT id, username, email, role, is_active, last_login, created_at FROM users WHERE tenant_id = ? ORDER BY created_at'
@@ -1862,7 +1932,7 @@ app.get('/', (req, res) => {
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   const ip  = getLocalIp();
   const url = `http://${ip}:${PORT}`;
   console.log('\n╔════════════════════════════════════════════════════╗');
@@ -1874,8 +1944,13 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('╠════════════════════════════════════════════════════╣');
   console.log('║  Remote Admin Control (pause / terminate shops):  ║');
   console.log('║  Set ADMIN_KEY env var = sha256 of admin password ║');
-  console.log('║  Current key (first 16 chars):                    ║');
-  console.log(`║  ${ADMIN_KEY.slice(0,16)}...${' '.repeat(34)}║`);
+  // Blocker 3 (TenantStatusConsistency.md): used to print the first 16 hex
+  // characters of the actual key hash here — real secret material, even if
+  // truncated, has no reason to be in stdout logs that a log aggregator may
+  // retain far more permissively than the secret store itself. A yes/no
+  // confirmation gives an operator the same practical signal (did my .env
+  // override take effect) with nothing to leak.
+  console.log('║  Custom key configured: ' + (process.env.ADMIN_KEY ? 'yes' : 'NO — using the default key, set ADMIN_KEY'));
   console.log('╠════════════════════════════════════════════════════╣');
   console.log('║  Press Ctrl+C to stop                             ║');
   console.log('╚════════════════════════════════════════════════════╝');
@@ -1890,3 +1965,27 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`   ${DB_PATH}\n`);
   }
 });
+
+// Blocker 3 (TenantStatusConsistency.md): graceful shutdown. Previously
+// absent — a SIGTERM (docker stop / systemctl restart / most orchestrators)
+// killed the process immediately with no chance to stop accepting new
+// connections or close the DB handle cleanly. WAL-mode SQLite tolerates an
+// abrupt kill without corruption regardless, so this was a low
+// data-integrity risk — but a real availability one (in-flight requests get
+// a connection reset instead of a response) that costs nothing to close.
+function gracefulShutdown(signal) {
+  console.log(`\n[Shutdown] ${signal} received, closing server...`);
+  server.close(() => {
+    try { db.close(); } catch (_) {}
+    console.log('[Shutdown] Closed out remaining connections. Exiting.');
+    process.exit(0);
+  });
+  // Force-exit if some connection never drains (default Node keep-alive is
+  // 5s; give it 10s of headroom before giving up on a clean close).
+  setTimeout(() => {
+    console.error('[Shutdown] Forced exit — some connections did not close in time.');
+    process.exit(1);
+  }, 10000).unref();
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

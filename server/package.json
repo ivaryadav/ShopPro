@@ -29,7 +29,8 @@
     "test:admin-auth-migration": "node test/admin-auth-migration.test.js",
     "test:auth-enumeration": "node test/auth-enumeration.test.js",
     "test:devops-hardening": "node test/devops-hardening.test.js",
-    "test": "npm run test:unit && npm run test:integration && npm run test:migration && npm run test:concurrency && npm run test:security && npm run test:migration-safety && npm run test:security-phase2 && npm run test:operational && npm run test:license-registration && npm run test:license-email-verification && npm run test:license-admin-approval && npm run test:license-state-machine && npm run test:license-renewal && npm run test:license-offline-grace && npm run test:license-devices && npm run test:license-suspension && npm run test:license-backfill-regression && npm run test:admin-auth-migration && npm run test:auth-enumeration && npm run test:devops-hardening",
+    "test:legacy-tenant-status-consistency": "node test/legacy-tenant-status-consistency.test.js",
+    "test": "npm run test:unit && npm run test:integration && npm run test:migration && npm run test:concurrency && npm run test:security && npm run test:migration-safety && npm run test:security-phase2 && npm run test:operational && npm run test:license-registration && npm run test:license-email-verification && npm run test:license-admin-approval && npm run test:license-state-machine && npm run test:license-renewal && npm run test:license-offline-grace && npm run test:license-devices && npm run test:license-suspension && npm run test:license-backfill-regression && npm run test:admin-auth-migration && npm run test:auth-enumeration && npm run test:devops-hardening && npm run test:legacy-tenant-status-consistency",
     "backup:verify": "node scripts/backup-verify.js",
     "validate:migrations": "node scripts/validate-migrations.js"
   },
