@@ -63,6 +63,12 @@ const HTML_PATH  = path.join(__dirname, '..', 'app', 'ShopERP_Pro_v8.html');
 // Default = current admin password hash. CHANGE THIS if you change admin password.
 const ADMIN_KEY  = process.env.ADMIN_KEY || '2b5877210c3581cccac2431c0a5681ea1c5674ae71dbb5d664eda93e3965a3dd';
 
+// mailer.js reads its required SMTP_* env vars at require time and exits the
+// process if any are missing — must be required here, after the .env file
+// load above, not alongside the top-of-file requires (process.env wouldn't
+// have the .env values yet at that point).
+const mailer = require('./mailer');
+
 // ── Startup validation ────────────────────────────────────────────────────────
 // OperationalReadinessPlan.md §2. Two checks, neither changing existing
 // behavior for a correctly-configured deployment:
@@ -193,6 +199,168 @@ runMigration('ALTER TABLE tenant_data ADD COLUMN updated_by INTEGER', 'tenant_da
 runMigration('CREATE UNIQUE INDEX IF NOT EXISTS idx_tenants_license ON tenants(license_key_hash) WHERE license_key_hash IS NOT NULL', 'idx_tenants_license');
 // Wave 1 — session architecture (see docs/architecture-review/SessionArchitecture.md)
 sessions.migrate(db, migrationState.failures);
+
+// ── SaaS Licensing / Registration / Subscription system ──────────────────────
+// See docs/architecture-review/LicenseArchitecture.md and DatabaseDesign.md.
+// Web/hosted mode only — the offline desktop machine-locked activation path
+// (server/license.js, and the client's own copy of the same engine) is
+// completely untouched by everything below.
+//
+// All additive: new tables, new columns on tenants/users. The legacy
+// tenants.status/suspend_reason/license_key_hash/license_expiry/license_plan
+// columns are frozen — never written by any code below — so requireActive(),
+// the old /api/auth/register, /api/auth/verify-license, /api/admin/tenant/status
+// and /api/admin/web-users all keep working exactly as before, unchanged.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS subscription_plans (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    code          TEXT    NOT NULL UNIQUE,
+    label         TEXT    NOT NULL,
+    device_limit  INTEGER NOT NULL,
+    trial_days    INTEGER,
+    is_active     INTEGER NOT NULL DEFAULT 1,
+    sort_order    INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT    DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS tenant_licenses (
+    id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id                INTEGER NOT NULL UNIQUE REFERENCES tenants(id) ON DELETE CASCADE,
+    status                   TEXT NOT NULL DEFAULT 'PENDING_APPROVAL'
+                                CHECK (status IN ('PENDING_APPROVAL','ACTIVE','READ_ONLY','SUSPENDED','ARCHIVED')),
+    plan_code                TEXT NOT NULL DEFAULT 'TRIAL' REFERENCES subscription_plans(code),
+    requested_plan_code      TEXT,
+    billing_cycle            TEXT,
+    device_limit             INTEGER NOT NULL DEFAULT 2,
+    license_key              TEXT,
+    requested_devices_bucket TEXT,
+    requested_modules        TEXT NOT NULL DEFAULT '[]',
+    starts_at                TEXT,
+    expires_at               TEXT,
+    read_only_since          TEXT,
+    suspended_since          TEXT,
+    last_verified_at         TEXT,
+    offline_grace_days       INTEGER NOT NULL DEFAULT 15,
+    created_at               TEXT DEFAULT (datetime('now')),
+    updated_at               TEXT DEFAULT (datetime('now'))
+  );
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_tenant_licenses_key ON tenant_licenses(license_key) WHERE license_key IS NOT NULL;
+  CREATE INDEX IF NOT EXISTS idx_tenant_licenses_status ON tenant_licenses(status);
+
+  CREATE TABLE IF NOT EXISTS license_history (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id    INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    event_type   TEXT NOT NULL,
+    from_status  TEXT,
+    to_status    TEXT,
+    detail       TEXT NOT NULL DEFAULT '',
+    actor        TEXT NOT NULL DEFAULT 'system',
+    created_at   TEXT DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_license_history_tenant ON license_history(tenant_id, created_at);
+
+  CREATE TABLE IF NOT EXISTS trusted_devices (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id      INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    device_id      TEXT NOT NULL,
+    device_name    TEXT,
+    browser        TEXT,
+    os             TEXT,
+    first_login_at TEXT DEFAULT (datetime('now')),
+    last_login_at  TEXT DEFAULT (datetime('now')),
+    is_active      INTEGER NOT NULL DEFAULT 1,
+    created_at     TEXT DEFAULT (datetime('now')),
+    UNIQUE(tenant_id, user_id, device_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_trusted_devices_tenant ON trusted_devices(tenant_id);
+  CREATE INDEX IF NOT EXISTS idx_trusted_devices_user ON trusted_devices(user_id);
+`);
+runMigration("ALTER TABLE tenants ADD COLUMN address TEXT NOT NULL DEFAULT ''", 'tenants.address');
+runMigration("ALTER TABLE tenants ADD COLUMN gst_number TEXT NOT NULL DEFAULT ''", 'tenants.gst_number');
+runMigration('ALTER TABLE users ADD COLUMN email_verify_token_hash TEXT', 'users.email_verify_token_hash');
+runMigration('ALTER TABLE users ADD COLUMN email_verify_expires TEXT', 'users.email_verify_expires');
+runMigration('ALTER TABLE users ADD COLUMN email_verified_at TEXT', 'users.email_verified_at');
+
+// Seed the 3 plan tiers — idempotent, safe to run every boot.
+db.prepare(`INSERT OR IGNORE INTO subscription_plans (code,label,device_limit,trial_days,sort_order) VALUES ('TRIAL','Trial',2,14,0)`).run();
+db.prepare(`INSERT OR IGNORE INTO subscription_plans (code,label,device_limit,trial_days,sort_order) VALUES ('BASIC','Basic',2,NULL,1)`).run();
+db.prepare(`INSERT OR IGNORE INTO subscription_plans (code,label,device_limit,trial_days,sort_order) VALUES ('PREMIUM','Premium',5,NULL,2)`).run();
+
+const LICENSE_KEY_CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // matches license.js's no-0/O/1/I charset
+function generateHostedLicenseKey() {
+  const group = () => {
+    const b = crypto.randomBytes(4);
+    let s = '';
+    for (let i = 0; i < 4; i++) s += LICENSE_KEY_CHARSET[b[i] % LICENSE_KEY_CHARSET.length];
+    return s;
+  };
+  for (let i = 0; i < 20; i++) {
+    const key = 'SHOP-' + group() + '-' + group() + '-' + group();
+    if (!db.prepare('SELECT 1 FROM tenant_licenses WHERE license_key = ?').get(key)) return key;
+  }
+  throw new Error('Could not generate a unique license key after 20 attempts');
+}
+function addLicenseHistory(tenantId, eventType, { fromStatus, toStatus, detail, actor } = {}) {
+  db.prepare(
+    `INSERT INTO license_history (tenant_id, event_type, from_status, to_status, detail, actor) VALUES (?,?,?,?,?,?)`
+  ).run(tenantId, eventType, fromStatus || null, toStatus || null, detail || '', actor || 'system');
+}
+
+// billing_cycle -> duration in days; 'lifetime' never expires (expires_at = NULL).
+const BILLING_CYCLE_DAYS = { trial: 14, monthly: 30, halfyearly: 180, yearly: 365, lifetime: null };
+// Shared by POST /api/admin/tenant-licenses/:id/assign-plan, /start-trial, and
+// the registrations/:id/approve auto-default — one place computing
+// plan/billing/device-limit/expiry so all three stay consistent.
+function assignPlanToTenant(tenantId, planCode, billingCycle, deviceLimitOverride) {
+  const plan = db.prepare('SELECT code, device_limit FROM subscription_plans WHERE code = ? AND is_active = 1')
+    .get(String(planCode || '').toUpperCase());
+  if (!plan) throw Object.assign(new Error('Unknown plan code'), { status: 400 });
+  if (!Object.prototype.hasOwnProperty.call(BILLING_CYCLE_DAYS, billingCycle)) {
+    throw Object.assign(new Error('billingCycle must be one of: ' + Object.keys(BILLING_CYCLE_DAYS).join(', ')), { status: 400 });
+  }
+  const days = BILLING_CYCLE_DAYS[billingCycle];
+  const expiresAt = days === null ? null : new Date(Date.now() + days * 86400000).toISOString();
+  const deviceLimit = (typeof deviceLimitOverride === 'number' && deviceLimitOverride > 0) ? deviceLimitOverride : plan.device_limit;
+  db.prepare(
+    `UPDATE tenant_licenses SET plan_code = ?, billing_cycle = ?, device_limit = ?, starts_at = datetime('now'), expires_at = ?, updated_at = datetime('now') WHERE tenant_id = ?`
+  ).run(plan.code, billingCycle, deviceLimit, expiresAt, tenantId);
+  return { planCode: plan.code, billingCycle, deviceLimit, expiresAt };
+}
+
+// Backfill — every pre-existing tenant (created before this feature shipped)
+// unconditionally needs a tenant_licenses row, or the new admin dashboard
+// simply shows nothing for them. Runs automatically every boot (idempotent
+// WHERE NOT EXISTS anti-join), not as a one-off manual SQL file like the
+// 2026-07-19 backfill — that one fixed a historical bug affecting some rows,
+// this is a universal consequence of shipping the feature at all. Cheap at
+// the 50-500 row scale this app targets. device_limit=5 (not BASIC's default
+// of 2) because real per-tenant device usage is unknown — defaulting low
+// risks locking an existing shop out of its own second/third device.
+try {
+  db.prepare(`
+    INSERT INTO tenant_licenses (tenant_id, status, plan_code, billing_cycle, device_limit, expires_at, last_verified_at)
+    SELECT t.id,
+      CASE t.status WHEN 'paused' THEN 'SUSPENDED' WHEN 'terminated' THEN 'ARCHIVED' ELSE 'ACTIVE' END,
+      'BASIC',
+      CASE WHEN t.license_plan IN ('monthly','halfyearly','yearly','lifetime') THEN t.license_plan ELSE 'monthly' END,
+      5,
+      t.license_expiry,
+      datetime('now')
+    FROM tenants t
+    WHERE NOT EXISTS (SELECT 1 FROM tenant_licenses tl WHERE tl.tenant_id = t.id)
+  `).run();
+  const needsKey = db.prepare(`SELECT tenant_id FROM tenant_licenses WHERE license_key IS NULL`).all();
+  for (const row of needsKey) {
+    const key = generateHostedLicenseKey();
+    db.prepare(`UPDATE tenant_licenses SET license_key = ? WHERE tenant_id = ?`).run(key, row.tenant_id);
+    addLicenseHistory(row.tenant_id, 'BACKFILLED', { detail: 'tenant_licenses row created from legacy tenants columns at feature rollout' });
+  }
+} catch (e) {
+  logger.error('[LICENSING BACKFILL FAILED]', { error: e.message });
+  migrationState.failures.push({ label: 'tenant_licenses backfill', error: e.message, at: new Date().toISOString() });
+}
+
 if (migrationState.failures.length > 0) {
   logger.warn(`${migrationState.failures.length} migration statement(s) failed at startup`, {
     hint: 'See [MIGRATION FAILED] lines above. Server is continuing to boot (these are additive schema changes; existing functionality not touching the affected column/table is unaffected), but check GET /health and investigate before relying on the affected feature.',
@@ -245,6 +413,37 @@ function requireActive(req, res, next) {
     }
   }
   next();
+}
+
+// ── SaaS licensing gates (tenant_licenses.status) ────────────────────────────
+// Runs in addition to (always after) requireActive above, which is left
+// untouched — these gate the NEW 5-state enum for tenants that have a
+// tenant_licenses row. Tenants without one (shouldn't happen post-backfill,
+// but fail open rather than break a request over a missing row) pass through.
+function getTenantLicense(tenantId) {
+  return db.prepare('SELECT * FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+}
+function requireLicenseRead(req, res, next) {
+  const lic = getTenantLicense(req.user.tenantId);
+  if (!lic) return next();
+  if (lic.status === 'PENDING_APPROVAL') {
+    return res.status(403).json({ error: 'Your registration is pending admin approval.', licenseStatus: lic.status });
+  }
+  if (lic.status === 'SUSPENDED') {
+    return res.status(403).json({ error: 'Subscription expired. Please contact administrator.', licenseStatus: lic.status });
+  }
+  if (lic.status === 'ARCHIVED') {
+    return res.status(403).json({ error: 'This account has been archived. Please contact administrator.', licenseStatus: lic.status });
+  }
+  next(); // ACTIVE and READ_ONLY may read
+}
+function requireLicenseWrite(req, res, next) {
+  const lic = getTenantLicense(req.user.tenantId);
+  if (!lic) return next();
+  if (lic.status === 'READ_ONLY') {
+    return res.status(403).json({ error: 'Your subscription has expired. You can view your data, but new entries and edits are disabled until you renew. Contact your administrator.', licenseStatus: lic.status });
+  }
+  return requireLicenseRead(req, res, next);
 }
 
 // Validates X-Admin-Key header for Super Admin remote control endpoints.
@@ -303,6 +502,55 @@ function _runSessionCleanup() {
 }
 _runSessionCleanup();
 setInterval(_runSessionCleanup, 30 * 60 * 1000);
+
+// ── Licensing status-transition sweep ────────────────────────────────────────
+// No job scheduler exists in this repo — follows the same setInterval
+// pattern as the session cleanup above. Interval is env-configurable so
+// tests can shrink it and fast-forward transitions by backdating
+// expires_at/read_only_since/suspended_since directly (same technique
+// wave1-sessions.test.js already uses against a test server's own DB file).
+const LICENSE_SWEEP_INTERVAL_MS = Number(process.env.LICENSE_SWEEP_INTERVAL_MS) || 15 * 60 * 1000;
+function runLicenseTransitionSweep() {
+  try {
+    // ACTIVE -> READ_ONLY once expires_at has passed.
+    const toReadOnly = db.prepare(
+      `SELECT tenant_id FROM tenant_licenses WHERE status = 'ACTIVE' AND expires_at IS NOT NULL AND expires_at < datetime('now')`
+    ).all();
+    for (const row of toReadOnly) {
+      db.prepare(
+        `UPDATE tenant_licenses SET status = 'READ_ONLY', read_only_since = datetime('now'), updated_at = datetime('now') WHERE tenant_id = ?`
+      ).run(row.tenant_id);
+      addLicenseHistory(row.tenant_id, 'STATUS_CHANGED', { fromStatus: 'ACTIVE', toStatus: 'READ_ONLY', detail: 'expires_at passed (sweep)' });
+    }
+
+    // READ_ONLY -> SUSPENDED 30 days after read_only_since; kill sessions too.
+    const toSuspended = db.prepare(
+      `SELECT tenant_id FROM tenant_licenses WHERE status = 'READ_ONLY' AND read_only_since IS NOT NULL AND read_only_since < datetime('now', '-30 days')`
+    ).all();
+    for (const row of toSuspended) {
+      db.prepare(
+        `UPDATE tenant_licenses SET status = 'SUSPENDED', suspended_since = datetime('now'), updated_at = datetime('now') WHERE tenant_id = ?`
+      ).run(row.tenant_id);
+      sessions.revokeAllTenantSessions(db, row.tenant_id);
+      addLicenseHistory(row.tenant_id, 'STATUS_CHANGED', { fromStatus: 'READ_ONLY', toStatus: 'SUSPENDED', detail: '30 days in READ_ONLY (sweep)' });
+    }
+
+    // SUSPENDED -> ARCHIVED 365 days after suspended_since.
+    const toArchived = db.prepare(
+      `SELECT tenant_id FROM tenant_licenses WHERE status = 'SUSPENDED' AND suspended_since IS NOT NULL AND suspended_since < datetime('now', '-365 days')`
+    ).all();
+    for (const row of toArchived) {
+      db.prepare(
+        `UPDATE tenant_licenses SET status = 'ARCHIVED', updated_at = datetime('now') WHERE tenant_id = ?`
+      ).run(row.tenant_id);
+      addLicenseHistory(row.tenant_id, 'STATUS_CHANGED', { fromStatus: 'SUSPENDED', toStatus: 'ARCHIVED', detail: '365 days in SUSPENDED, non-payment (sweep)' });
+    }
+  } catch (e) {
+    logger.error('[LICENSE SWEEP FAILED]', { error: e.message });
+  }
+}
+runLicenseTransitionSweep();
+setInterval(runLicenseTransitionSweep, LICENSE_SWEEP_INTERVAL_MS);
 
 // ── Express app ──────────────────────────────────────────────────────────────
 const app = express();
@@ -479,9 +727,144 @@ app.post('/api/auth/register', rateLimit(5, 10 * 60 * 1000), (req, res) => {
   }
 });
 
+// ── POST /api/auth/signup — self-service registration (PENDING_APPROVAL) ─────
+// New. The legacy /api/auth/register above is left completely untouched, for
+// any already-published client build that still requires a license key
+// upfront. This flow needs no license key from the customer at all — an
+// admin reviews and approves later (see docs/architecture-review/
+// RegistrationFlow.md). No JWT is issued here; the account isn't usable yet.
+app.post('/api/auth/signup', rateLimit(5, 10 * 60 * 1000), async (req, res) => {
+  const { shopName, ownerName, mobile, email, pin, address, gst, requestedPlan, requestedDevicesBucket, requestedModules } = req.body;
+  const mob = (mobile || '').replace(/\D/g, '');
+  if (!shopName || !ownerName || !mob || !email || !pin) {
+    return res.status(400).json({ error: 'Shop name, owner name, mobile number, email, and PIN are required' });
+  }
+  if (mob.length < 10) {
+    return res.status(400).json({ error: 'Enter a valid 10-digit mobile number' });
+  }
+  if (!/^\d{4,6}$/.test(pin)) {
+    return res.status(400).json({ error: 'PIN must be 4 to 6 digits' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Enter a valid email address' });
+  }
+  const planRow = db.prepare('SELECT code, device_limit FROM subscription_plans WHERE code = ? AND is_active = 1')
+    .get(String(requestedPlan || 'TRIAL').toUpperCase());
+  const plan = planRow || db.prepare("SELECT code, device_limit FROM subscription_plans WHERE code = 'TRIAL'").get();
+  const devicesBucket = ['1-2', '3-5', '5+'].includes(requestedDevicesBucket) ? requestedDevicesBucket : null;
+  const modules = Array.isArray(requestedModules) ? requestedModules.filter(m => typeof m === 'string').slice(0, 20) : [];
+
+  try {
+    const existingMob = db.prepare('SELECT id FROM users WHERE mobile = ?').get(mob);
+    if (existingMob) {
+      return res.status(409).json({ error: 'This mobile number is already registered. Please sign in.' });
+    }
+    const hash = bcrypt.hashSync(pin, 10);
+    const verifyToken = crypto.randomBytes(32).toString('hex');
+    const verifyTokenHash = crypto.createHash('sha256').update(verifyToken).digest('hex');
+    const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    const tenant = db.prepare(
+      'INSERT INTO tenants (shop_name, address, gst_number) VALUES (?,?,?) RETURNING *'
+    ).get(shopName, address || '', gst || '');
+    db.prepare(
+      `INSERT INTO users (tenant_id, username, display_name, mobile, email, password_hash, role, email_verify_token_hash, email_verify_expires)
+       VALUES (?,?,?,?,?,?,?,?,?)`
+    ).run(tenant.id, mob, ownerName, mob, email, hash, 'owner', verifyTokenHash, verifyExpires);
+    db.prepare('INSERT INTO tenant_data (tenant_id, data) VALUES (?,?)').run(tenant.id, '{}');
+    db.prepare(
+      `INSERT INTO tenant_licenses (tenant_id, status, plan_code, requested_plan_code, device_limit, requested_devices_bucket, requested_modules)
+       VALUES (?, 'PENDING_APPROVAL', ?, ?, ?, ?, ?)`
+    ).run(tenant.id, plan.code, plan.code, plan.device_limit, devicesBucket, JSON.stringify(modules));
+    addLicenseHistory(tenant.id, 'REGISTERED', { toStatus: 'PENDING_APPROVAL', detail: `requested plan ${plan.code}` });
+
+    const verifyUrl = `${req.protocol}://${req.get('host')}/api/auth/verify-email?token=${verifyToken}`;
+    try {
+      await mailer.sendVerificationEmail(email, { shopName, verifyUrl });
+    } catch (e) {
+      console.error('[Signup] Failed to send verification email:', e.message);
+    }
+
+    res.status(201).json({
+      message: 'Registration received. Please check your email to verify your address.',
+      tenantId: tenant.id,
+      status: 'PENDING_APPROVAL',
+    });
+  } catch (e) {
+    if (e.message && e.message.includes('UNIQUE')) {
+      return res.status(409).json({ error: 'Mobile number already registered.' });
+    }
+    console.error('Signup error:', e);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// ── GET /api/auth/verify-email — clicked from the verification email link ───
+// Returns a small static HTML page (not JSON) — this is a link opened in a
+// browser/email client, not an API call from the SPA.
+app.get('/api/auth/verify-email', (req, res) => {
+  const token = req.query.token;
+  function sendPage(title, message) {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(`<!doctype html><html><head><meta charset="utf-8"><title>${title} — ShopERP Pro</title></head>` +
+      `<body style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#222">` +
+      `<h2>${title}</h2><p>${message}</p></body></html>`);
+  }
+  if (!token) return sendPage('Invalid link', 'This verification link is missing a token.');
+  try {
+    const tokenHash = crypto.createHash('sha256').update(String(token)).digest('hex');
+    const user = db.prepare(
+      `SELECT id, tenant_id FROM users WHERE email_verify_token_hash = ? AND email_verify_expires > datetime('now')`
+    ).get(tokenHash);
+    if (!user) {
+      return sendPage('Link expired or invalid', 'This verification link has expired or was already used. Request a new one from the sign-in screen.');
+    }
+    db.prepare(
+      `UPDATE users SET email_verified_at = datetime('now'), email_verify_token_hash = NULL, email_verify_expires = NULL WHERE id = ?`
+    ).run(user.id);
+    addLicenseHistory(user.tenant_id, 'EMAIL_VERIFIED', {});
+    sendPage('Email verified', 'Thank you — your email has been verified. Our team will review your registration and approve your account shortly.');
+  } catch (e) {
+    console.error('Verify-email error:', e);
+    sendPage('Something went wrong', 'Please try again later or contact support.');
+  }
+});
+
+// ── POST /api/auth/resend-verification ───────────────────────────────────────
+app.post('/api/auth/resend-verification', rateLimit(3, 10 * 60 * 1000), async (req, res) => {
+  const { mobile } = req.body;
+  const mob = (mobile || '').replace(/\D/g, '');
+  if (!mob) return res.status(400).json({ error: 'Mobile number required' });
+  const genericOk = { ok: true, message: 'If that mobile number has a pending verification, a new email has been sent.' };
+  try {
+    const user = db.prepare(
+      `SELECT u.id, u.tenant_id, u.email, u.email_verified_at, t.shop_name FROM users u
+       JOIN tenants t ON t.id = u.tenant_id WHERE u.mobile = ?`
+    ).get(mob);
+    if (!user || user.email_verified_at) {
+      return res.json(genericOk); // don't reveal whether a mobile number exists
+    }
+    const verifyToken = crypto.randomBytes(32).toString('hex');
+    const verifyTokenHash = crypto.createHash('sha256').update(verifyToken).digest('hex');
+    const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    db.prepare('UPDATE users SET email_verify_token_hash = ?, email_verify_expires = ? WHERE id = ?')
+      .run(verifyTokenHash, verifyExpires, user.id);
+    const verifyUrl = `${req.protocol}://${req.get('host')}/api/auth/verify-email?token=${verifyToken}`;
+    try {
+      await mailer.sendVerificationEmail(user.email, { shopName: user.shop_name, verifyUrl });
+    } catch (e) {
+      console.error('[Resend] Failed to send verification email:', e.message);
+    }
+    res.json(genericOk);
+  } catch (e) {
+    console.error('Resend-verification error:', e);
+    res.status(500).json({ error: 'Failed to resend verification email' });
+  }
+});
+
 // ── POST /api/auth/login ─────────────────────────────────────────────────────
 app.post('/api/auth/login', rateLimit(10, 5 * 60 * 1000), (req, res) => {
-  const { mobile, pin } = req.body;
+  const { mobile, pin, deviceId } = req.body;
   const mob = (mobile || '').replace(/\D/g, '');
   if (!mob || !pin) {
     return res.status(400).json({ error: 'Mobile number and PIN are required' });
@@ -497,6 +880,36 @@ app.post('/api/auth/login', rateLimit(10, 5 * 60 * 1000), (req, res) => {
     }
     if (!bcrypt.compareSync(pin, row.password_hash)) {
       return res.status(401).json({ error: 'Incorrect PIN. Please try again.' });
+    }
+    // Device-limit enforcement (Phase 8) — only when a deviceId is sent (new
+    // client builds); absent = old client build, byte-identical old behavior.
+    if (deviceId) {
+      const known = db.prepare(
+        'SELECT id FROM trusted_devices WHERE tenant_id = ? AND user_id = ? AND device_id = ? AND is_active = 1'
+      ).get(row.tid, row.id, deviceId);
+      const ua = sessions.parseUA(req.headers['user-agent']);
+      if (known) {
+        db.prepare("UPDATE trusted_devices SET last_login_at = datetime('now'), browser = ?, os = ? WHERE id = ?")
+          .run(ua.browser, ua.os, known.id);
+      } else {
+        const lic = db.prepare('SELECT device_limit FROM tenant_licenses WHERE tenant_id = ?').get(row.tid);
+        const deviceLimit = lic ? lic.device_limit : 2;
+        const activeCount = db.prepare('SELECT COUNT(*) as c FROM trusted_devices WHERE tenant_id = ? AND is_active = 1').get(row.tid).c;
+        if (activeCount >= deviceLimit) {
+          return res.status(403).json({
+            error: `Device limit reached (${activeCount}/${deviceLimit}). Ask your admin to remove an old device or increase your limit.`,
+            code: 'DEVICE_LIMIT_REACHED',
+          });
+        }
+        try {
+          db.prepare('INSERT INTO trusted_devices (tenant_id, user_id, device_id, browser, os) VALUES (?,?,?,?,?)')
+            .run(row.tid, row.id, deviceId, ua.browser, ua.os);
+        } catch (e) {
+          // Race: two near-simultaneous first logins from the same brand-new
+          // device — UNIQUE(tenant_id,user_id,device_id) means the loser's
+          // INSERT throws; harmless, the row exists either way.
+        }
+      }
     }
     db.prepare("UPDATE users SET last_login = datetime('now') WHERE id = ?").run(row.id);
     const tenant = { id: row.tid, shop_name: row.shop_name };
@@ -547,7 +960,7 @@ app.post('/api/auth/heartbeat', requireAuth, (req, res) => {
 });
 
 // ── GET /api/auth/sessions — list this tenant's active sessions (owner only) ─
-app.get('/api/auth/sessions', requireAuth, (req, res) => {
+app.get('/api/auth/sessions', requireAuth, requireLicenseRead, (req, res) => {
   if (req.user.role !== 'owner') return res.status(403).json({ error: 'Only the owner can view active sessions' });
   res.json({ sessions: sessions.listActiveSessions(db, req.user.tenantId) });
 });
@@ -563,7 +976,7 @@ app.post('/api/auth/sessions/:sessionId/revoke', requireAuth, (req, res) => {
 });
 
 // ── POST /api/auth/add-staff ─────────────────────────────────────────────────
-app.post('/api/auth/add-staff', requireAuth, (req, res) => {
+app.post('/api/auth/add-staff', requireAuth, requireLicenseWrite, (req, res) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ error: 'Only the owner can add staff' });
   }
@@ -628,13 +1041,46 @@ app.post('/api/auth/renew-license', requireAuth, rateLimit(10, 10 * 60 * 1000), 
 });
 
 // ── GET /api/license/status — called on app boot to check pause/terminate ────
+// Deliberately ungated by requireLicenseRead/Write — this endpoint's entire
+// purpose is to report status regardless of what that status is, and it's
+// also how the client re-verifies after an offline period (Phase 7).
 app.get('/api/license/status', requireAuth, (req, res) => {
   const t = db.prepare('SELECT status, suspend_reason, license_expiry, license_plan FROM tenants WHERE id = ?').get(req.user.tenantId);
   if (!t) return res.status(404).json({ error: 'Tenant not found' });
-  if (t.license_plan !== 'lifetime' && t.license_expiry && Date.now() > new Date(t.license_expiry).getTime()) {
-    return res.json({ status: 'expired', reason: '', licenseExpiry: t.license_expiry, licensePlan: t.license_plan });
+
+  // UPDATE...RETURNING in one step — this call IS the "re-verify" event, so
+  // last_verified_at in the response must be THIS call's timestamp, not
+  // whatever was stored from the previous call (a plain SELECT-then-UPDATE
+  // would report the stale prior value, leaving a fresh tenant's very first
+  // check with no usable offline-grace anchor at all).
+  const lic = db.prepare(
+    `UPDATE tenant_licenses SET last_verified_at = datetime('now') WHERE tenant_id = ? RETURNING *`
+  ).get(req.user.tenantId);
+  let license = null;
+  if (lic) {
+    const devicesUsed = db.prepare('SELECT COUNT(*) as c FROM trusted_devices WHERE tenant_id = ? AND is_active = 1').get(req.user.tenantId).c;
+    const daysRemaining = lic.expires_at ? Math.ceil((new Date(lic.expires_at).getTime() - Date.now()) / 86400000) : null;
+    license = {
+      status: lic.status,
+      planCode: lic.plan_code,
+      billingCycle: lic.billing_cycle,
+      deviceLimit: lic.device_limit,
+      devicesUsed,
+      expiresAt: lic.expires_at,
+      daysRemaining,
+      licenseKey: lic.license_key,
+      lastVerifiedAt: lic.last_verified_at,
+      offlineGraceDays: lic.offline_grace_days,
+      requestedModules: JSON.parse(lic.requested_modules || '[]'),
+      requestedDevicesBucket: lic.requested_devices_bucket,
+      requestedPlanCode: lic.requested_plan_code,
+    };
   }
-  res.json({ status: t.status || 'active', reason: t.suspend_reason || '', licenseExpiry: t.license_expiry, licensePlan: t.license_plan });
+
+  if (t.license_plan !== 'lifetime' && t.license_expiry && Date.now() > new Date(t.license_expiry).getTime()) {
+    return res.json({ status: 'expired', reason: '', licenseExpiry: t.license_expiry, licensePlan: t.license_plan, license });
+  }
+  res.json({ status: t.status || 'active', reason: t.suspend_reason || '', licenseExpiry: t.license_expiry, licensePlan: t.license_plan, license });
 });
 
 // ── POST /api/admin/tenant/status — pause / terminate / restore (remote) ─────
@@ -750,8 +1196,291 @@ app.post('/api/admin/toggle-user', requireAdminKey, rateLimit(30, 60 * 1000), (r
   }
 });
 
+// ── GET /api/admin/registrations — PENDING_APPROVAL queue (Phase 2) ─────────
+app.get('/api/admin/registrations', requireAdminKey, (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT t.id AS tenant_id, t.shop_name, t.address, t.gst_number, t.created_at AS registered_at,
+             u.display_name AS owner_name, u.mobile, u.email, u.email_verified_at,
+             tl.requested_plan_code, tl.requested_devices_bucket, tl.requested_modules
+      FROM tenant_licenses tl
+      JOIN tenants t ON t.id = tl.tenant_id
+      JOIN users u ON u.tenant_id = t.id AND u.role = 'owner'
+      WHERE tl.status = 'PENDING_APPROVAL'
+      ORDER BY t.created_at ASC
+    `).all();
+    res.json({
+      registrations: rows.map(r => ({
+        tenantId: r.tenant_id, shopName: r.shop_name, address: r.address, gstNumber: r.gst_number,
+        registeredAt: r.registered_at, ownerName: r.owner_name, mobile: r.mobile, email: r.email,
+        emailVerified: !!r.email_verified_at,
+        requestedPlan: r.requested_plan_code, requestedDevicesBucket: r.requested_devices_bucket,
+        requestedModules: JSON.parse(r.requested_modules || '[]'),
+      })),
+    });
+  } catch (e) {
+    console.error('registrations error:', e);
+    res.status(500).json({ error: 'Failed to fetch registrations' });
+  }
+});
+
+// ── POST /api/admin/registrations/:tenantId/approve ──────────────────────────
+app.post('/api/admin/registrations/:tenantId/approve', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const lic = db.prepare('SELECT * FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+  if (!lic) return res.status(404).json({ error: 'Tenant license not found' });
+  if (lic.status !== 'PENDING_APPROVAL') {
+    return res.status(400).json({ error: 'This registration is not pending approval (current status: ' + lic.status + ')' });
+  }
+  const owner = db.prepare("SELECT email_verified_at FROM users WHERE tenant_id = ? AND role = 'owner'").get(tenantId);
+  if (!owner || !owner.email_verified_at) {
+    return res.status(400).json({ error: 'This shop has not verified their email yet. Ask them to check their inbox (or use Resend) before approving.' });
+  }
+  try {
+    // If nothing was pre-configured (assign-plan/start-trial/generate-license
+    // never called), auto-default to a 14-day TRIAL so Approve is always
+    // safe to click on its own.
+    let planResult = null;
+    if (!lic.starts_at) {
+      planResult = assignPlanToTenant(tenantId, 'TRIAL', 'trial');
+    }
+    if (!lic.license_key) {
+      const key = generateHostedLicenseKey();
+      db.prepare('UPDATE tenant_licenses SET license_key = ? WHERE tenant_id = ?').run(key, tenantId);
+    }
+    db.prepare(`UPDATE tenant_licenses SET status = 'ACTIVE', updated_at = datetime('now') WHERE tenant_id = ?`).run(tenantId);
+    addLicenseHistory(tenantId, 'APPROVED', {
+      fromStatus: 'PENDING_APPROVAL', toStatus: 'ACTIVE',
+      detail: planResult ? `auto-defaulted to ${planResult.planCode}/${planResult.billingCycle}` : '', actor: 'admin',
+    });
+    res.json({ ok: true, status: 'ACTIVE' });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message || 'Approval failed' });
+  }
+});
+
+// ── POST /api/admin/registrations/:tenantId/reject ───────────────────────────
+// No dedicated REJECTED state in the fixed 5-status enum — ARCHIVED's "soft,
+// never delete" semantics fit a rejected signup (data, if any, is retained).
+app.post('/api/admin/registrations/:tenantId/reject', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const { reason } = req.body;
+  const lic = db.prepare('SELECT status FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+  if (!lic) return res.status(404).json({ error: 'Tenant license not found' });
+  if (lic.status !== 'PENDING_APPROVAL') {
+    return res.status(400).json({ error: 'This registration is not pending approval (current status: ' + lic.status + ')' });
+  }
+  db.prepare(`UPDATE tenant_licenses SET status = 'ARCHIVED', updated_at = datetime('now') WHERE tenant_id = ?`).run(tenantId);
+  addLicenseHistory(tenantId, 'REJECTED', { fromStatus: 'PENDING_APPROVAL', toStatus: 'ARCHIVED', detail: reason || '', actor: 'admin' });
+  res.json({ ok: true, status: 'ARCHIVED' });
+});
+
+// ── GET /api/admin/tenant-licenses — Phase 9 full dashboard ──────────────────
+app.get('/api/admin/tenant-licenses', requireAdminKey, (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT t.id AS tenant_id, t.shop_name, t.created_at AS registered_at,
+             tl.status, tl.plan_code, tl.billing_cycle, tl.device_limit, tl.expires_at,
+             tl.requested_modules, tl.license_key,
+             (SELECT MAX(last_login) FROM users WHERE tenant_id = t.id) AS last_login,
+             (SELECT COUNT(*) FROM trusted_devices WHERE tenant_id = t.id AND is_active = 1) AS devices_used
+      FROM tenant_licenses tl
+      JOIN tenants t ON t.id = tl.tenant_id
+      ORDER BY t.shop_name
+    `).all();
+    const now = Date.now();
+    res.json({
+      tenants: rows.map(r => ({
+        tenantId: r.tenant_id, shopName: r.shop_name, registeredAt: r.registered_at,
+        status: r.status, planCode: r.plan_code, billingCycle: r.billing_cycle,
+        deviceLimit: r.device_limit, devicesUsed: r.devices_used,
+        expiresAt: r.expires_at,
+        daysRemaining: r.expires_at ? Math.ceil((new Date(r.expires_at).getTime() - now) / 86400000) : null,
+        requestedModules: JSON.parse(r.requested_modules || '[]'),
+        licenseKey: r.license_key, lastLogin: r.last_login,
+      })),
+    });
+  } catch (e) {
+    console.error('tenant-licenses error:', e);
+    res.status(500).json({ error: 'Failed to fetch tenant licenses' });
+  }
+});
+
+// ── GET /api/admin/tenant-licenses/:tenantId/history — audit trail ──────────
+app.get('/api/admin/tenant-licenses/:tenantId/history', requireAdminKey, (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const history = db.prepare('SELECT * FROM license_history WHERE tenant_id = ? ORDER BY created_at DESC').all(tenantId);
+  res.json({ history });
+});
+
+// ── POST /api/admin/tenant-licenses/:tenantId/assign-plan ────────────────────
+app.post('/api/admin/tenant-licenses/:tenantId/assign-plan', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const lic = db.prepare('SELECT status FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+  if (!lic) return res.status(404).json({ error: 'Tenant license not found' });
+  try {
+    const result = assignPlanToTenant(tenantId, req.body.planCode, req.body.billingCycle, req.body.deviceLimitOverride);
+    addLicenseHistory(tenantId, 'PLAN_ASSIGNED', { detail: `${result.planCode}/${result.billingCycle}, device_limit=${result.deviceLimit}`, actor: 'admin' });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message || 'Failed to assign plan' });
+  }
+});
+
+// ── POST /api/admin/tenant-licenses/:tenantId/start-trial — Assign-Plan shortcut ─
+app.post('/api/admin/tenant-licenses/:tenantId/start-trial', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const lic = db.prepare('SELECT status FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+  if (!lic) return res.status(404).json({ error: 'Tenant license not found' });
+  try {
+    const result = assignPlanToTenant(tenantId, 'TRIAL', 'trial');
+    addLicenseHistory(tenantId, 'TRIAL_STARTED', { detail: `expires ${result.expiresAt}`, actor: 'admin' });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message || 'Failed to start trial' });
+  }
+});
+
+// ── POST /api/admin/tenant-licenses/:tenantId/generate-license ───────────────
+app.post('/api/admin/tenant-licenses/:tenantId/generate-license', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const { regenerate } = req.body || {};
+  const lic = db.prepare('SELECT license_key FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+  if (!lic) return res.status(404).json({ error: 'Tenant license not found' });
+  if (lic.license_key && !regenerate) {
+    return res.status(409).json({ error: 'A license key already exists for this tenant. Pass regenerate:true to replace it.', licenseKey: lic.license_key });
+  }
+  try {
+    const key = generateHostedLicenseKey();
+    db.prepare(`UPDATE tenant_licenses SET license_key = ?, updated_at = datetime('now') WHERE tenant_id = ?`).run(key, tenantId);
+    addLicenseHistory(tenantId, lic.license_key ? 'KEY_REGENERATED' : 'KEY_GENERATED', { detail: key, actor: 'admin' });
+    res.json({ ok: true, licenseKey: key });
+  } catch (e) {
+    console.error('generate-license error:', e);
+    res.status(500).json({ error: 'Failed to generate license key' });
+  }
+});
+
+// ── POST /api/admin/tenant-licenses/:tenantId/extend — Phase 10 renewal ─────
+// Updates expires_at (and reactivates if currently READ_ONLY/SUSPENDED).
+// Nothing else changes — tenant_data is never touched.
+app.post('/api/admin/tenant-licenses/:tenantId/extend', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const lic = db.prepare('SELECT * FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+  if (!lic) return res.status(404).json({ error: 'Tenant license not found' });
+  if (lic.status === 'PENDING_APPROVAL') return res.status(400).json({ error: 'Approve this registration before extending the subscription.' });
+  if (lic.status === 'ARCHIVED') return res.status(400).json({ error: 'This account is archived. Reactivate it first.' });
+
+  const { days, newExpiresAt } = req.body;
+  let expiresAt;
+  if (newExpiresAt) {
+    expiresAt = new Date(newExpiresAt).toISOString();
+  } else if (typeof days === 'number' && days > 0) {
+    const base = (lic.expires_at && new Date(lic.expires_at).getTime() > Date.now()) ? new Date(lic.expires_at) : new Date();
+    expiresAt = new Date(base.getTime() + days * 86400000).toISOString();
+  } else {
+    return res.status(400).json({ error: 'Provide either days (number) or newExpiresAt (date string)' });
+  }
+  db.prepare(
+    `UPDATE tenant_licenses SET expires_at = ?, status = 'ACTIVE', read_only_since = NULL, suspended_since = NULL, updated_at = datetime('now') WHERE tenant_id = ?`
+  ).run(expiresAt, tenantId);
+  addLicenseHistory(tenantId, 'EXTENDED', { fromStatus: lic.status, toStatus: 'ACTIVE', detail: `expires_at -> ${expiresAt}`, actor: 'admin' });
+  res.json({ ok: true, expiresAt, reactivated: lic.status === 'READ_ONLY' || lic.status === 'SUSPENDED' });
+});
+
+// ── POST /api/admin/tenant-licenses/:tenantId/suspend — manual suspend ──────
+app.post('/api/admin/tenant-licenses/:tenantId/suspend', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const { reason } = req.body;
+  const lic = db.prepare('SELECT status FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+  if (!lic) return res.status(404).json({ error: 'Tenant license not found' });
+  db.prepare(`UPDATE tenant_licenses SET status = 'SUSPENDED', suspended_since = datetime('now'), updated_at = datetime('now') WHERE tenant_id = ?`).run(tenantId);
+  sessions.revokeAllTenantSessions(db, tenantId);
+  addLicenseHistory(tenantId, 'STATUS_CHANGED', { fromStatus: lic.status, toStatus: 'SUSPENDED', detail: reason || 'manual admin suspend', actor: 'admin' });
+  res.json({ ok: true });
+});
+
+// ── POST /api/admin/tenant-licenses/:tenantId/reactivate ─────────────────────
+app.post('/api/admin/tenant-licenses/:tenantId/reactivate', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const lic = db.prepare('SELECT status FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+  if (!lic) return res.status(404).json({ error: 'Tenant license not found' });
+  db.prepare(`UPDATE tenant_licenses SET status = 'ACTIVE', read_only_since = NULL, suspended_since = NULL, updated_at = datetime('now') WHERE tenant_id = ?`).run(tenantId);
+  addLicenseHistory(tenantId, 'STATUS_CHANGED', { fromStatus: lic.status, toStatus: 'ACTIVE', detail: 'manual admin reactivate', actor: 'admin' });
+  res.json({ ok: true });
+});
+
+// ── POST /api/admin/tenant-licenses/:tenantId/kill-sessions ──────────────────
+app.post('/api/admin/tenant-licenses/:tenantId/kill-sessions', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const revoked = sessions.revokeAllTenantSessions(db, tenantId);
+  addLicenseHistory(tenantId, 'SESSIONS_KILLED', { detail: `${revoked} session(s) revoked`, actor: 'admin' });
+  res.json({ ok: true, revoked });
+});
+
+// ── POST /api/admin/tenant-licenses/:tenantId/notes ──────────────────────────
+app.post('/api/admin/tenant-licenses/:tenantId/notes', requireAdminKey, rateLimit(60, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const { note } = req.body;
+  if (!note) return res.status(400).json({ error: 'note required' });
+  addLicenseHistory(tenantId, 'NOTE_ADDED', { detail: note, actor: 'admin' });
+  res.json({ ok: true });
+});
+
+// ── POST /api/admin/tenant-licenses/:tenantId/call-note ──────────────────────
+app.post('/api/admin/tenant-licenses/:tenantId/call-note', requireAdminKey, rateLimit(60, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const { note } = req.body;
+  if (!note) return res.status(400).json({ error: 'note required' });
+  addLicenseHistory(tenantId, 'CALL_LOGGED', { detail: note, actor: 'admin' });
+  res.json({ ok: true });
+});
+
+// ── GET /api/admin/tenant-licenses/:tenantId/devices ──────────────────────────
+app.get('/api/admin/tenant-licenses/:tenantId/devices', requireAdminKey, (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const devices = db.prepare(`
+    SELECT d.id, d.device_id, d.device_name, d.browser, d.os, d.first_login_at, d.last_login_at, d.is_active,
+           u.display_name, u.mobile
+    FROM trusted_devices d JOIN users u ON u.id = d.user_id
+    WHERE d.tenant_id = ? ORDER BY d.last_login_at DESC
+  `).all(tenantId);
+  res.json({ devices });
+});
+
+// ── POST /api/admin/tenant-licenses/:tenantId/devices/:rowId/remove ──────────
+app.post('/api/admin/tenant-licenses/:tenantId/devices/:rowId/remove', requireAdminKey, rateLimit(60, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const rowId = Number(req.params.rowId);
+  const row = db.prepare('SELECT id FROM trusted_devices WHERE id = ? AND tenant_id = ?').get(rowId, tenantId);
+  if (!row) return res.status(404).json({ error: 'Device not found' });
+  db.prepare('UPDATE trusted_devices SET is_active = 0 WHERE id = ?').run(rowId); // soft-remove only — audit trail preserved
+  addLicenseHistory(tenantId, 'DEVICE_REMOVED', { detail: `device row ${rowId}`, actor: 'admin' });
+  res.json({ ok: true });
+});
+
+// ── POST /api/admin/tenant-licenses/:tenantId/devices/reset-all ─────────────
+app.post('/api/admin/tenant-licenses/:tenantId/devices/reset-all', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const result = db.prepare('UPDATE trusted_devices SET is_active = 0 WHERE tenant_id = ? AND is_active = 1').run(tenantId);
+  addLicenseHistory(tenantId, 'DEVICES_RESET', { detail: `${result.changes} device(s) reset`, actor: 'admin' });
+  res.json({ ok: true, reset: result.changes });
+});
+
+// ── POST /api/admin/tenant-licenses/:tenantId/devices/limit ──────────────────
+app.post('/api/admin/tenant-licenses/:tenantId/devices/limit', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const { deviceLimit } = req.body;
+  if (typeof deviceLimit !== 'number' || deviceLimit < 1) return res.status(400).json({ error: 'deviceLimit must be a positive number' });
+  const lic = db.prepare('SELECT device_limit FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+  if (!lic) return res.status(404).json({ error: 'Tenant license not found' });
+  db.prepare(`UPDATE tenant_licenses SET device_limit = ?, updated_at = datetime('now') WHERE tenant_id = ?`).run(deviceLimit, tenantId);
+  addLicenseHistory(tenantId, 'DEVICE_LIMIT_CHANGED', { detail: `${lic.device_limit} -> ${deviceLimit}`, actor: 'admin' });
+  res.json({ ok: true, deviceLimit });
+});
+
 // ── GET /api/data ────────────────────────────────────────────────────────────
-app.get('/api/data', requireAuth, requireActive, (req, res) => {
+app.get('/api/data', requireAuth, requireActive, requireLicenseRead, (req, res) => {
   try {
     const row = db.prepare('SELECT data, version, updated_at FROM tenant_data WHERE tenant_id = ?').get(req.user.tenantId);
     if (!row) return res.json({ data: {}, version: 0, updatedAt: null });
@@ -765,7 +1494,7 @@ app.get('/api/data', requireAuth, requireActive, (req, res) => {
 // ── PUT /api/data — optimistic concurrency: caller must supply the version ───
 // it last read (expectedVersion). Never silently overwrites a newer save from
 // another device — see docs/architecture-review/ConflictResolution.md.
-app.put('/api/data', requireAuth, requireActive, (req, res) => {
+app.put('/api/data', requireAuth, requireActive, requireLicenseWrite, (req, res) => {
   const { data, expectedVersion } = req.body;
   if (!data || typeof data !== 'object') {
     return res.status(400).json({ error: 'data must be a JSON object' });
@@ -835,7 +1564,7 @@ function sendConflict(req, res) {
 }
 
 // ── GET /api/data/users ──────────────────────────────────────────────────────
-app.get('/api/data/users', requireAuth, (req, res) => {
+app.get('/api/data/users', requireAuth, requireLicenseRead, (req, res) => {
   try {
     const users = db.prepare(
       'SELECT id, username, email, role, is_active, last_login, created_at FROM users WHERE tenant_id = ? ORDER BY created_at'

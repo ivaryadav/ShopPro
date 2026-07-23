@@ -227,6 +227,16 @@ function revokeAllUserSessions(db, tenantId, userId, exceptSessionId) {
   ).run(tenantId, userId, exceptSessionId || '').changes;
 }
 
+// Licensing (kill-sessions / suspend) needs to revoke every session for a
+// tenant, not just one user's — e.g. a manual admin suspend or the
+// READ_ONLY -> SUSPENDED sweep transition. Mirrors revokeAllUserSessions
+// above minus the per-user filter.
+function revokeAllTenantSessions(db, tenantId) {
+  return db.prepare(
+    "UPDATE user_sessions SET status = 'revoked' WHERE tenant_id = ? AND status = 'active'"
+  ).run(tenantId).changes;
+}
+
 function touchHeartbeat(db, sessionId, currentPage) {
   db.prepare(
     "UPDATE user_sessions SET last_activity = datetime('now'), current_page = ? WHERE session_id = ? AND status = 'active'"
@@ -260,6 +270,6 @@ function runCleanup(db) {
 
 module.exports = {
   migrate, createSession, checkSession, refreshSession, revokeSession,
-  revokeAllUserSessions, touchHeartbeat, listActiveSessions, runCleanup,
-  REFRESH_TOKEN_TTL_MS,
+  revokeAllUserSessions, revokeAllTenantSessions, touchHeartbeat, listActiveSessions, runCleanup,
+  parseUA, REFRESH_TOKEN_TTL_MS,
 };
