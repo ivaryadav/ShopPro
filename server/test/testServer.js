@@ -21,13 +21,27 @@ function startTestServer(opts) {
   const dbPath = path.join(os.tmpdir(), `shoperpro-test-${crypto.randomBytes(8).toString('hex')}.db`);
   const port = 20000 + Math.floor(Math.random() * 20000);
   const jwtSecret = crypto.randomBytes(32).toString('hex');
-  const adminKey = crypto.randomBytes(32).toString('hex');
+  // Admin auth (Issue 2, PasswordMigration.md): ADMIN_KEY now seeds
+  // admin_credentials as the legacy sha256(password) value, exactly like a
+  // real pre-migration deployment — adminPassword is the real plaintext a
+  // caller would type in. Every test that previously used `adminKey`
+  // directly as the X-Admin-Key bearer value now instead gets a real
+  // session token below (obtained via one login call after boot), so no
+  // existing test file needs to change at all.
+  // opts.adminPassword lets a test that reboots against the SAME DB file
+  // multiple times (e.g. license-backfill-regression.test.js) pass the
+  // identical password each time — admin_credentials is seeded once and
+  // persists across boots by design (that's the whole point of moving it
+  // off the env var), so a fresh random password on a later boot against
+  // an already-seeded file would just fail to log in.
+  const adminPassword = opts.adminPassword || crypto.randomBytes(16).toString('hex');
+  const adminKeySeed = crypto.createHash('sha256').update(adminPassword).digest('hex');
 
   const env = Object.assign({}, process.env, {
     DB_PATH: dbPath,
     PORT: String(port),
     JWT_SECRET: jwtSecret,
-    ADMIN_KEY: adminKey,
+    ADMIN_KEY: adminKeySeed,
     // server/mailer.js requires these to be set to boot at all (see
     // LicensingMigrationPlan.md) — a fake, unreachable host is fine here:
     // transporter.verify() only logs on failure, it's never fatal, and no
@@ -66,15 +80,34 @@ function startTestServer(opts) {
     (function poll() {
       fetch(baseUrl + '/health').then(r => {
         if (r.ok) {
-          resolve({
-            baseUrl,
-            adminKey,
-            jwtSecret,
-            dbPath,
-            stop() {
+          // Exchange the seeded legacy password for a real session token —
+          // this is also what exercises the sha256->bcrypt auto-migration
+          // path on every single test run that uses this harness.
+          fetch(baseUrl + '/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: adminPassword }),
+          }).then(loginRes => loginRes.json()).then(loginBody => {
+            if (!loginBody.adminToken) {
               child.kill();
               cleanupFiles();
-            },
+              return reject(new Error('Test server admin login did not return a token: ' + JSON.stringify(loginBody)));
+            }
+            resolve({
+              baseUrl,
+              adminKey: loginBody.adminToken,
+              adminPassword,
+              jwtSecret,
+              dbPath,
+              stop() {
+                child.kill();
+                cleanupFiles();
+              },
+            });
+          }).catch(e => {
+            child.kill();
+            cleanupFiles();
+            reject(new Error('Test server admin login failed: ' + e.message));
           });
         } else if (Date.now() < deadline) {
           setTimeout(poll, 150);

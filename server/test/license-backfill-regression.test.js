@@ -48,13 +48,19 @@ function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
 async function main() {
   console.log('Licensing regression: automatic backfill + legacy endpoint compatibility');
   const dbPath = path.join(os.tmpdir(), `shoperpro-backfill-test-${crypto.randomBytes(8).toString('hex')}.db`);
+  // admin_credentials (Issue 2, PasswordMigration.md) persists in the DB
+  // file itself, unlike the old env-var-only ADMIN_KEY — so every boot
+  // against this SAME reused file must use the SAME admin password, or a
+  // later boot's freshly-random default would never match what the first
+  // boot already seeded.
+  const sharedAdminPassword = crypto.randomBytes(16).toString('hex');
   console.log('DB: ' + dbPath);
   console.log('');
 
   try {
     // ── Boot 1: fresh file, just to create the schema ─────────────────────
     console.log('Boot 1 (fresh file, schema only)...');
-    let srv = await startTestServer({ envOverrides: { DB_PATH: dbPath } });
+    let srv = await startTestServer({ envOverrides: { DB_PATH: dbPath }, adminPassword: sharedAdminPassword });
     srv.stop();
     await sleep(300);
 
@@ -88,7 +94,7 @@ async function main() {
 
     // ── Boot 2: same file — this is where the automatic backfill runs ──────
     console.log('Boot 2 (same file — triggers automatic backfill)...');
-    srv = await startTestServer({ envOverrides: { DB_PATH: dbPath } });
+    srv = await startTestServer({ envOverrides: { DB_PATH: dbPath }, adminPassword: sharedAdminPassword });
     const req = reqFactory(srv.baseUrl, srv.adminKey);
     const db2 = new Database(dbPath);
 
@@ -121,7 +127,7 @@ async function main() {
     srv.stop();
     await sleep(300);
     db2.close();
-    const srv3 = await startTestServer({ envOverrides: { DB_PATH: dbPath } });
+    const srv3 = await startTestServer({ envOverrides: { DB_PATH: dbPath }, adminPassword: sharedAdminPassword });
     const db3 = new Database(dbPath);
     const licCountAfterReboot = db3.prepare('SELECT COUNT(*) c FROM tenant_licenses').get().c;
     assert(licCountAfterReboot === 3, 'a third boot against the same file does not create duplicate tenant_licenses rows (idempotent backfill)');
