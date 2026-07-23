@@ -28,6 +28,10 @@ function bootOnce(dbPath, port) {
       DB_PATH: dbPath, PORT: String(port),
       JWT_SECRET: 'migration-idempotency-test-secret',
       ADMIN_KEY: 'migration-idempotency-test-admin-key',
+      // server/mailer.js requires these to boot at all — set explicitly so
+      // this test doesn't depend on server/.env existing (it's gitignored;
+      // a fresh CI checkout won't have one).
+      SMTP_HOST: 'localhost', SMTP_PORT: '1025', SMTP_USER: 'test', SMTP_PASS: 'test', SMTP_FROM: 'test@example.com',
     });
     const child = spawn(process.execPath, [path.join(__dirname, '..', 'local.js')], { env, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '';
@@ -68,6 +72,12 @@ async function main() {
       ['cloud_backups', 'tenant_data', 'tenants', 'user_sessions', 'users'].every(t => tables1.includes(t)),
       'boot 1: all 5 expected tables exist after first boot'
     );
+    assert(
+      ['subscription_plans', 'tenant_licenses', 'license_history', 'trusted_devices'].every(t => tables1.includes(t)),
+      'boot 1: all 4 licensing tables (subscription_plans, tenant_licenses, license_history, trusted_devices) also exist after first boot'
+    );
+    const planCount1 = db1.prepare('SELECT COUNT(*) c FROM subscription_plans').get().c;
+    assert(planCount1 === 3, 'boot 1: the 3 subscription plans (TRIAL/BASIC/PREMIUM) are seeded');
     // Insert a marker row to prove later boots don't wipe data
     db1.exec("INSERT INTO tenants (shop_name, status) VALUES ('MigrationMarkerTenant', 'active')");
     const markerCountBefore = db1.prepare("SELECT COUNT(*) c FROM tenants WHERE shop_name='MigrationMarkerTenant'").get().c;
@@ -83,6 +93,14 @@ async function main() {
     const db2 = new Database(dbPath);
     const markerAfterBoot2 = db2.prepare("SELECT COUNT(*) c FROM tenants WHERE shop_name='MigrationMarkerTenant'").get().c;
     assert(markerAfterBoot2 === 1, 'marker row still present after boot 2 (migrations did not touch existing data)');
+    const planCount2 = db2.prepare('SELECT COUNT(*) c FROM subscription_plans').get().c;
+    assert(planCount2 === 3, 'boot 2: re-running the plan seed (INSERT OR IGNORE) does not create duplicate subscription_plans rows');
+    // Marker's tenant_licenses row (created by the backfill on boot 1, since
+    // it predates this feature within this test's own timeline) must also
+    // survive an idempotent re-run of the backfill on boot 2.
+    const markerTenantId = db2.prepare("SELECT id FROM tenants WHERE shop_name='MigrationMarkerTenant'").get().id;
+    const markerLicCountAfterBoot2 = db2.prepare('SELECT COUNT(*) c FROM tenant_licenses WHERE tenant_id = ?').get(markerTenantId).c;
+    assert(markerLicCountAfterBoot2 === 1, "boot 2: the marker tenant's backfilled tenant_licenses row is not duplicated");
     db2.close();
 
     // Boot 3: one more time for good measure
@@ -96,6 +114,8 @@ async function main() {
     assert(markerAfterBoot3 === 1, 'marker row still present after boot 3 — three consecutive boots, zero data loss');
     const tableCountStable = db3.prepare("SELECT COUNT(*) c FROM sqlite_master WHERE type='table'").get().c;
     assert(tableCountStable === tables1.length, 'table count is stable across repeated migrations (no duplicate/renamed tables)');
+    const planCount3 = db3.prepare('SELECT COUNT(*) c FROM subscription_plans').get().c;
+    assert(planCount3 === 3, 'boot 3: subscription_plans still exactly 3 rows after a third re-run');
     db3.close();
 
   } finally {

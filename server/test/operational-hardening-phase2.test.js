@@ -69,6 +69,11 @@ async function main() {
       env: Object.assign({}, process.env, {
         DB_PATH: '/nonexistent-dir-' + crypto.randomBytes(4).toString('hex') + '/cannot.db',
         PORT: '0', JWT_SECRET: 'startup-validation-test-secret',
+        // server/mailer.js requires these to boot at all — set explicitly so
+        // this assertion (about the DB_PATH failure specifically) isn't
+        // masked by an earlier, unrelated SMTP boot failure in environments
+        // (e.g. a fresh CI checkout) with no server/.env fallback.
+        SMTP_HOST: 'localhost', SMTP_PORT: '1025', SMTP_USER: 'test', SMTP_PASS: 'test', SMTP_FROM: 'test@example.com',
       }),
       stdio: ['ignore', 'pipe', 'pipe'],
     });

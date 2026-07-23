@@ -16,7 +16,8 @@ const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
 
-function startTestServer() {
+function startTestServer(opts) {
+  opts = opts || {};
   const dbPath = path.join(os.tmpdir(), `shoperpro-test-${crypto.randomBytes(8).toString('hex')}.db`);
   const port = 20000 + Math.floor(Math.random() * 20000);
   const jwtSecret = crypto.randomBytes(32).toString('hex');
@@ -27,7 +28,16 @@ function startTestServer() {
     PORT: String(port),
     JWT_SECRET: jwtSecret,
     ADMIN_KEY: adminKey,
-  });
+    // server/mailer.js requires these to be set to boot at all (see
+    // LicensingMigrationPlan.md) — a fake, unreachable host is fine here:
+    // transporter.verify() only logs on failure, it's never fatal, and no
+    // test in this repo actually needs a real outbound email to be sent.
+    SMTP_HOST: 'localhost',
+    SMTP_PORT: '1025',
+    SMTP_USER: 'test@example.com',
+    SMTP_PASS: 'test',
+    SMTP_FROM: 'ShopERP Pro Test <test@example.com>',
+  }, opts.envOverrides || {});
 
   const child = spawn(process.execPath, [path.join(__dirname, '..', 'local.js')], {
     env,

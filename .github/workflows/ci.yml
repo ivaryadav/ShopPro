@@ -90,3 +90,42 @@ jobs:
       - name: Operational hardening tests — phase 2
         working-directory: server
         run: npm run test:operational
+
+      # ── SaaS licensing / registration / subscription system ───────────
+      # See docs/architecture-review/LicenseArchitecture.md. Each step maps
+      # to one of the 12 verification simulations in VerificationReport.md.
+      - name: Licensing tests — registration (Phase 1)
+        working-directory: server
+        run: npm run test:license-registration
+
+      - name: Licensing tests — email verification (Phase 1, Step 5)
+        working-directory: server
+        run: npm run test:license-email-verification
+
+      - name: Licensing tests — admin approval + plan assignment (Phases 2-4)
+        working-directory: server
+        run: npm run test:license-admin-approval
+
+      - name: Licensing tests — expiry state machine (Phases 5, 6, 11)
+        working-directory: server
+        run: npm run test:license-state-machine
+
+      - name: Licensing tests — renewal (Phase 10)
+        working-directory: server
+        run: npm run test:license-renewal
+
+      - name: Licensing tests — offline grace server contract (Phase 7)
+        working-directory: server
+        run: npm run test:license-offline-grace
+
+      - name: Licensing tests — trusted devices + device limit (Phase 8)
+        working-directory: server
+        run: npm run test:license-devices
+
+      - name: Licensing tests — manual suspend/reactivate (Phase 9)
+        working-directory: server
+        run: npm run test:license-suspension
+
+      - name: Licensing tests — legacy tenant backfill + backward compatibility
+        working-directory: server
+        run: npm run test:license-backfill-regression
