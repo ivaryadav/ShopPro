@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.39">
-<title>ShopERP Pro v8.39</title>
+<meta name="shoperpro-version" content="v8.40">
+<title>ShopERP Pro v8.40</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -1664,6 +1664,118 @@ body.light-mode .btn-icon:hover{border-color:#3B6FE8;color:#1E40AF;background:rg
 body.light-mode ::-webkit-scrollbar-thumb{background:#C0CEEF}
 body.light-mode ::-webkit-scrollbar-track{background:transparent}
 
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE — DESKTOP / TABLET / SMALL TABLET
+   ──────────────────────────────────────────────────────────────────
+   Desktop      >1400px          : existing dense rules above, unchanged.
+   Tablet       901px–1400px     : touch-first — 48-56px targets, icon-
+                                    rail sidebar, simplified spacing.
+   Small tablet ≤900px           : same icon-rail sidebar, single-column
+                                    stacking, largest touch targets.
+   One responsive codebase — same markup, same functionality, only
+   spacing/sizing/typography adapt per breakpoint. Business logic,
+   workflows, navigation structure and permissions are untouched by
+   every rule below; only CSS changed.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ---- Tablet: 901px–1400px (11" Android tablets landscape, iPad-class) ---- */
+@media (max-width:1400px) and (min-width:901px){
+  :root{--sidebar-w:76px;--touch-min:52px}
+
+  /* Icon-rail sidebar — same collapse pattern this file already uses
+     at ≤768px (line ~704), extended to the tablet tier so an 11" tablet
+     gets it too, not just phone-width screens. */
+  .sb-name,.sb-tagline,.sb-uname,.sb-urole,.nav-item span:not(.nav-icon),.nav-section,.sb-bottom{display:none}
+  .sb-brand{justify-content:center;padding:14px 8px}
+  .sb-user{justify-content:center;padding:12px 8px}
+  .nav-item{justify-content:center;padding:14px;min-height:var(--touch-min);margin-bottom:4px}
+  .nav-icon{font-size:19px}
+
+  /* Admin console sidebar — "DEVELOPER ONLY" per its own label, lowest
+     priority screen. Its nav items have no separate icon/label span
+     (unlike the main .nav-item), so an icon-only collapse isn't possible
+     without restructuring markup; touch-sizing it in place instead. */
+  #adm-sidebar{width:170px!important}
+  .adm-nav-item{padding:13px 10px;min-height:44px;font-size:13px}
+
+  body{font-size:15px}
+  .content{padding:24px}
+  .ph{padding:22px}
+  .ph-title{font-size:20px}
+
+  /* Touch targets — 48-56px minimum, per the tablet requirement. .btn-xs
+     is kept slightly under (44px, still a large jump from its ~24px
+     desktop-dense size) rather than forced to 48px+, specifically
+     because it's the class used inside .tbl-actions icon rows that can
+     hold up to 4-5 buttons in one table cell — .tbl-wrap already
+     scrolls horizontally (an existing, established pattern in this
+     codebase) as the safety net for that width, not further shrinking. */
+  .btn{padding:13px 20px;font-size:14px;min-height:var(--touch-min)}
+  .btn-sm{padding:12px 18px;font-size:13px;min-height:48px}
+  .btn-xs{padding:10px 14px;font-size:12px;min-height:44px}
+  .btn-icon{min-width:var(--touch-min);min-height:var(--touch-min);padding:12px}
+  .form-control,.search-input{padding:14px 16px;font-size:15px;min-height:var(--touch-min)}
+  .search-bar{gap:12px}
+  .settings-tab{padding:12px 18px;font-size:13px;min-height:44px}
+  .settings-tabs{max-width:100%;overflow-x:auto}
+
+  /* Tables — larger rows, hide secondary columns (see .col-secondary) */
+  th,td{padding:14px 16px;font-size:14px}
+  .col-secondary{display:none}
+
+  /* 2-panel-preferred layouts. !important is required here: several
+     screens set grid-template-columns via an inline style="" attribute
+     (e.g. Repairs' 5-column stats row), which otherwise outranks any
+     external/embedded stylesheet rule regardless of media query. */
+  .stats-row{grid-template-columns:repeat(2,1fr)!important}
+  .dash-grid-3{grid-template-columns:1fr 1fr}
+  .admin-stat-grid-3{grid-template-columns:1fr 1fr!important}
+}
+
+/* ---- Small tablet: ≤900px (compact Android tablets, portrait use) ---- */
+@media (max-width:900px){
+  :root{--sidebar-w:64px;--touch-min:52px}
+
+  .sb-name,.sb-tagline,.sb-uname,.sb-urole,.nav-item span:not(.nav-icon),.nav-section,.sb-bottom{display:none}
+  .sb-brand{justify-content:center;padding:12px 6px}
+  .sb-user{justify-content:center;padding:10px 6px}
+  .nav-item{justify-content:center;padding:13px;min-height:var(--touch-min);margin-bottom:4px}
+  .nav-icon{font-size:18px}
+
+  #adm-sidebar{width:150px!important}
+  .adm-nav-item{padding:12px 8px;min-height:44px;font-size:12px}
+
+  body{font-size:16px}
+  .content{padding:16px}
+  .ph{padding:18px;flex-wrap:wrap}
+  .ph-title{font-size:19px}
+
+  .btn{padding:13px 18px;font-size:14px;min-height:var(--touch-min)}
+  .btn-sm{padding:12px 16px;font-size:13px;min-height:48px}
+  .btn-xs{padding:10px 14px;font-size:12px;min-height:44px}
+  .btn-icon{min-width:var(--touch-min);min-height:var(--touch-min)}
+  .form-control,.search-input{padding:14px 14px;font-size:16px;min-height:var(--touch-min)}
+  .search-bar{gap:10px}
+  .search-bar .form-control,.search-bar select{width:100%!important}
+  .settings-tab{padding:12px 16px;font-size:13px;min-height:48px}
+  .settings-tabs{max-width:100%;overflow-x:auto}
+
+  th,td{padding:12px 10px;font-size:13px}
+  .col-secondary{display:none}
+
+  /* Stacked, single-column — same content, one panel at a time.
+     !important overrides inline style="grid-template-columns:..." — see
+     the tablet-tier comment above for why that's necessary here. */
+  .stats-row{grid-template-columns:1fr 1fr!important}
+  .dash-grid-2,.dash-grid-3{grid-template-columns:1fr}
+  .form-row,.form-row-3{grid-template-columns:1fr}
+  /* Settings tabs' 2-column card grids (inline style="" sets the base
+     desktop/tablet layout — see pageSettings) — !important needed for
+     the same inline-specificity reason as .stats-row above. */
+  .settings-2col{grid-template-columns:1fr!important;max-width:none!important}
+  .admin-stat-grid-3{grid-template-columns:1fr!important}
+}
+
 </style>
 
 </head>
@@ -2472,6 +2584,17 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
 .pss-switch-link{text-align:center;margin-top:12px;font-size:11px;color:rgba(255,255,255,.3)}
 .pss-switch-link a{color:rgba(91,142,249,.8);text-decoration:none}
 .pss-switch-link a:hover{color:#fff}
+.pss-step-progress{display:flex;gap:5px;margin-bottom:18px}
+.pss-step-progress span{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.1);transition:.2s}
+.pss-step-progress span.done{background:#5B8EF9}
+.pss-radio-card{display:flex;align-items:center;gap:10px;padding:11px 13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;cursor:pointer;transition:.15s;margin-bottom:8px}
+.pss-radio-card:hover{border-color:rgba(91,142,249,.35)}
+.pss-radio-card.sel{background:rgba(91,142,249,.12);border-color:rgba(91,142,249,.55)}
+.pss-radio-card input{accent-color:#5B8EF9}
+.pss-radio-card-label{font-size:13px;font-weight:700;color:#fff}
+.pss-radio-card-sub{font-size:10.5px;color:rgba(255,255,255,.35)}
+.pss-check-row{display:flex;align-items:center;gap:9px;padding:7px 0;font-size:12.5px;color:rgba(255,255,255,.7);cursor:pointer}
+.pss-check-row input{accent-color:#10B981;width:15px;height:15px}
 spline-viewer{width:100%;height:100%;border:none}
 
 @media(max-width:900px){
@@ -2690,33 +2813,75 @@ spline-viewer{width:100%;height:100%;border:none}
           <div class="pss-switch-link">First time? <a href="#" onclick="pssOpenPanel('register');return false">Set up your shop &#8594;</a></div>
         </div>
 
-        <!-- FIRST TIME SETUP -->
+        <!-- FIRST TIME SETUP — 4-step self-service registration wizard.
+             No license key from the customer anywhere in this flow (Phase 4:
+             keys are internal-only, auto-generated by the admin on approval).
+             Submits to POST /api/auth/signup -> PENDING_APPROVAL, not the
+             legacy POST /api/auth/register (which still requires a key and
+             is left untouched for old client builds). -->
         <div id="pss-panel-register" style="display:none">
-          <div class="pss-form-title">New Shop Setup</div>
-          <div class="pss-form-note">A <strong>license key from Ravi</strong> is required — no Machine ID needed for web setup. Tap below to WhatsApp Ravi with your shop name and ask for a <strong>Web/Hosted key</strong>.</div>
-          <button type="button" class="pss-fbtn" style="background:linear-gradient(135deg,#25D366,#128C7E);margin-bottom:14px" onclick="pssRequestWebKey()">💬 WhatsApp Ravi for a Key</button>
-          <div class="pss-field">
-            <label class="pss-flabel">License Key *</label>
-            <input class="pss-finput" id="pss-reg-key" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19" style="text-transform:uppercase;letter-spacing:2px;text-align:center" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/(.{4})(?=.)/g,'$1-').substring(0,19)">
+          <div class="pss-step-progress" id="pss-reg-progress">
+            <span class="done"></span><span></span><span></span><span></span>
           </div>
-          <div class="pss-field">
-            <label class="pss-flabel">Shop Name *</label>
-            <input class="pss-finput" id="pss-reg-shop" placeholder="e.g. Dada Mobile">
+
+          <!-- Step 1 — Shop Name*, Owner Name*, Mobile*, Email*, Password*; optional Address, GST -->
+          <div id="pss-reg-step1">
+            <div class="pss-form-title">New Shop Setup</div>
+            <div class="pss-form-sub">Step 1 of 4 — Tell us about your shop</div>
+            <div class="pss-field"><label class="pss-flabel">Shop Name *</label><input class="pss-finput" id="pss-reg-shop" placeholder="e.g. Dada Mobile"></div>
+            <div class="pss-field"><label class="pss-flabel">Owner Name *</label><input class="pss-finput" id="pss-reg-name" placeholder="e.g. Deepak"></div>
+            <div class="pss-field"><label class="pss-flabel">Mobile Number *</label><input class="pss-finput" id="pss-reg-mobile" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit mobile number" autocomplete="tel"></div>
+            <div class="pss-field"><label class="pss-flabel">Email *</label><input class="pss-finput" id="pss-reg-email" type="email" placeholder="you@example.com" autocomplete="email"></div>
+            <div class="pss-field"><label class="pss-flabel">Create PIN *</label><input class="pss-finput" id="pss-reg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="4-6 digits" autocomplete="new-password"></div>
+            <div class="pss-field"><label class="pss-flabel">Address (optional)</label><input class="pss-finput" id="pss-reg-address" placeholder="Shop address"></div>
+            <div class="pss-field"><label class="pss-flabel">GST Number (optional)</label><input class="pss-finput" id="pss-reg-gst" placeholder="GSTIN"></div>
+            <button class="pss-fbtn grn" onclick="pssRegNext(1)">Continue &#8594;</button>
+            <div class="pss-switch-link">Already have a shop? <a href="#" onclick="pssOpenPanel('license');return false">Sign in &#8594;</a></div>
           </div>
-          <div class="pss-field">
-            <label class="pss-flabel">Your Name *</label>
-            <input class="pss-finput" id="pss-reg-name" placeholder="e.g. Deepak">
+
+          <!-- Step 2 — Plan request (Trial/Basic/Premium) -->
+          <div id="pss-reg-step2" style="display:none">
+            <div class="pss-form-title">Choose a Plan</div>
+            <div class="pss-form-sub">Step 2 of 4 — Which plan would you like to start with?</div>
+            <label class="pss-radio-card sel" onclick="pssRegSelectRadio(this)"><input type="radio" name="pss-reg-plan" value="TRIAL" checked><div><div class="pss-radio-card-label">Trial</div><div class="pss-radio-card-sub">14 days free · 2 devices</div></div></label>
+            <label class="pss-radio-card" onclick="pssRegSelectRadio(this)"><input type="radio" name="pss-reg-plan" value="BASIC"><div><div class="pss-radio-card-label">Basic</div><div class="pss-radio-card-sub">2 devices</div></div></label>
+            <label class="pss-radio-card" onclick="pssRegSelectRadio(this)"><input type="radio" name="pss-reg-plan" value="PREMIUM"><div><div class="pss-radio-card-label">Premium</div><div class="pss-radio-card-sub">5 devices</div></div></label>
+            <button class="pss-fbtn grn" onclick="pssRegStep(3)">Continue &#8594;</button>
+            <button class="pss-back-btn" onclick="pssRegStep(1)">&#8592; Back</button>
           </div>
-          <div class="pss-field">
-            <label class="pss-flabel">Mobile Number *</label>
-            <input class="pss-finput" id="pss-reg-mobile" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit mobile number" autocomplete="tel">
+
+          <!-- Step 3 — Expected devices (informational; admin sizes device_limit from the plan) -->
+          <div id="pss-reg-step3" style="display:none">
+            <div class="pss-form-title">Expected Devices</div>
+            <div class="pss-form-sub">Step 3 of 4 — How many devices will use this shop?</div>
+            <label class="pss-radio-card sel" onclick="pssRegSelectRadio(this)"><input type="radio" name="pss-reg-devices" value="1-2" checked><div><div class="pss-radio-card-label">1&ndash;2 devices</div></div></label>
+            <label class="pss-radio-card" onclick="pssRegSelectRadio(this)"><input type="radio" name="pss-reg-devices" value="3-5"><div><div class="pss-radio-card-label">3&ndash;5 devices</div></div></label>
+            <label class="pss-radio-card" onclick="pssRegSelectRadio(this)"><input type="radio" name="pss-reg-devices" value="5+"><div><div class="pss-radio-card-label">More than 5</div></div></label>
+            <button class="pss-fbtn grn" onclick="pssRegStep(4)">Continue &#8594;</button>
+            <button class="pss-back-btn" onclick="pssRegStep(2)">&#8592; Back</button>
           </div>
-          <div class="pss-field">
-            <label class="pss-flabel">Create PIN *</label>
-            <input class="pss-finput" id="pss-reg-pin" type="password" inputmode="numeric" maxlength="6" placeholder="4-6 digits" autocomplete="new-password" onkeydown="if(event.key==='Enter')pssRegister()">
+
+          <!-- Step 4 — Modules (capture-only for admin visibility, no feature gating) -->
+          <div id="pss-reg-step4" style="display:none">
+            <div class="pss-form-title">Modules You'll Use</div>
+            <div class="pss-form-sub">Step 4 of 4 — Helps our team understand your needs (every module is included with any plan)</div>
+            <label class="pss-check-row"><input type="checkbox" class="pss-reg-module" value="Billing" checked>Billing</label>
+            <label class="pss-check-row"><input type="checkbox" class="pss-reg-module" value="Inventory" checked>Inventory</label>
+            <label class="pss-check-row"><input type="checkbox" class="pss-reg-module" value="Repair" checked>Repair</label>
+            <label class="pss-check-row"><input type="checkbox" class="pss-reg-module" value="WhatsApp" checked>WhatsApp</label>
+            <label class="pss-check-row"><input type="checkbox" class="pss-reg-module" value="Reports" checked>Reports</label>
+            <button class="pss-fbtn grn" id="pss-reg-submit-btn" onclick="pssSubmitSignup()" style="margin-top:8px">Complete Registration &#8594;</button>
+            <button class="pss-back-btn" onclick="pssRegStep(3)">&#8592; Back</button>
           </div>
-          <button class="pss-fbtn grn" id="pss-reg-btn" onclick="pssRegister()">Register &amp; Start &#8594;</button>
-          <div class="pss-switch-link">Already have a shop? <a href="#" onclick="pssOpenPanel('license');return false">Sign in &#8594;</a></div>
+
+          <!-- Pending confirmation — shown after a successful signup -->
+          <div id="pss-reg-pending" style="display:none;text-align:center">
+            <div style="font-size:44px;margin-bottom:10px">📩</div>
+            <div class="pss-form-title">Registration Received</div>
+            <div class="pss-form-sub" id="pss-reg-pending-msg">Please check your email to verify your address. Once verified, our team will review and approve your account.</div>
+            <button class="pss-fbtn blu" onclick="pssResendVerification()" id="pss-reg-resend-btn">Resend Verification Email</button>
+            <div class="pss-switch-link"><a href="#" onclick="pssClosePanel();return false">&#8592; Back to Start</a></div>
+          </div>
         </div>
 
         <!-- SUPER ADMIN -->
@@ -2925,6 +3090,11 @@ spline-viewer{width:100%;height:100%;border:none}
         <div class="adm-nav-item" onclick="showAdminPage('adm-suspended')">🚫 Suspended</div>
         <div class="adm-nav-item" onclick="showAdminPage('adm-pins')">🔐 User PINs</div>
         <div id="adm-nav-webusers" style="display:none"><div class="adm-nav-item" onclick="showAdminPage('adm-webusers')">🌐 Web Users</div></div>
+        <div id="adm-nav-licensing" style="display:none">
+          <div style="font-size:9px;color:var(--text3);font-weight:700;padding:8px 8px 4px;letter-spacing:.8px;text-transform:uppercase">Subscriptions</div>
+          <div class="adm-nav-item" onclick="showAdminPage('adm-registrations')">📝 Registrations</div>
+          <div class="adm-nav-item" onclick="showAdminPage('adm-tenant-licenses')">📋 Tenant Licenses</div>
+        </div>
         <div style="font-size:9px;color:var(--text3);font-weight:700;padding:8px 8px 4px;letter-spacing:.8px;text-transform:uppercase">Settings</div>
         <div class="adm-nav-item" onclick="showAdminPage('adm-settings')">⚙️ Settings</div>
       </nav>
@@ -3023,7 +3193,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.39 · Licensed</div>
+        <div class="sb-footer-ver">v8.40 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3443,7 +3613,20 @@ const _api = {
       }
       if (r.status === 401) this._sessionExpired();
     }
-    if (r.status === 403) { const b=await r.json().catch(()=>{}); if(b&&b.status)showSuspendedScreen(b.status,b.reason||''); throw new Error(b?.error||'Forbidden'); }
+    if (r.status === 403) {
+      const b=await r.json().catch(()=>{});
+      if(b&&b.status)showSuspendedScreen(b.status,b.reason||'');
+      // New SaaS licensing gates (requireLicenseRead/Write) respond with
+      // licenseStatus instead of status — defense in depth: any blocked
+      // write anywhere in the app (not just the ones pssRefreshLicenseStatus
+      // already checks at boot) still surfaces the right lock screen/toast.
+      else if(b&&b.licenseStatus){
+        if(b.licenseStatus==='SUSPENDED'||b.licenseStatus==='ARCHIVED') pssShowLicenseSuspendedScreen(b.licenseStatus);
+        else if(b.licenseStatus==='PENDING_APPROVAL') pssShowPendingApprovalScreen();
+        else if(b.licenseStatus==='READ_ONLY'&&typeof toast==='function') toast(b.error||'Your subscription has expired. Renew to continue editing.','error');
+      }
+      throw new Error(b?.error||'Forbidden');
+    }
     if (r.status === 409) { const b=await r.json().catch(()=>({})); const err=new Error(b.error||'Conflict'); err.status=409; err.conflict=b; throw err; }
     return r.json();
   },
@@ -3664,7 +3847,6 @@ function _importLegacyData(){
       var _p=JSON.parse(_raw);
       if(_p&&(_p.settings||_p.sales||_p.customers||_p.repairs)){
         DB=_p;DB._migratedFrom=LEGACY_KEYS[_li];DB._schemaVersion=0;
-        console.log('[ShopERP] Importing data from legacy key:',LEGACY_KEYS[_li]);
         break;
       }
     }catch(e){}
@@ -4734,6 +4916,13 @@ function startApp(user){
     // Show popup modal for 7-day warning (once per day) or critical (every login)
     setTimeout(()=>showExpiryPopup(days,level), 800);
   }
+  // ── New SaaS licensing banner (web/hosted mode) — READ_ONLY notice or
+  //    the 7-day expiry warning, set by pssRefreshLicenseStatus() ────────
+  if(DB._pssLicenseBanner){
+    const{message,level,dismissable}=DB._pssLicenseBanner;
+    delete DB._pssLicenseBanner;
+    pssShowLicenseBanner(message,level,dismissable);
+  }
   // ── License expired - lock to Contact Us only ──────────────
   if(DB._licenseExpiredMode) _applyLicenseExpiredLock();
 }
@@ -5330,7 +5519,7 @@ function showPortalSelect(){
   var newTitle=document.getElementById('pss-new-title');
   var newDesc=document.getElementById('pss-new-desc');
   if(newTitle)newTitle.textContent=isWeb?'New Shop':'New User';
-  if(newDesc)newDesc.textContent=isWeb?'Register your shop with a license key from Ravi':'Copy your Machine ID and request a license key from Ravi';
+  if(newDesc)newDesc.textContent=isWeb?'Register your shop — no license key needed':'Copy your Machine ID and request a license key from Ravi';
   setTimeout(function(){if(window._hideSplineBadge)window._hideSplineBadge();},800);
 }
 function selectPortal(mode){
@@ -5366,6 +5555,7 @@ async function adminLogin(){
   document.getElementById('adm-topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
   // Show Web Users nav item only in web/hosted mode
   var wuNav=document.getElementById('adm-nav-webusers');if(wuNav)wuNav.style.display=SHOPERPRO_API_URL?'block':'none';
+  var licNav=document.getElementById('adm-nav-licensing');if(licNav)licNav.style.display=SHOPERPRO_API_URL?'block':'none';
   showAdminPage('adm-dashboard');
 }
 function adminLogout(){
@@ -5383,6 +5573,8 @@ const ADM_PAGE_META={
   'adm-suspended': ['Suspended Accounts','Paused or terminated tenants'],
   'adm-pins':      ['User PINs','Reset or clear individual user PINs for the loaded shop'],
   'adm-webusers':  ['Web Users','Manage all users on the web application'],
+  'adm-registrations':   ['Registrations','Pending self-service signups awaiting approval'],
+  'adm-tenant-licenses': ['Tenant Licenses','Plan, status, expiry, and devices for every hosted tenant'],
   'adm-settings':  ['Settings','Admin preferences & download links'],
 };
 function showAdminPage(page){
@@ -5390,11 +5582,13 @@ function showAdminPage(page){
   var meta=ADM_PAGE_META[page]||['',''];
   document.getElementById('adm-page-title').textContent=meta[0];
   document.getElementById('adm-page-sub').textContent=meta[1];
-  var fns={'adm-dashboard':admPageDashboard,'adm-generate':admPageGenerate,'adm-validate':admPageValidate,'adm-customers':admPageCustomers,'adm-expiring':admPageExpiring,'adm-suspended':admPageSuspended,'adm-pins':admPagePins,'adm-webusers':admPageWebUsers,'adm-settings':admPageSettings};
+  var fns={'adm-dashboard':admPageDashboard,'adm-generate':admPageGenerate,'adm-validate':admPageValidate,'adm-customers':admPageCustomers,'adm-expiring':admPageExpiring,'adm-suspended':admPageSuspended,'adm-pins':admPagePins,'adm-webusers':admPageWebUsers,'adm-registrations':admPageRegistrations,'adm-tenant-licenses':admPageTenantLicenses,'adm-settings':admPageSettings};
   var fn=fns[page]; if(!fn)return;
   document.getElementById('adm-content').innerHTML=fn();
   if(page==='adm-generate')admInitGenerate();
   if(page==='adm-webusers')admLoadWebUsers();
+  if(page==='adm-registrations')admLoadRegistrations();
+  if(page==='adm-tenant-licenses')admLoadTenantLicenses();
   if(page==='adm-customers'||page==='adm-suspended'||page==='adm-expiring')admRenderCurrentPage(page);
 }
 
@@ -5599,7 +5793,7 @@ function admPageCustomers(){
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
+  <div class="admin-stat-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
     <div style="background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(5,150,105,.08));border:1px solid rgba(16,185,129,.25);border-radius:12px;padding:14px 16px;text-align:center">
       <div style="font-size:26px;font-weight:800;color:#10B981">${nActive}</div>
       <div style="font-size:11px;color:var(--text3);margin-top:2px">Active</div>
@@ -6030,16 +6224,16 @@ function admLoadWebUsers(){
         html+='<div style="font-size:10px;color:var(--text3);margin-top:2px">'+shop.users.length+' user'+(shop.users.length!==1?'s':'')+'  &bull;  Plan: '+(shop.licensePlan||'—')+'</div></div>';
         html+='<span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(0,0,0,.15);color:'+shopStatusColor+'">'+shop.shopStatus.toUpperCase()+'</span>';
         html+='</div>';
-        html+='<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Role</th><th>Mobile</th><th>Last Login</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+        html+='<div class="tbl-wrap"><table><thead><tr><th>Name</th><th class="col-secondary">Role</th><th>Mobile</th><th class="col-secondary">Last Login</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
         shop.users.forEach(function(u){
           var roleColor=u.role==='owner'?'var(--accent)':u.role==='manager'?'var(--blue)':'var(--text2)';
           var lastLogin=u.lastLogin?new Date(u.lastLogin).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Never';
           var waBtn=u.mobile?'<a href="https://wa.me/91'+u.mobile+'" target="_blank" class="btn btn-xs btn-wa" style="padding:2px 7px;font-size:10px">&#128172;</a>':'';
           html+='<tr id="wu-row-'+u.id+'">';
           html+='<td><strong>'+esc(u.name||'—')+'</strong></td>';
-          html+='<td><span style="font-size:10px;font-weight:700;color:'+roleColor+'">'+esc(u.role)+'</span></td>';
+          html+='<td class="col-secondary"><span style="font-size:10px;font-weight:700;color:'+roleColor+'">'+esc(u.role)+'</span></td>';
           html+='<td style="font-family:var(--mono);font-size:12px">'+(u.mobile||'—')+' '+waBtn+'</td>';
-          html+='<td style="font-size:11px;color:var(--text2)">'+lastLogin+'</td>';
+          html+='<td class="col-secondary" style="font-size:11px;color:var(--text2)">'+lastLogin+'</td>';
           html+='<td><span id="wu-status-'+u.id+'" style="font-size:11px;font-weight:700;color:'+(u.isActive?'var(--green)':'var(--red)')+'">&#9679; '+(u.isActive?'Active':'Disabled')+'</span></td>';
           html+='<td><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">';
           // PIN reset inline
@@ -6108,6 +6302,372 @@ function admToggleWebUser(userId,enable,userName){
     admLoadWebUsers();
     toast(userName+' has been '+(enable?'enabled':'disabled'),'success');
   }).catch(function(){toast('Connection error','error');});
+}
+
+// ════════════════════════════════════════════════════════════════
+// Admin: SaaS Licensing — Registrations (Phase 2) & Tenant Licenses (Phase 9)
+// ════════════════════════════════════════════════════════════════
+function admFetchJSON(path, opts){
+  opts=opts||{};
+  return fetch(SHOPERPRO_API_URL+path,{
+    method:opts.method||'GET',
+    headers:Object.assign({'X-Admin-Key':ADMIN_PWD_HASH},opts.body!==undefined?{'Content-Type':'application/json'}:{}),
+    body:opts.body!==undefined?JSON.stringify(opts.body):undefined,
+  }).then(function(r){return r.json();});
+}
+function admLoadTenantLicensesIfVisible(){
+  if(document.getElementById('adm-tenant-licenses-body')) admLoadTenantLicenses();
+}
+
+// ── Registrations queue ───────────────────────────────────────────────────
+function admPageRegistrations(){
+  return '<div class="card"><div class="card-header"><div class="card-title">📝 Pending Registrations</div><button class="btn btn-ghost btn-sm" onclick="admLoadRegistrations()">&#8635; Refresh</button></div><div id="adm-registrations-body"><div style="padding:32px;text-align:center;color:var(--text3)">Loading…</div></div></div>';
+}
+function admLoadRegistrations(){
+  if(!SHOPERPRO_API_URL){document.getElementById('adm-registrations-body').innerHTML='<p style="color:var(--text2);padding:20px">Registrations only available in hosted/web mode.</p>';return;}
+  admFetchJSON('/api/admin/registrations').then(function(d){
+    var body=document.getElementById('adm-registrations-body'); if(!body)return;
+    if(d.error){body.innerHTML='<p style="color:var(--red);padding:20px">Error: '+esc(d.error)+'</p>';return;}
+    var regs=d.registrations||[];
+    if(!regs.length){body.innerHTML='<p style="color:var(--text2);padding:20px">No pending registrations.</p>';return;}
+    var html='<div style="display:flex;flex-direction:column;gap:14px">';
+    regs.forEach(function(r){
+      var modules=(r.requestedModules||[]).map(function(m){return esc(m);}).join(', ')||'—';
+      var verifiedBadge=r.emailVerified
+        ?'<span style="font-size:10px;font-weight:700;color:var(--green)">&#9679; Email Verified</span>'
+        :'<span style="font-size:10px;font-weight:700;color:var(--orange)">&#9679; Email Not Verified</span>';
+      var regDate=r.registeredAt?new Date(r.registeredAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';
+      html+='<div style="border:1px solid var(--border2);border-radius:12px;padding:16px" id="reg-row-'+r.tenantId+'">';
+      html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">';
+      html+='<div><div style="font-size:14px;font-weight:700">'+esc(r.shopName)+'</div>';
+      html+='<div style="font-size:11px;color:var(--text2);margin-top:2px">'+esc(r.ownerName)+' &bull; '+esc(r.mobile)+' &bull; '+esc(r.email)+'</div>';
+      html+='<div style="font-size:10px;color:var(--text3);margin-top:4px">Registered '+regDate+' &bull; Requested: <strong>'+esc(r.requestedPlan||'—')+'</strong> &bull; Devices: '+esc(r.requestedDevicesBucket||'—')+' &bull; Modules: '+modules+'</div></div>';
+      html+='<div>'+verifiedBadge+'</div>';
+      html+='</div>';
+      html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">';
+      html+='<button class="btn btn-xs btn-primary" onclick="admApproveRegistration('+r.tenantId+')">✅ Approve</button>';
+      html+='<button class="btn btn-xs" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red)" onclick="admRejectRegistration('+r.tenantId+','+JSON.stringify(r.shopName)+')">✕ Reject</button>';
+      html+='<a href="https://wa.me/91'+esc((r.mobile||'').replace(/\D/g,''))+'" target="_blank" class="btn btn-xs btn-wa">&#128172; Call/WhatsApp</a>';
+      html+='<button class="btn btn-xs btn-ghost" onclick="admLogCallPrompt('+r.tenantId+')">📞 Log Call</button>';
+      html+='<button class="btn btn-xs btn-ghost" onclick="admAssignPlanPrompt('+r.tenantId+')">Assign Plan</button>';
+      html+='<button class="btn btn-xs btn-ghost" onclick="admStartTrialForTenant('+r.tenantId+')">Start Trial</button>';
+      html+='<button class="btn btn-xs btn-ghost" onclick="admGenerateLicenseForTenant('+r.tenantId+')">Generate Key</button>';
+      html+='<button class="btn btn-xs btn-ghost" onclick="admAddNotePrompt('+r.tenantId+')">Add Note</button>';
+      html+='</div></div>';
+    });
+    html+='</div>';
+    body.innerHTML=html;
+  }).catch(function(e){
+    var body=document.getElementById('adm-registrations-body');
+    if(body)body.innerHTML='<p style="color:var(--red);padding:20px">Connection error: '+esc(e.message)+'</p>';
+  });
+}
+function admApproveRegistration(tenantId){
+  admFetchJSON('/api/admin/registrations/'+tenantId+'/approve',{method:'POST',body:{}}).then(function(d){
+    if(d.error){toast('Error: '+d.error,'error');return;}
+    toast('Registration approved — tenant is now ACTIVE','success');
+    admLoadRegistrations();admLoadTenantLicensesIfVisible();
+  }).catch(function(){toast('Connection error','error');});
+}
+function admRejectRegistration(tenantId, shopName){
+  _glassModal({
+    icon:'✕',iconColor:'rgba(239,68,68,.4)',danger:true,
+    title:'Reject Registration',
+    subtitle:`<strong style="color:rgba(255,255,255,.8)">${esc(shopName)}</strong><br>The account is archived, never deleted.`,
+    fields:[{id:'_gm-reason',label:'Reason (internal note)',placeholder:'e.g. Duplicate signup'}],
+    actions:[
+      {label:'Cancel',style:'flex:1;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)',onClick:function(){document.getElementById('_glass-modal').remove();}},
+      {label:'✕ Reject',style:'flex:2;background:linear-gradient(135deg,#EF4444,#B91C1C);color:#fff',onClick:function(){
+        var reason=(document.getElementById('_gm-reason')||{}).value||'';
+        document.getElementById('_glass-modal').remove();
+        admFetchJSON('/api/admin/registrations/'+tenantId+'/reject',{method:'POST',body:{reason:reason}}).then(function(d){
+          if(d.error){toast('Error: '+d.error,'error');return;}
+          toast('Registration rejected','info');
+          admLoadRegistrations();admLoadTenantLicensesIfVisible();
+        }).catch(function(){toast('Connection error','error');});
+      }}
+    ]
+  });
+}
+function admAssignPlanPrompt(tenantId){
+  _glassModal({
+    icon:'📦',title:'Assign Plan',
+    subtitle:'Sets the plan, billing cycle, and device limit for this tenant.',
+    fields:[
+      {id:'_gm-plan',label:'Plan Code (TRIAL / BASIC / PREMIUM)',value:'BASIC'},
+      {id:'_gm-cycle',label:'Billing Cycle (trial/monthly/halfyearly/yearly/lifetime)',value:'monthly'},
+      {id:'_gm-devlimit',label:'Device Limit Override (optional)',placeholder:'leave blank to use plan default'},
+    ],
+    actions:[
+      {label:'Cancel',style:'flex:1;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)',onClick:function(){document.getElementById('_glass-modal').remove();}},
+      {label:'Assign',style:'flex:2;background:linear-gradient(135deg,#5B8EF9,#A78BFA);color:#fff',onClick:function(){
+        var plan=(document.getElementById('_gm-plan')||{}).value||'';
+        var cycle=(document.getElementById('_gm-cycle')||{}).value||'';
+        var devRaw=(document.getElementById('_gm-devlimit')||{}).value||'';
+        var body={planCode:plan.toUpperCase(),billingCycle:cycle.toLowerCase()};
+        if(devRaw&&!isNaN(parseInt(devRaw,10)))body.deviceLimitOverride=parseInt(devRaw,10);
+        document.getElementById('_glass-modal').remove();
+        admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/assign-plan',{method:'POST',body:body}).then(function(d){
+          if(d.error){toast('Error: '+d.error,'error');return;}
+          toast('Plan assigned: '+d.planCode+' ('+d.billingCycle+')','success');
+          admLoadRegistrations();admLoadTenantLicensesIfVisible();
+        }).catch(function(){toast('Connection error','error');});
+      }}
+    ]
+  });
+}
+function admStartTrialForTenant(tenantId){
+  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/start-trial',{method:'POST',body:{}}).then(function(d){
+    if(d.error){toast('Error: '+d.error,'error');return;}
+    toast('14-day trial started','success');
+    admLoadRegistrations();admLoadTenantLicensesIfVisible();
+  }).catch(function(){toast('Connection error','error');});
+}
+function admGenerateLicenseForTenant(tenantId, regenerate){
+  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/generate-license',{method:'POST',body:{regenerate:!!regenerate}}).then(function(d){
+    if(d.error){
+      if(d.licenseKey&&!regenerate){
+        if(confirm('A license key already exists: '+d.licenseKey+'\n\nGenerate a new one instead?')) admGenerateLicenseForTenant(tenantId,true);
+        return;
+      }
+      toast('Error: '+d.error,'error');return;
+    }
+    toast('License key: '+d.licenseKey,'success');
+    admLoadRegistrations();admLoadTenantLicensesIfVisible();
+  }).catch(function(){toast('Connection error','error');});
+}
+function admAddNotePrompt(tenantId){
+  _glassModal({
+    icon:'🗒',title:'Add Note',
+    fields:[{id:'_gm-note',label:'Note',placeholder:'Internal note about this tenant'}],
+    actions:[
+      {label:'Cancel',style:'flex:1;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)',onClick:function(){document.getElementById('_glass-modal').remove();}},
+      {label:'Save',style:'flex:2;background:linear-gradient(135deg,#5B8EF9,#A78BFA);color:#fff',onClick:function(){
+        var note=(document.getElementById('_gm-note')||{}).value||'';
+        document.getElementById('_glass-modal').remove();
+        if(!note.trim()){toast('Note cannot be empty','error');return;}
+        admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/notes',{method:'POST',body:{note:note}}).then(function(d){
+          if(d.error){toast('Error: '+d.error,'error');return;}
+          toast('Note added','success');
+        }).catch(function(){toast('Connection error','error');});
+      }}
+    ]
+  });
+}
+function admLogCallPrompt(tenantId){
+  _glassModal({
+    icon:'📞',title:'Log Call',
+    subtitle:'Recorded separately from a plain note, in the audit history.',
+    fields:[{id:'_gm-callnote',label:'Call Summary',placeholder:'e.g. Called, no answer'}],
+    actions:[
+      {label:'Cancel',style:'flex:1;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)',onClick:function(){document.getElementById('_glass-modal').remove();}},
+      {label:'Save',style:'flex:2;background:linear-gradient(135deg,#5B8EF9,#A78BFA);color:#fff',onClick:function(){
+        var note=(document.getElementById('_gm-callnote')||{}).value||'';
+        document.getElementById('_glass-modal').remove();
+        if(!note.trim()){toast('Call summary cannot be empty','error');return;}
+        admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/call-note',{method:'POST',body:{note:note}}).then(function(d){
+          if(d.error){toast('Error: '+d.error,'error');return;}
+          toast('Call logged','success');
+        }).catch(function(){toast('Connection error','error');});
+      }}
+    ]
+  });
+}
+
+// ── Tenant Licenses dashboard ─────────────────────────────────────────────
+function admPageTenantLicenses(){
+  return '<div class="card"><div class="card-header"><div class="card-title">📋 Tenant Licenses</div><button class="btn btn-ghost btn-sm" onclick="admLoadTenantLicenses()">&#8635; Refresh</button></div><div id="adm-tenant-licenses-body"><div style="padding:32px;text-align:center;color:var(--text3)">Loading…</div></div></div>';
+}
+function admLoadTenantLicenses(){
+  if(!SHOPERPRO_API_URL){document.getElementById('adm-tenant-licenses-body').innerHTML='<p style="color:var(--text2);padding:20px">Tenant Licenses only available in hosted/web mode.</p>';return;}
+  admFetchJSON('/api/admin/tenant-licenses').then(function(d){
+    var body=document.getElementById('adm-tenant-licenses-body'); if(!body)return;
+    if(d.error){body.innerHTML='<p style="color:var(--red);padding:20px">Error: '+esc(d.error)+'</p>';return;}
+    var tenants=d.tenants||[];
+    if(!tenants.length){body.innerHTML='<p style="color:var(--text2);padding:20px">No tenants yet.</p>';return;}
+    var statusColor={PENDING_APPROVAL:'var(--orange)',ACTIVE:'var(--green)',READ_ONLY:'var(--orange)',SUSPENDED:'var(--red)',ARCHIVED:'var(--text3)'};
+    var html='<div class="tbl-wrap"><table><thead><tr><th>Shop</th><th>Status</th><th class="col-secondary">Plan</th><th>Expiry</th><th class="col-secondary">Days Left</th><th>Devices</th><th class="col-secondary">Modules</th><th class="col-secondary">Last Login</th><th>Actions</th></tr></thead><tbody>';
+    tenants.forEach(function(t){
+      var expiry=t.expiresAt?new Date(t.expiresAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'Never';
+      var lastLogin=t.lastLogin?new Date(t.lastLogin).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'Never';
+      var modules=(t.requestedModules||[]).join(', ')||'—';
+      var days=(t.daysRemaining===null||t.daysRemaining===undefined)?'—':t.daysRemaining;
+      html+='<tr id="tl-row-'+t.tenantId+'">';
+      html+='<td><strong>'+esc(t.shopName)+'</strong><div style="font-size:10px;color:var(--text3)">'+(t.registeredAt?new Date(t.registeredAt).toLocaleDateString('en-IN'):'')+'</div></td>';
+      html+='<td><span style="font-size:10px;font-weight:700;color:'+(statusColor[t.status]||'var(--text2)')+'">&#9679; '+esc(t.status)+'</span></td>';
+      html+='<td class="col-secondary">'+esc(t.planCode||'—')+' <span style="color:var(--text3);font-size:10px">('+esc(t.billingCycle||'—')+')</span></td>';
+      html+='<td style="font-size:11px">'+expiry+'</td>';
+      html+='<td class="col-secondary">'+days+'</td>';
+      html+='<td>'+t.devicesUsed+' / '+t.deviceLimit+'</td>';
+      html+='<td class="col-secondary" style="font-size:10px;color:var(--text2)">'+esc(modules)+'</td>';
+      html+='<td class="col-secondary" style="font-size:10px;color:var(--text2)">'+lastLogin+'</td>';
+      html+='<td><div style="display:flex;gap:5px;flex-wrap:wrap">';
+      html+='<button class="btn btn-xs btn-ghost" onclick="admExtendLicensePrompt('+t.tenantId+','+JSON.stringify(t.shopName)+')">Extend</button>';
+      if(t.status==='SUSPENDED'||t.status==='READ_ONLY'||t.status==='ARCHIVED'){
+        html+='<button class="btn btn-xs" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--green)" onclick="admReactivateTenant('+t.tenantId+')">Reactivate</button>';
+      } else {
+        html+='<button class="btn btn-xs" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red)" onclick="admSuspendTenantPrompt('+t.tenantId+','+JSON.stringify(t.shopName)+')">Suspend</button>';
+      }
+      html+='<button class="btn btn-xs btn-ghost" onclick="admKillSessionsForTenant('+t.tenantId+')">Kill Sessions</button>';
+      html+='<button class="btn btn-xs btn-ghost" onclick="admShowDevicesModal('+t.tenantId+','+JSON.stringify(t.shopName)+')">Devices</button>';
+      html+='<button class="btn btn-xs btn-ghost" onclick="admShowHistoryModal('+t.tenantId+','+JSON.stringify(t.shopName)+')">History</button>';
+      html+='<button class="btn btn-xs btn-ghost" onclick="admAddNotePrompt('+t.tenantId+')">Note</button>';
+      html+='</div></td></tr>';
+    });
+    html+='</tbody></table></div>';
+    body.innerHTML=html;
+  }).catch(function(e){
+    var body=document.getElementById('adm-tenant-licenses-body');
+    if(body)body.innerHTML='<p style="color:var(--red);padding:20px">Connection error: '+esc(e.message)+'</p>';
+  });
+}
+function admExtendLicensePrompt(tenantId, shopName){
+  _glassModal({
+    icon:'⏱',title:'Extend Subscription',
+    subtitle:`<strong style="color:rgba(255,255,255,.8)">${esc(shopName)}</strong><br>Adds days to the current expiry (or from today if already expired).`,
+    fields:[{id:'_gm-days',label:'Days to Add',type:'number',value:'30'}],
+    actions:[
+      {label:'Cancel',style:'flex:1;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)',onClick:function(){document.getElementById('_glass-modal').remove();}},
+      {label:'Extend',style:'flex:2;background:linear-gradient(135deg,#10B981,#059669);color:#fff',onClick:function(){
+        var days=parseInt((document.getElementById('_gm-days')||{}).value||'0',10);
+        document.getElementById('_glass-modal').remove();
+        if(!days||days<=0){toast('Enter a positive number of days','error');return;}
+        admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/extend',{method:'POST',body:{days:days}}).then(function(d){
+          if(d.error){toast('Error: '+d.error,'error');return;}
+          toast('Subscription extended to '+new Date(d.expiresAt).toLocaleDateString('en-IN'),'success');
+          admLoadTenantLicenses();
+        }).catch(function(){toast('Connection error','error');});
+      }}
+    ]
+  });
+}
+function admSuspendTenantPrompt(tenantId, shopName){
+  _glassModal({
+    icon:'⏸',iconColor:'rgba(239,68,68,.4)',danger:true,
+    title:'Suspend Tenant',
+    subtitle:`<strong style="color:rgba(255,255,255,.8)">${esc(shopName)}</strong><br>Kills all active sessions immediately. Data is never deleted.`,
+    fields:[{id:'_gm-reason',label:'Reason',placeholder:'e.g. Payment overdue'}],
+    actions:[
+      {label:'Cancel',style:'flex:1;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)',onClick:function(){document.getElementById('_glass-modal').remove();}},
+      {label:'⏸ Suspend',style:'flex:2;background:linear-gradient(135deg,#EF4444,#B91C1C);color:#fff',onClick:function(){
+        var reason=(document.getElementById('_gm-reason')||{}).value||'';
+        document.getElementById('_glass-modal').remove();
+        admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/suspend',{method:'POST',body:{reason:reason}}).then(function(d){
+          if(d.error){toast('Error: '+d.error,'error');return;}
+          toast('Tenant suspended','info');
+          admLoadTenantLicenses();
+        }).catch(function(){toast('Connection error','error');});
+      }}
+    ]
+  });
+}
+function admReactivateTenant(tenantId){
+  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/reactivate',{method:'POST',body:{}}).then(function(d){
+    if(d.error){toast('Error: '+d.error,'error');return;}
+    toast('Tenant reactivated','success');
+    admLoadTenantLicenses();
+  }).catch(function(){toast('Connection error','error');});
+}
+function admKillSessionsForTenant(tenantId){
+  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/kill-sessions',{method:'POST',body:{}}).then(function(d){
+    if(d.error){toast('Error: '+d.error,'error');return;}
+    toast(d.revoked+' session(s) killed','success');
+  }).catch(function(){toast('Connection error','error');});
+}
+
+// ── Shared lightweight modal shell for variable-length content (devices/history) ─
+// Same overlay id/click-outside-to-close convention as _glassModal() above,
+// but with freeform HTML content instead of a fixed fields/actions shape.
+function _customModalShell(title, bodyHtml){
+  var ex=document.getElementById('_glass-modal');if(ex)ex.remove();
+  var ov=document.createElement('div');
+  ov.id='_glass-modal';
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)';
+  ov.innerHTML='<div style="position:relative;background:linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:26px 24px;max-width:520px;width:94%;max-height:80vh;overflow:auto;box-shadow:0 40px 100px rgba(0,0,0,.55)">'+
+    '<button onclick="document.getElementById(\'_glass-modal\').remove()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);border-radius:6px;width:26px;height:26px;cursor:pointer">✕</button>'+
+    '<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:14px">'+title+'</div>'+
+    '<div id="_glass-modal-body">'+bodyHtml+'</div></div>';
+  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+function admShowDevicesModal(tenantId, shopName){
+  _customModalShell('📱 Devices — '+esc(shopName), '<div style="text-align:center;color:rgba(255,255,255,.4);padding:20px">Loading…</div>');
+  admRefreshDevicesModal(tenantId, shopName);
+}
+function admRefreshDevicesModal(tenantId, shopName){
+  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/devices').then(function(d){
+    var mb=document.getElementById('_glass-modal-body'); if(!mb)return;
+    var devices=d.devices||[];
+    var html='<div style="display:flex;gap:8px;margin-bottom:14px">'+
+      '<input id="_gm-devlimit-inline" type="number" placeholder="New device limit" style="flex:1;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-size:12px">'+
+      '<button class="btn btn-xs btn-primary" onclick="admSetDeviceLimit('+tenantId+')">Set Limit</button>'+
+      '<button class="btn btn-xs" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#F87171" onclick="admResetAllDevices('+tenantId+','+JSON.stringify(shopName)+')">Reset All</button>'+
+      '</div>';
+    if(!devices.length){
+      html+='<div style="color:rgba(255,255,255,.4);font-size:12px;padding:10px 0">No trusted devices yet.</div>';
+    } else {
+      html+='<div style="display:flex;flex-direction:column;gap:8px">';
+      devices.forEach(function(dv){
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px">'+
+          '<div><div style="font-size:12px;font-weight:700;color:#fff">'+esc(dv.display_name||dv.mobile||'—')+' &bull; '+esc(dv.browser||'Unknown')+' / '+esc(dv.os||'Unknown')+'</div>'+
+          '<div style="font-size:10px;color:rgba(255,255,255,.4)">Last login: '+(dv.last_login_at?new Date(dv.last_login_at).toLocaleDateString('en-IN'):'—')+(dv.is_active?'':' &bull; removed')+'</div></div>'+
+          (dv.is_active?'<button class="btn btn-xs" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#F87171" onclick="admRemoveDevice('+tenantId+','+dv.id+','+JSON.stringify(shopName)+')">Remove</button>':'')+
+          '</div>';
+      });
+      html+='</div>';
+    }
+    mb.innerHTML=html;
+  }).catch(function(){
+    var mb=document.getElementById('_glass-modal-body'); if(mb)mb.innerHTML='<div style="color:#F87171">Connection error</div>';
+  });
+}
+function admRemoveDevice(tenantId, rowId, shopName){
+  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/devices/'+rowId+'/remove',{method:'POST',body:{}}).then(function(d){
+    if(d.error){toast('Error: '+d.error,'error');return;}
+    toast('Device removed','success');
+    admRefreshDevicesModal(tenantId, shopName);
+    admLoadTenantLicensesIfVisible();
+  }).catch(function(){toast('Connection error','error');});
+}
+function admResetAllDevices(tenantId, shopName){
+  if(!confirm('Reset ALL devices for '+shopName+'? Every device will need to re-trust on next login.'))return;
+  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/devices/reset-all',{method:'POST',body:{}}).then(function(d){
+    if(d.error){toast('Error: '+d.error,'error');return;}
+    toast(d.reset+' device(s) reset','success');
+    admRefreshDevicesModal(tenantId, shopName);
+    admLoadTenantLicensesIfVisible();
+  }).catch(function(){toast('Connection error','error');});
+}
+function admSetDeviceLimit(tenantId){
+  var inp=document.getElementById('_gm-devlimit-inline');
+  var limit=parseInt((inp||{}).value||'0',10);
+  if(!limit||limit<1){toast('Enter a positive device limit','error');return;}
+  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/devices/limit',{method:'POST',body:{deviceLimit:limit}}).then(function(d){
+    if(d.error){toast('Error: '+d.error,'error');return;}
+    toast('Device limit set to '+d.deviceLimit,'success');
+    admLoadTenantLicensesIfVisible();
+  }).catch(function(){toast('Connection error','error');});
+}
+function admShowHistoryModal(tenantId, shopName){
+  _customModalShell('🕐 Audit History — '+esc(shopName), '<div style="text-align:center;color:rgba(255,255,255,.4);padding:20px">Loading…</div>');
+  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/history').then(function(d){
+    var mb=document.getElementById('_glass-modal-body'); if(!mb)return;
+    var rows=d.history||[];
+    if(!rows.length){mb.innerHTML='<div style="color:rgba(255,255,255,.4);font-size:12px">No history yet.</div>';return;}
+    var html='<div style="display:flex;flex-direction:column;gap:6px">';
+    rows.forEach(function(h){
+      var when=h.created_at?new Date(h.created_at).toLocaleString('en-IN'):'';
+      var transition=(h.from_status||h.to_status)?(' <span style="color:rgba(255,255,255,.35)">'+esc(h.from_status||'')+(h.from_status&&h.to_status?' → ':'')+esc(h.to_status||'')+'</span>'):'';
+      html+='<div style="font-size:11.5px;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:8px">'+
+        '<strong style="color:#fff">'+esc(h.event_type)+'</strong>'+transition+
+        (h.detail?'<div style="color:rgba(255,255,255,.5);margin-top:2px">'+esc(h.detail)+'</div>':'')+
+        '<div style="color:rgba(255,255,255,.3);font-size:10px;margin-top:2px">'+when+' &bull; '+esc(h.actor)+'</div></div>';
+    });
+    html+='</div>';
+    mb.innerHTML=html;
+  }).catch(function(){
+    var mb=document.getElementById('_glass-modal-body'); if(mb)mb.innerHTML='<div style="color:#F87171">Connection error</div>';
+  });
 }
 
 // ── Settings Page ──
@@ -6212,7 +6772,8 @@ function pssOpenPanel(type){
   });
   if(type==='admin'){var p=document.getElementById('pss-adm-pass');if(p){p.value='';}}
   if(type==='license'){pssLicStep(1);var k=document.getElementById('pss-lic-key');if(k)k.value='';}
-  var focusMap={login:'pss-mobile',register:'pss-reg-key',admin:'pss-adm-pass',license:'pss-lic-key'};
+  if(type==='register'){pssRegStep(1);}
+  var focusMap={login:'pss-mobile',register:'pss-reg-shop',admin:'pss-adm-pass',license:'pss-lic-key'};
   setTimeout(function(){ var el=document.getElementById(focusMap[type]); if(el)el.focus(); },60);
 }
 function pssClosePanel(){
@@ -6252,7 +6813,8 @@ function pssLogin(){
   if(!mobile||!pin){ pssShowErr('Mobile number and PIN are required.'); return; }
   btn.disabled=true; btn.textContent='Signing in…';
   document.getElementById('pss-inline-err').style.display='none';
-  _api.post('/api/auth/login',{mobile:mobile,pin:pin}).then(function(res){
+  var deviceId=typeof generateBrowserMachineId==='function'?generateBrowserMachineId():undefined;
+  _api.post('/api/auth/login',{mobile:mobile,pin:pin,deviceId:deviceId}).then(function(res){
     if(res.error){
       btn.disabled=false; btn.textContent='Sign In →';
       if(res.error.indexOf('not registered')!==-1){
@@ -6276,36 +6838,75 @@ function pssLogin(){
     });
   }).catch(function(){ pssShowErr('Connection error. Check your network.'); btn.disabled=false; btn.textContent='Sign In →'; });
 }
-function pssRequestWebKey(){
-  var shop=(document.getElementById('pss-reg-shop')||{}).value||'';
-  var mobile=(document.getElementById('pss-reg-mobile')||{}).value||'';
-  var msg='Hello Ravi! 🙏\nI need a *Web/Hosted* license key for ShopERP Pro.\n\nShop name: '+(shop.trim()||'[add yours here]')+
-    (mobile.trim()?'\nMobile: '+mobile.trim():'')+'\n\n_Sent from ShopERP Pro web setup — no Machine ID needed._';
-  window.open('https://wa.me/919451100556?text='+encodeURIComponent(msg),'_blank');
+// ── Registration wizard (Phase 1) ────────────────────────────────────────
+// Submits to POST /api/auth/signup — creates a PENDING_APPROVAL account, no
+// license key from the customer, no auto-login (nothing to log into yet;
+// an admin must Approve first). See docs/architecture-review/RegistrationFlow.md.
+function pssRegStep(n){
+  [1,2,3,4].forEach(function(i){var el=document.getElementById('pss-reg-step'+i);if(el)el.style.display=(i===n?'block':'none');});
+  var pend=document.getElementById('pss-reg-pending'); if(pend) pend.style.display='none';
+  var prog=document.getElementById('pss-reg-progress');
+  if(prog){ prog.style.display='flex'; [].forEach.call(prog.children,function(el,i){el.className=(i<n?'done':'');}); }
 }
-function pssRegister(){
-  var licKey=(document.getElementById('pss-reg-key')||{}).value||'';licKey=licKey.trim().toUpperCase();
+function pssRegSelectRadio(label){
+  var input=label.querySelector('input');
+  if(!input)return;
+  document.querySelectorAll('.pss-radio-card').forEach(function(l){
+    var inp=l.querySelector('input');
+    if(inp&&inp.name===input.name) l.classList.toggle('sel', inp===input);
+  });
+}
+function pssRegValidateStep1(){
   var shop=document.getElementById('pss-reg-shop').value.trim();
   var name=document.getElementById('pss-reg-name').value.trim();
   var mobile=document.getElementById('pss-reg-mobile').value.replace(/\D/g,'');
+  var email=document.getElementById('pss-reg-email').value.trim();
   var pin=document.getElementById('pss-reg-pin').value.trim();
-  var btn=document.getElementById('pss-reg-btn');
-  if(SHOPERPRO_API_URL&&!licKey){ pssShowErr('License key from Ravi is required.'); return; }
-  if(!shop||!mobile||!pin){ pssShowErr('Shop name, mobile number, and PIN are required.'); return; }
-  if(mobile.length<10){ pssShowErr('Enter a valid 10-digit mobile number.'); return; }
-  if(!/^\d{4,6}$/.test(pin)){ pssShowErr('PIN must be 4 to 6 digits.'); return; }
-  btn.disabled=true; btn.textContent='Setting up…';
+  if(!shop||!name||!mobile||!email||!pin){pssShowErr('Shop name, owner name, mobile, email, and PIN are all required.');return false;}
+  if(mobile.length<10){pssShowErr('Enter a valid 10-digit mobile number.');return false;}
+  if(!/^\d{4,6}$/.test(pin)){pssShowErr('PIN must be 4 to 6 digits.');return false;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){pssShowErr('Enter a valid email address.');return false;}
+  return true;
+}
+function pssRegNext(fromStep){
   document.getElementById('pss-inline-err').style.display='none';
-  _api.post('/api/auth/register',{shopName:shop,ownerName:name||'Owner',mobile:mobile,pin:pin,licenseKey:licKey||undefined}).then(function(res){
-    if(res.error){ pssShowErr(res.error); btn.disabled=false; btn.textContent='Register & Start →'; return; }
-    _api.setToken(res.token);
-    window._svrDataVersion=1; // matches the fresh tenant_data row's default version
-    localStorage.setItem('shoperpro_last_shop',res.shopName||shop);
-    localStorage.setItem('shoperpro_last_user',res.username||name||mobile);
-    _syncLicenseFromServer(res);
-    document.getElementById('portal-select-screen').style.display='none';
-    continueBootApp();
-  }).catch(function(){ pssShowErr('Connection error. Check your network.'); btn.disabled=false; btn.textContent='Register & Start →'; });
+  if(fromStep===1&&!pssRegValidateStep1())return;
+  pssRegStep(fromStep+1);
+}
+function pssSubmitSignup(){
+  var btn=document.getElementById('pss-reg-submit-btn');
+  var shop=document.getElementById('pss-reg-shop').value.trim();
+  var name=document.getElementById('pss-reg-name').value.trim();
+  var mobile=document.getElementById('pss-reg-mobile').value.replace(/\D/g,'');
+  var email=document.getElementById('pss-reg-email').value.trim();
+  var pin=document.getElementById('pss-reg-pin').value.trim();
+  var address=document.getElementById('pss-reg-address').value.trim();
+  var gst=document.getElementById('pss-reg-gst').value.trim();
+  var plan=(document.querySelector('input[name="pss-reg-plan"]:checked')||{}).value||'TRIAL';
+  var devices=(document.querySelector('input[name="pss-reg-devices"]:checked')||{}).value||'1-2';
+  var modules=[].map.call(document.querySelectorAll('.pss-reg-module:checked'),function(c){return c.value;});
+  btn.disabled=true; btn.textContent='Submitting…';
+  document.getElementById('pss-inline-err').style.display='none';
+  _api.post('/api/auth/signup',{shopName:shop,ownerName:name,mobile:mobile,email:email,pin:pin,address:address,gst:gst,requestedPlan:plan,requestedDevicesBucket:devices,requestedModules:modules}).then(function(res){
+    btn.disabled=false; btn.textContent='Complete Registration →';
+    if(res.error){ pssShowErr(res.error); return; }
+    window._pssPendingMobile=mobile;
+    var msgEl=document.getElementById('pss-reg-pending-msg');
+    if(msgEl) msgEl.innerHTML='Please check <strong>'+escHtml(email)+'</strong> to verify your address. Once verified, our team will review and approve your account.';
+    [1,2,3,4].forEach(function(i){var el=document.getElementById('pss-reg-step'+i);if(el)el.style.display='none';});
+    var prog=document.getElementById('pss-reg-progress'); if(prog) prog.style.display='none';
+    var pend=document.getElementById('pss-reg-pending'); if(pend) pend.style.display='block';
+  }).catch(function(){ btn.disabled=false; btn.textContent='Complete Registration →'; pssShowErr('Connection error. Check your network.'); });
+}
+function pssResendVerification(){
+  var btn=document.getElementById('pss-reg-resend-btn');
+  var mobile=window._pssPendingMobile;
+  if(!mobile){ pssShowErr('Nothing to resend — please register again.'); return; }
+  btn.disabled=true; btn.textContent='Sending…';
+  _api.post('/api/auth/resend-verification',{mobile:mobile}).then(function(res){
+    btn.disabled=false; btn.textContent='Resend Verification Email';
+    toast(res.message||'If pending, a new email has been sent.','success');
+  }).catch(function(){ btn.disabled=false; btn.textContent='Resend Verification Email'; toast('Connection error.','error'); });
 }
 async function pssAdminLogin(){
   var pass=document.getElementById('pss-adm-pass').value;
@@ -6321,6 +6922,7 @@ async function pssAdminLogin(){
   document.getElementById('admin-panel').style.display='block';
   document.getElementById('adm-topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
   var wuNav=document.getElementById('adm-nav-webusers');if(wuNav)wuNav.style.display=SHOPERPRO_API_URL?'block':'none';
+  var licNav=document.getElementById('adm-nav-licensing');if(licNav)licNav.style.display=SHOPERPRO_API_URL?'block':'none';
   showAdminPage('adm-dashboard');
 }
 
@@ -6371,7 +6973,8 @@ function pssLicenseLogin(){
   if(!pin){pssShowErr('Please enter your PIN.');return;}
   if(btn){btn.disabled=true;btn.textContent='Signing in…';}
   document.getElementById('pss-inline-err').style.display='none';
-  _api.post('/api/auth/login',{mobile:mobile,pin:pin}).then(function(res){
+  var deviceId=typeof generateBrowserMachineId==='function'?generateBrowserMachineId():undefined;
+  _api.post('/api/auth/login',{mobile:mobile,pin:pin,deviceId:deviceId}).then(function(res){
     if(btn){btn.disabled=false;btn.textContent='Sign In →';}
     if(res.error){pssShowErr(res.error);return;}
     _api.setToken(res.token);
@@ -6386,6 +6989,107 @@ function pssLicenseLogin(){
       continueBootApp();
     });
   }).catch(function(){if(btn){btn.disabled=false;btn.textContent='Sign In →';}pssShowErr('Connection error. Check your network.');});
+}
+
+// ════════════════════════════════════════════════════════════════
+// Server-driven license status — Phases 5-9 (web/hosted mode only)
+// ════════════════════════════════════════════════════════════════
+// Reuses the existing #suspended-screen shell (showSuspendedScreen() above)
+// for the new PENDING_APPROVAL / SUSPENDED / ARCHIVED / offline-grace-expired
+// lock states, rather than building new screens — same icon/title/message/
+// contact-support layout, just different copy for each state.
+function pssShowPendingApprovalScreen(){
+  var el=document.getElementById('suspended-screen'); if(!el)return;
+  var titleEl=document.getElementById('sus-title');
+  var msgEl=document.getElementById('sus-message');
+  var midEl=document.getElementById('sus-machine-id');
+  if(titleEl)titleEl.textContent='Registration Pending Approval';
+  if(msgEl)msgEl.innerHTML='Your shop registration is awaiting admin approval.<br>You\'ll be able to sign in as soon as it\'s approved.';
+  if(midEl)midEl.textContent=window._pssPendingMobile||'-';
+  el.style.display='flex';
+}
+function pssShowLicenseSuspendedScreen(status){
+  var el=document.getElementById('suspended-screen'); if(!el)return;
+  var titleEl=document.getElementById('sus-title');
+  var msgEl=document.getElementById('sus-message');
+  if(titleEl)titleEl.textContent=status==='ARCHIVED'?'Account Archived':'Subscription Expired';
+  if(msgEl)msgEl.innerHTML='Subscription expired.<br>Please contact administrator.';
+  el.style.display='flex';
+}
+function pssShowOfflineGraceExpiredScreen(neverVerified){
+  var el=document.getElementById('suspended-screen'); if(!el)return;
+  var titleEl=document.getElementById('sus-title');
+  var msgEl=document.getElementById('sus-message');
+  if(titleEl)titleEl.textContent='Cannot Verify Subscription';
+  if(msgEl)msgEl.innerHTML=neverVerified
+    ? 'This device has never connected to the internet to verify your subscription.<br>Please connect and try again.'
+    : 'This device has been offline too long to keep working without checking in.<br>Please connect to the internet to continue.';
+  el.style.display='flex';
+}
+// Lightweight banner for the 7-day warning / READ_ONLY notice — intentionally
+// separate from showExpiryBanner()/showExpiryPopup() above, which are the
+// OLD desktop-licensing UX (enter-a-renewal-key, contact Ravi by name/number
+// directly) and don't fit a SaaS tenant whose renewal goes through their own
+// administrator, not the app developer.
+function pssShowLicenseBanner(message, level, dismissable){
+  document.getElementById('pss-license-banner')?.remove();
+  var content=document.getElementById('content');
+  if(!content)return;
+  var colors={warn:{bg:'linear-gradient(90deg,#78350f,#92400e)',text:'#fef3c7'},critical:{bg:'linear-gradient(90deg,#450a0a,#7f1d1d)',text:'#fca5a5'}};
+  var c=colors[level]||colors.warn;
+  var banner=document.createElement('div');
+  banner.id='pss-license-banner';
+  banner.style.cssText='background:'+c.bg+';color:'+c.text+';padding:10px 16px;border-radius:8px;font-size:12px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0';
+  banner.innerHTML='<span>'+message+'</span>'+(dismissable?'<button onclick="document.getElementById(\'pss-license-banner\').remove()" style="background:transparent;color:'+c.text+';border:1px solid '+c.text+';padding:5px 10px;border-radius:5px;font-size:11px;cursor:pointer">✕</button>':'');
+  content.insertBefore(banner,content.firstChild);
+}
+// Called from continueBootApp() (guarded by SHOPERPRO_API_URL) and then every
+// 5 minutes after, so a status change that happens server-side mid-session —
+// or a reconnect after an offline period — is picked up without a reload.
+// Returns {ok:true} to let boot continue, {ok:false} if a lock screen was
+// already shown (caller should stop).
+async function pssRefreshLicenseStatus(){
+  var cachedLastVerifiedAt=DB.settings._licenseLastVerifiedAt||null;
+  var cachedGraceDays=DB.settings._licenseOfflineGraceDays||15;
+  var cachedStatus=DB.settings._licenseCachedStatus||null;
+
+  var controller=(typeof AbortController!=='undefined')?new AbortController():null;
+  var timeoutId=controller?setTimeout(function(){controller.abort();},6000):null;
+  try{
+    var res=await _api._fetch('/api/license/status',function(h){return controller?{headers:h,signal:controller.signal}:{headers:h};});
+    if(timeoutId)clearTimeout(timeoutId);
+    var lic=res&&res.license;
+    if(!lic) return {ok:true}; // no tenant_licenses row — pre-feature tenant, legacy logic above handles it
+
+    DB.settings._licenseLastVerifiedAt=lic.lastVerifiedAt||new Date().toISOString();
+    DB.settings._licenseOfflineGraceDays=lic.offlineGraceDays||15;
+    DB.settings._licenseCachedStatus=lic.status;
+    saveDB();
+
+    if(lic.status==='PENDING_APPROVAL'){pssShowPendingApprovalScreen();return {ok:false};}
+    if(lic.status==='SUSPENDED'||lic.status==='ARCHIVED'){pssShowLicenseSuspendedScreen(lic.status);return {ok:false};}
+
+    DB._readOnlyMode=(lic.status==='READ_ONLY');
+    if(lic.status==='READ_ONLY'){
+      DB._pssLicenseBanner={message:'🔒 <strong>Your subscription has expired.</strong> You can view your data, but new entries and edits are disabled until you renew. Contact your administrator.',level:'critical',dismissable:false};
+    } else if(lic.status==='ACTIVE'&&typeof lic.daysRemaining==='number'&&lic.daysRemaining>=0&&lic.daysRemaining<=7){
+      DB._pssLicenseBanner={message:'⚠️ <strong>Your subscription expires in '+lic.daysRemaining+' day'+(lic.daysRemaining!==1?'s':'')+'.</strong> Contact your administrator to renew.',level:lic.daysRemaining<=1?'critical':'warn',dismissable:true};
+    }
+    return {ok:true};
+  }catch(e){
+    if(timeoutId)clearTimeout(timeoutId);
+    if(e&&e.message==='Session expired') return {ok:false}; // _sessionExpired() already showed the login screen
+    // Offline / server unreachable — fall back to the cached status within the offline-grace window.
+    if(!cachedLastVerifiedAt){ pssShowOfflineGraceExpiredScreen(true); return {ok:false}; }
+    var graceUntilMs=new Date(cachedLastVerifiedAt).getTime()+cachedGraceDays*86400000;
+    if(Date.now()>graceUntilMs){ pssShowOfflineGraceExpiredScreen(false); return {ok:false}; }
+    if(cachedStatus==='PENDING_APPROVAL'){pssShowPendingApprovalScreen();return {ok:false};}
+    if(cachedStatus==='SUSPENDED'||cachedStatus==='ARCHIVED'){pssShowLicenseSuspendedScreen(cachedStatus);return {ok:false};}
+    DB._readOnlyMode=(cachedStatus==='READ_ONLY');
+    var daysOfGraceLeft=Math.ceil((graceUntilMs-Date.now())/86400000);
+    DB._pssLicenseBanner={message:'📡 <strong>Offline</strong> — last verified '+new Date(cachedLastVerifiedAt).toLocaleDateString('en-IN')+'. Reconnect within '+daysOfGraceLeft+' day'+(daysOfGraceLeft!==1?'s':'')+' to keep working.',level:'warn',dismissable:true};
+    return {ok:true};
+  }
 }
 function _exitDemoMode(){
   window._demoMode=false;
@@ -6497,6 +7201,21 @@ async function continueBootApp(){
   // 2. Super admin → bypass all checks
   if(isSuperAdmin()){
     startApp({id:0,name:'Super Admin',role:'superadmin',pin:'',pinSet:true});return;
+  }
+
+  // 2b. Web/hosted mode: server-driven license status (Phases 5-9), layered
+  // on top of the legacy date-math check below. New-flow tenants (signed up
+  // via the new wizard) have tenants.license_expiry defaulted to '2099-12-31'
+  // by _syncLicenseFromServer(), so step 3 below no-ops for them and this is
+  // the authoritative check instead. Offline/local-WiFi/Electron installs
+  // are completely unaffected — this only runs when SHOPERPRO_API_URL is set.
+  if(SHOPERPRO_API_URL){
+    var _licResult=await pssRefreshLicenseStatus();
+    if(!_licResult.ok) return; // a lock screen was already shown
+    if(!window._pssLicenseStatusIntervalStarted){
+      window._pssLicenseStatusIntervalStarted=true;
+      setInterval(function(){ pssRefreshLicenseStatus(); }, 5*60*1000);
+    }
   }
 
   // 3. Check license expiry - block from the day AFTER expiry date
@@ -7604,6 +8323,32 @@ function pagePOS(){
 .pos-strip-item.orange{color:var(--orange);border-color:rgba(245,158,11,.3)}
 .pos-strip-item.blue{color:var(--accent);border-color:rgba(79,142,247,.3)}
 .pos-strip-item svg{width:10px!important;height:10px!important;flex-shrink:0}
+
+/* ── RESPONSIVE — POS is the highest-traffic touch screen in the app,
+   the one every counter operator lives in all day. Desktop keeps the
+   existing dense 2-panel layout (products | cart) with a wider product
+   grid. Tablet keeps the same 2 panels but with touch-sized targets and
+   a wider cart column (thumb-reachable checkout). Small tablet stacks
+   the cart below the product grid — same markup, same order flow, just
+   flex-direction switching from row to column. ── */
+@media (max-width:1400px) and (min-width:901px){
+  .pos-right{width:400px}
+  .pos-cat-btn{padding:10px 18px;font-size:13px;min-height:44px}
+  .pos-search{padding:13px 14px 13px 38px;font-size:15px;min-height:52px}
+  .pos-products{padding:16px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+  .pos-charge-btn{padding:16px;font-size:16px;min-height:56px}
+  .pos-cust-input{min-height:48px}
+}
+@media (max-width:900px){
+  .pos-wrap{flex-direction:column;height:auto;min-height:calc(100vh - 56px)}
+  .pos-left{border-right:none;border-bottom:1.5px solid var(--border);min-height:50vh}
+  .pos-right{width:100%}
+  .pos-cat-btn{padding:11px 18px;font-size:13px;min-height:48px}
+  .pos-search{padding:13px 14px 13px 38px;font-size:16px;min-height:52px}
+  .pos-products{padding:14px;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+  .pos-charge-btn{padding:16px;font-size:16px;min-height:56px}
+  .pos-cust-input{min-height:48px}
+}
 </style>
 
 <div class="pos-wrap">
@@ -8334,8 +9079,8 @@ function pageInventory(){
   const rows=DB.inventory.map(p=>`<tr>
     <td><strong>${escHtml(p.name)}</strong>${p.imei?`<br><span style="font-size:10px;color:var(--text3);font-family:var(--mono)">IMEI: ${p.imei}</span>`:''}</td>
     <td><span class="badge bg-blue">${p.category}</span></td>
-    <td style="font-family:var(--mono);font-size:11px;color:var(--text3)">${p.sku}</td>
-    ${isOwner?`<td style="font-family:var(--mono)">${cur}${p.costPrice.toLocaleString('en-IN')}</td>`:''}
+    <td class="col-secondary" style="font-family:var(--mono);font-size:11px;color:var(--text3)">${p.sku}</td>
+    ${isOwner?`<td class="col-secondary" style="font-family:var(--mono)">${cur}${p.costPrice.toLocaleString('en-IN')}</td>`:''}
     <td style="font-family:var(--mono);font-weight:600">${cur}${p.sellPrice.toLocaleString('en-IN')}</td>
     <td><span style="color:${p.stock===0?'var(--red)':p.stock<=p.minStock?'var(--orange)':'var(--green)'};font-weight:700;font-family:var(--mono)">${p.stock}</span> ${p.stock<=p.minStock?`<span class="badge bg-orange" style="font-size:9px">${p.stock===0?'OUT':'LOW'}</span>`:''}</td>
     <td><div class="tbl-actions">
@@ -8375,7 +9120,7 @@ function pageInventory(){
   </div>
   <div class="card">
     <div class="tbl-wrap"><table id="inv-table">
-      <thead><tr><th>Product</th><th>Category</th><th>SKU</th>${isOwner?'<th>Cost Price</th>':''}
+      <thead><tr><th>Product</th><th>Category</th><th class="col-secondary">SKU</th>${isOwner?'<th class="col-secondary">Cost Price</th>':''}
       <th>Sell Price</th><th>Stock</th><th>Actions</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
@@ -9648,9 +10393,9 @@ function pageRepairs(){
   <div class="card">
     <div class="tbl-wrap"><table id="repair-tbl">
       <thead><tr>
-        <th>Job #</th><th>Customer</th><th>Device</th><th>Issue</th>
-        <th>Status</th><th>Estimated</th><th>Final Cost</th>
-        <th>Received</th><th>Delivered</th><th>Note</th><th>Actions</th>
+        <th>Job #</th><th>Customer</th><th>Device</th><th class="col-secondary">Issue</th>
+        <th>Status</th><th class="col-secondary">Estimated</th><th>Final Cost</th>
+        <th class="col-secondary">Received</th><th class="col-secondary">Delivered</th><th class="col-secondary">Note</th><th>Actions</th>
       </tr></thead>
       <tbody id="repair-tbl-body"></tbody>
     </table></div>
@@ -9715,16 +10460,16 @@ function filterRepairsTable(){
       +'<td><span style="color:var(--orange);font-weight:700;font-family:var(--mono)">'+(r.jobNo||'\u2014')+'</span></td>'
       +'<td>'+escHtml(r.customerName||'Unknown')+'</td>'
       +'<td>'+escHtml(r.device||'')+'</td>'
-      +'<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:11px">'+escHtml(r.issue||'')+'</td>'
+      +'<td class="col-secondary" style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:11px">'+escHtml(r.issue||'')+'</td>'
       +'<td>'
         +'<span class="badge '+statusColor(r.status)+'">'+r.status+'</span>'
         +'<br>'+(isPaid?'<span class="badge bg-green" style="font-size:9px;margin-top:3px">Paid</span>':'<span class="badge '+payBadge+'" style="font-size:9px;margin-top:3px;cursor:pointer" onclick="collectRepairPayment('+rid+')" title="Click to collect payment">'+payBadgeLabel+'</span>')
       +'</td>'
-      +'<td style="font-family:var(--mono)">'+cur+(r.estimatedCost||0).toLocaleString('en-IN')+'</td>'
+      +'<td class="col-secondary" style="font-family:var(--mono)">'+cur+(r.estimatedCost||0).toLocaleString('en-IN')+'</td>'
       +'<td style="font-family:var(--mono);font-weight:600;color:'+(r.finalCost>0?'var(--green)':'var(--text3)')+'">'+(r.finalCost>0?cur+r.finalCost.toLocaleString('en-IN'):'\u2014')+'</td>'
-      +'<td style="font-size:11px;color:var(--text3);white-space:nowrap">'+(r.received||'\u2014')+'</td>'
-      +'<td style="font-size:11px;white-space:nowrap;color:'+(r.delivered?'var(--green)':'var(--text3)')+'">'+(r.delivered||'\u2014')+'</td>'
-      +'<td style="font-size:10px;color:var(--text2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.note?'\ud83d\udcdd '+escHtml(r.note):'')+'</td>'
+      +'<td class="col-secondary" style="font-size:11px;color:var(--text3);white-space:nowrap">'+(r.received||'\u2014')+'</td>'
+      +'<td class="col-secondary" style="font-size:11px;white-space:nowrap;color:'+(r.delivered?'var(--green)':'var(--text3)')+'">'+(r.delivered||'\u2014')+'</td>'
+      +'<td class="col-secondary" style="font-size:10px;color:var(--text2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.note?'\ud83d\udcdd '+escHtml(r.note):'')+'</td>'
       +'<td style="white-space:nowrap">'
         +'<div class="tbl-actions">'
         +'<button class="btn-icon btn-icon-repair" onclick="viewJob('+rid+')" title="Edit Job">'+_ic('wrench')+'</button>'
@@ -10493,20 +11238,20 @@ function setJobStatus(id,status){
           '<td><span style="color:var(--orange);font-weight:700;font-family:var(--mono)">'+(rep.jobNo||'-')+'</span></td>'+
           '<td>'+escHtml(rep.customerName||'Unknown')+'</td>'+
           '<td>'+escHtml(rep.device||'Unknown')+'</td>'+
-          '<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:11px">'+escHtml(rep.issue||'')+'</td>'+
+          '<td class="col-secondary" style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:11px">'+escHtml(rep.issue||'')+'</td>'+
           '<td>'+
             '<span class="badge '+statusColor(rep.status)+'">'+rep.status+'</span>'+
             '<br><span class="badge '+(rep.paymentStatus==='Paid'?'bg-green':rep.paymentStatus==='Partial'?'bg-orange':'bg-red')+'" style="font-size:9px;margin-top:3px">'+(rep.paymentStatus||'Unpaid')+'</span>'+
           '</td>'+
-          '<td style="font-family:var(--mono)">'+cur+(rep.estimatedCost||0).toLocaleString('en-IN')+'</td>'+
+          '<td class="col-secondary" style="font-family:var(--mono)">'+cur+(rep.estimatedCost||0).toLocaleString('en-IN')+'</td>'+
           '<td style="font-family:var(--mono);font-weight:600;color:'+(finalCost>0?'var(--green)':'var(--text3)')+'">'+
             (finalCost>0?cur+finalCost.toLocaleString('en-IN'):'-')+
           '</td>'+
-          '<td style="font-size:11px;color:var(--text3)">'+(rep.received||'-')+'</td>'+
-          '<td style="font-size:11px;color:'+(rep.delivered?'var(--green)':'var(--text3)')+'">'+
+          '<td class="col-secondary" style="font-size:11px;color:var(--text3)">'+(rep.received||'-')+'</td>'+
+          '<td class="col-secondary" style="font-size:11px;color:'+(rep.delivered?'var(--green)':'var(--text3)')+'">'+
             (rep.delivered||'-')+
           '</td>'+
-          '<td style="font-size:10px;color:var(--text2)">'+(rep.note?'📝 '+escHtml(rep.note):'')+'</td>'+
+          '<td class="col-secondary" style="font-size:10px;color:var(--text2)">'+(rep.note?'📝 '+escHtml(rep.note):'')+'</td>'+
           '<td>'+
             '<div class="tbl-actions">'+
             '<button class="btn-icon btn-icon-repair" onclick="viewJob('+(parseInt(rep.id)||rep.id)+')" title="Edit Job">'+_ic('wrench')+'</button>'+
@@ -10835,9 +11580,9 @@ function pageCustomers(){
             <input type="checkbox" id="chk-all" onchange="toggleSelectAll(this.checked)"
               style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">
           </th>
-          <th>Name</th><th>Type</th><th>Phone</th><th>City</th>
-          <th style="text-align:center">Sales</th>
-          <th style="text-align:center">Repairs</th>
+          <th>Name</th><th>Type</th><th>Phone</th><th class="col-secondary">City</th>
+          <th style="text-align:center" class="col-secondary">Sales</th>
+          <th style="text-align:center" class="col-secondary">Repairs</th>
           <th>Spent</th>
           ${isOwner?'<th>Dues</th>':''}
           <th>Actions</th>
@@ -10941,9 +11686,9 @@ function renderCustTable(){
         </td>
         <td><span class="badge ${badgeCls}" style="font-size:10px">${escHtml(c.type)}</span></td>
         <td><a href="https://wa.me/${waPhone(c.phone)}" target="_blank" style="color:var(--green);font-size:12px">${c.phone}</a></td>
-        <td style="font-size:11px;color:var(--text2)">${escHtml(c.address||'-')}</td>
-        <td style="text-align:center;font-size:12px">${sales.length}</td>
-        <td style="text-align:center;font-size:12px">${repairs.length}</td>
+        <td class="col-secondary" style="font-size:11px;color:var(--text2)">${escHtml(c.address||'-')}</td>
+        <td class="col-secondary" style="text-align:center;font-size:12px">${sales.length}</td>
+        <td class="col-secondary" style="text-align:center;font-size:12px">${repairs.length}</td>
         <td style="font-family:var(--mono);font-size:12px">${cur}${spent.toLocaleString('en-IN')}</td>
         ${isOwner?`<td style="color:${dues>0?'var(--red)':'var(--green)'};font-weight:600;font-family:var(--mono);font-size:12px">${dues>0?cur+dues.toLocaleString('en-IN'):'Clear'}</td>`:''}
         <td style="white-space:nowrap">
@@ -12130,7 +12875,7 @@ function buildReportContent(fy){
     <div class="stat s-orange"><div class="stat-label">Pending Dues</div><div class="stat-val" style="font-size:16px">${cur}${totalDues.toLocaleString('en-IN')}</div></div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+  <div class="dash-grid-2">
 
     <!-- CA / ITR SUMMARY -->
     <div class="card">
@@ -12213,7 +12958,7 @@ function buildReportContent(fy){
   <div class="card" style="margin-bottom:14px">
     <div class="card-title">📅 Monthly P&L - ${fyLabel}</div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Month</th><th>Sales</th><th>Service</th><th>Total Rev</th><th>Cash</th><th>Digital</th><th>Expenses</th><th>Net</th><th>Bills</th></tr></thead>
+      <thead><tr><th>Month</th><th class="col-secondary">Sales</th><th class="col-secondary">Service</th><th>Total Rev</th><th class="col-secondary">Cash</th><th class="col-secondary">Digital</th><th>Expenses</th><th>Net</th><th class="col-secondary">Bills</th></tr></thead>
       <tbody>
         ${(function(){var ci=(new Date().getMonth()-3+12)%12;var om=[];for(var i=0;i<12;i++)om.push(MONTHS_ORDER[(ci-i+12)%12]);return om;})().map(m=>{
           const d=monthly[m];
@@ -12222,14 +12967,14 @@ function buildReportContent(fy){
           const mKey=m.replace(/\s/g,'_');
           return`<tr onclick="togglePLMonth('plm_${mKey}',this)" style="cursor:pointer;user-select:none" title="Click to see ${m} transactions">
             <td style="font-weight:700;font-size:12px;color:var(--accent)">${m} <span style="font-size:10px;color:var(--text3)">▼</span></td>
-            <td style="font-family:var(--mono);font-size:11px">${cur}${d.rev.toLocaleString('en-IN')}</td>
-            <td style="font-family:var(--mono);font-size:11px">${cur}${d.repair.toLocaleString('en-IN')}</td>
+            <td class="col-secondary" style="font-family:var(--mono);font-size:11px">${cur}${d.rev.toLocaleString('en-IN')}</td>
+            <td class="col-secondary" style="font-family:var(--mono);font-size:11px">${cur}${d.repair.toLocaleString('en-IN')}</td>
             <td style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--green)">${cur}${tot.toLocaleString('en-IN')}</td>
-            <td style="font-family:var(--mono);font-size:11px;color:var(--orange)">${cur}${d.cash.toLocaleString('en-IN')}</td>
-            <td style="font-family:var(--mono);font-size:11px;color:var(--green)">${cur}${d.digital.toLocaleString('en-IN')}</td>
+            <td class="col-secondary" style="font-family:var(--mono);font-size:11px;color:var(--orange)">${cur}${d.cash.toLocaleString('en-IN')}</td>
+            <td class="col-secondary" style="font-family:var(--mono);font-size:11px;color:var(--green)">${cur}${d.digital.toLocaleString('en-IN')}</td>
             <td style="font-family:var(--mono);font-size:11px;color:var(--red)">${cur}${d.exp.toLocaleString('en-IN')}</td>
             <td style="font-family:var(--mono);font-size:11px;font-weight:700;color:${net>=0?'var(--green)':'var(--red)'}">${cur}${net.toLocaleString('en-IN')}</td>
-            <td style="text-align:center;font-size:11px;color:var(--text2)">${d.inv||'-'}</td>
+            <td class="col-secondary" style="text-align:center;font-size:11px;color:var(--text2)">${d.inv||'-'}</td>
           </tr>
           <tr id="plm_${mKey}" style="display:none">
             <td colspan="9" style="padding:0;background:var(--bg3)">
@@ -12270,7 +13015,7 @@ function buildReportContent(fy){
   </div>
 
   <!-- TOP PRODUCTS & CATEGORIES -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+  <div class="dash-grid-2">
     <div class="card">
       <div class="card-title">🏆 Top Products by Revenue</div>
       <table><thead><tr><th>Product</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>
@@ -12289,7 +13034,7 @@ function buildReportContent(fy){
   <div class="card" style="margin-bottom:14px">
     <div class="card-title">&#x1F9FE; GST Summary &mdash; ${fyLabel}</div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Estimated at 18% (9% CGST + 9% SGST). Cross-check with GST portal before filing.</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="dash-grid-2">
       <div>
         <table><thead><tr><th>Month</th><th>Taxable</th><th style="color:#059669">CGST 9%</th><th style="color:#7c3aed">SGST 9%</th><th>Total GST</th></tr></thead><tbody>
           ${(function(){
@@ -12378,7 +13123,7 @@ function buildReportContent(fy){
   <div class="card" style="margin-bottom:14px">
     <div class="card-title">&#x1F4D2; Daily Cash Book &mdash; ${fyLabel}</div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Required under Sec 44AA. Last 30 entries each.</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="dash-grid-2">
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">Cash Receipts (Sales)</div>
         <div style="max-height:240px;overflow-y:auto;border:1px solid var(--border2);border-radius:8px">
@@ -12460,7 +13205,7 @@ function buildReportContent(fy){
 
   <div class="card">
     <div class="card-title">&#x2705; CA Handover Checklist</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="dash-grid-2">
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:8px">From this app &#x2713;</div>
         <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:5px;font-size:12px"><span style="color:var(--green);flex-shrink:0">&#x2713;</span><span>Gross Turnover (Sales + Service)</span></div>
@@ -13806,7 +14551,7 @@ function pageSettings(){
   </div>
 
   <div id="tab-shop">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:800px">
+    <div class="settings-2col" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:800px">
       <div class="card">
         <div class="card-title">Shop Logo</div>
         <div class="logo-uploader" id="logo-drop-area">
@@ -13866,7 +14611,7 @@ function pageSettings(){
   </div>
 
   <div id="tab-users" style="display:none">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:800px">
+    <div class="settings-2col" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:800px">
       <div class="card">
         <div class="card-header" style="margin-bottom:14px">
           <div class="card-title" style="margin-bottom:0">User Accounts & PINs</div>
@@ -13892,7 +14637,7 @@ function pageSettings(){
   </div>
 
   <div id="tab-license" style="display:none">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:800px">
+    <div class="settings-2col" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:800px">
       <div class="card">
         <div class="card-title">Your Machine ID</div>
         <div class="alert alert-info" style="font-size:12px;margin-bottom:12px">
@@ -13934,7 +14679,7 @@ function pageSettings(){
   </div>
 
   <div id="tab-data" style="display:none">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:800px">
+    <div class="settings-2col" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:800px">
       <div class="card">
         <div class="card-title">Auto-Backup</div>
         <div class="alert alert-info" style="font-size:12px;margin-bottom:14px">
@@ -14066,7 +14811,7 @@ function renderAuditLog(){
     '<thead><tr style="border-bottom:1px solid var(--border2);text-align:left">'+
     '<th style="padding:6px 8px;color:var(--text3);font-weight:600;font-size:11px">Time</th>'+
     '<th style="padding:6px 8px;color:var(--text3);font-weight:600;font-size:11px">By</th>'+
-    '<th style="padding:6px 8px;color:var(--text3);font-weight:600;font-size:11px">Role</th>'+
+    '<th class="col-secondary" style="padding:6px 8px;color:var(--text3);font-weight:600;font-size:11px">Role</th>'+
     '<th style="padding:6px 8px;color:var(--text3);font-weight:600;font-size:11px">Action</th>'+
     '<th style="padding:6px 8px;color:var(--text3);font-weight:600;font-size:11px">Detail</th>'+
     '</tr></thead><tbody>'+
@@ -14078,7 +14823,7 @@ function renderAuditLog(){
       return'<tr style="border-bottom:1px solid var(--bg3)">'+
         '<td style="padding:5px 8px;color:var(--text3);white-space:nowrap">'+ds+'</td>'+
         '<td style="padding:5px 8px;font-weight:600">'+escHtml(e.by||'-')+'</td>'+
-        '<td style="padding:5px 8px;color:var(--text3)">'+escHtml(e.role||'-')+'</td>'+
+        '<td class="col-secondary" style="padding:5px 8px;color:var(--text3)">'+escHtml(e.role||'-')+'</td>'+
         '<td style="padding:5px 8px;font-family:var(--mono);font-size:11px;color:'+col+'">'+escHtml(ac)+'</td>'+
         '<td style="padding:5px 8px;color:var(--text2);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escHtml(e.detail||'')+'">'+escHtml(e.detail||'-')+'</td>'+
         '</tr>';

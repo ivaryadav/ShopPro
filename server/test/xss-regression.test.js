@@ -1,13 +1,13 @@
 /**
  * XSS regression test for S-1 (SecurityHardeningReview.md) and S-2.
  *
- * S-1: confirmed cross-tenant stored XSS via `u.name` at
- * app/ShopERP_Pro_v8.html:6351 (pssLicenseVerify) — a shop's display name,
- * echoed unescaped into another user's session on the license-verify screen.
+ * S-1: confirmed cross-tenant stored XSS via `u.name` in pssLicenseVerify()
+ * — a shop's display name, echoed unescaped into another user's session on
+ * the license-verify screen.
  *
  * S-2: the same unescaped-name-into-toast() pattern at ~19 additional call
  * sites (product/customer/staff/shop names, expense category names) feeding
- * toast()'s innerHTML sink (app/ShopERP_Pro_v8.html:~3907).
+ * toast()'s innerHTML sink.
  *
  * Two layers, no DOM dependency (no jsdom in this project — see
  * OperationalReadinessPlan.md's no-new-dependency posture):
@@ -17,6 +17,17 @@
  *   2. Static regression guard: confirm every previously-vulnerable call
  *      site now wraps its user-controlled variable in escHtml()/esc() — so
  *      a future edit that silently drops the wrapper fails this test.
+ *
+ * Layer 2 matches by unique source snippet, not by hardcoded line number.
+ * An earlier version of this test anchored each check to a fixed line
+ * number and broke (all 22 Layer-2 assertions failed, none of them a real
+ * regression — every escHtml() wrapper was still correctly in place) the
+ * moment an unrelated change added ~90 lines earlier in the file — a
+ * lesson in why line numbers are the wrong anchor for a ~16,000-line file
+ * that changes for reasons unrelated to security. Each site below is
+ * identified by a snippet unique enough to survive reformatting; the
+ * actual matched line is resolved and reported for readability, not
+ * asserted against.
  */
 'use strict';
 
@@ -60,44 +71,50 @@ assert(!/<img[^>]*onerror/i.test(reconstructedInnerHTML), 'S-1: reconstructed in
 
 // ---------------------------------------------------------------------
 // Layer 2: static regression guard — every known-vulnerable call site
-// must still wrap its user-controlled field in escHtml()/esc()
+// must still wrap its user-controlled field in escHtml()/esc(). Matched
+// by unique snippet, not line number (see file header).
 // ---------------------------------------------------------------------
-const lines = src.split('\n');
-function lineContains(lineNo, substrings) {
-  const line = lines[lineNo - 1] || '';
-  return substrings.every(s => line.includes(s));
+function findLine(snippet) {
+  const idx = src.indexOf(snippet);
+  if (idx === -1) return null;
+  return src.slice(0, idx).split('\n').length;
+}
+function assertSnippet(snippet, label) {
+  const line = findLine(snippet);
+  assert(line !== null, `${label} (found at line ${line}): wraps its user-controlled field in escHtml()`);
 }
 
 // S-1
-assert(lineContains(6351, ["escHtml(u.name)", "escHtml(initials)"]),
-  'S-1 (line 6351): u.name and initials both wrapped in escHtml() inside pssLicenseVerify()');
+assertSnippet(
+  "escHtml(initials)+'</div><div><div class=\"pss-user-info-name\">'+escHtml(u.name)",
+  'S-1: pssLicenseVerify() u.name and initials both wrapped in escHtml()'
+);
 
-// S-2 — all 19 confirmed toast()/construction sites
-const s2Sites = [
-  { line: 4395, needle: 'escHtml(u.name)', label: 'PIN set toast' },
-  { line: 4562, needle: 'escHtml(u.name)', label: 'PIN updated toast' },
-  { line: 7904, needle: 'escHtml(dup.name)', label: 'existing customer selected toast' },
-  { line: 8419, needle: 'escHtml(dup.name)', label: 'duplicate IMEI toast (add)' },
-  { line: 8468, needle: 'escHtml(dup.name)', label: 'duplicate IMEI toast (edit)' },
-  { line: 9187, needle: 'escHtml(prod.name)', label: 'stock-limit toast (cart)' },
-  { line: 9235, needle: 'escHtml(item.name)', label: 'stock-limit toast (qty change)' },
-  { line: 10385, needle: 'escHtml(prod.name)', label: 'insufficient stock toast (warranty part)' },
-  { line: 10576, needle: 'escHtml(p.name)', label: 'out of stock toast' },
-  { line: 10644, needle: 'escHtml(prod.name)', label: 'stock-limit toast (repair part)' },
-  { line: 14345, needle: 'escHtml(name)', label: 'staff added toast' },
-  { line: 5544, needle: 'escHtml(shopName)', label: 'admin key generated toast' },
-  { line: 5799, needle: 'escHtml(c.shopName)', label: 'admin account paused toast' },
-  { line: 5818, needle: 'escHtml(c.shopName)', label: 'admin account terminated toast' },
-  { line: 5827, needle: 'escHtml(c.shopName)', label: 'admin account restored toast' },
-  { line: 5836, needle: 'escHtml(shopName)', label: 'admin server-status-updated toast' },
-  { line: 6095, needle: 'escHtml(userName)', label: 'admin PIN reset toast' },
-  { line: 9384, needle: 'escHtml(item.name)', label: 'stock-insufficient error list construction' },
-  { line: 11634, needle: 'escHtml(n)', label: 'expense category added toast' },
+// S-2 — all 19 confirmed toast()/construction sites, one exact snippet each
+const s2Snippets = [
+  ["toast('PIN set for '+escHtml(u.name),'success')", 'PIN set toast'],
+  ["toast('PIN updated for '+escHtml(u.name),'success')", 'PIN updated toast'],
+  ["toast('Existing customer selected: '+escHtml(dup.name),'info')", 'existing customer selected toast'],
+  ["fieldErr('p-imei','IMEI already registered to \"'+dup.name+'\"');toast('Duplicate IMEI - already linked to \"'+escHtml(dup.name)", 'duplicate IMEI toast (add)'],
+  ["fieldErr('ep-imei','IMEI already registered to \"'+dup.name+'\"');toast('Duplicate IMEI - already linked to \"'+escHtml(dup.name)", 'duplicate IMEI toast (edit)'],
+  ["toast(`Only ${availableStock} unit${availableStock!==1?'s':''} of \"${escHtml(prod.name)}\" in stock`,'error')", 'stock-limit toast (cart)'],
+  ["toast(`Only ${maxStock} unit${maxStock!==1?'s':''} of \"${escHtml(item.name)}\" in stock`,'error')", 'stock-limit toast (qty change)'],
+  ["toast('Insufficient stock for '+escHtml(prod.name),'error')", 'insufficient stock toast (warranty part)'],
+  ["toast(`${escHtml(p.name)} is out of stock`,'error')", 'out of stock toast'],
+  ["toast(`Only ${prod.stock} unit${prod.stock!==1?'s':''} of \"${escHtml(prod.name)}\" in stock`,'error')", 'stock-limit toast (repair part)'],
+  ["toast(escHtml(name)+' added as '+role+'. Set their PIN now.','success')", 'staff added toast'],
+  ["toast((isRenew?'Renewed ':'Key generated for ')+escHtml(shopName),'success')", 'admin key generated toast'],
+  ["toast('Account paused for '+escHtml(c.shopName),'info')", 'admin account paused toast'],
+  ["toast('Account terminated for '+escHtml(c.shopName),'error')", 'admin account terminated toast'],
+  ["toast('Account restored for '+escHtml(c.shopName),'success')", 'admin account restored toast'],
+  ["toast('Server updated: '+escHtml(shopName)+' is now '+status,'success')", 'admin server-status-updated toast'],
+  ["toast('PIN reset for '+escHtml(userName),'success')", 'admin PIN reset toast'],
+  ['stockErrors.push(`"${escHtml(item.name)}": selling ${item.qty} but only ${prod.stock} in stock`)', 'stock-insufficient error list construction'],
+  ["toast('Category \"'+escHtml(n)+'\" added','success')", 'expense category added toast'],
 ];
 
-for (const site of s2Sites) {
-  assert(lineContains(site.line, [site.needle]),
-    `S-2 (line ${site.line}): ${site.label} wraps its user-controlled field in escHtml()`);
+for (const [snippet, label] of s2Snippets) {
+  assertSnippet(snippet, `S-2: ${label}`);
 }
 
 // Negative control: confirm native window.confirm() call sites for names
@@ -105,10 +122,14 @@ for (const site of s2Sites) {
 // not an innerHTML sink), so wrapping it would be a no-op at best and would
 // incorrectly display literal "&#39;" etc. for names containing quotes/
 // apostrophes at worst. This guards against a future "helpful" but wrong fix.
-assert(lineContains(6005, ["confirm('Clear PIN for '+u.name"]),
-  "S-2 negative control: confirm() at line 6005 correctly left unescaped (native dialog, not an innerHTML sink)");
-assert(lineContains(11122, ["confirm('", "already exists for \"'+dup.name+'\""]),
-  "S-2 negative control: confirm() at line 11122 correctly left unescaped (native dialog, not an innerHTML sink)");
+const negativeControls = [
+  ["confirm('Clear PIN for '+u.name+'?", 'confirm() for PIN clear'],
+  ["confirm('⚠️ Phone '+phone+' already exists for \"'+dup.name+'\"", 'confirm() for duplicate phone'],
+];
+for (const [snippet, label] of negativeControls) {
+  const line = findLine(snippet);
+  assert(line !== null, `S-2 negative control: ${label} (found at line ${line}) is correctly left unescaped — native dialog, not an innerHTML sink`);
+}
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed > 0 ? 1 : 0);
