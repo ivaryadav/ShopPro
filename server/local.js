@@ -15,6 +15,7 @@ const bcrypt   = require('bcryptjs');
 const jwt      = require('jsonwebtoken');
 const Database = require('better-sqlite3');
 const cors     = require('cors');
+const compression = require('compression');
 const path     = require('path');
 const fs       = require('fs');
 const os       = require('os');
@@ -275,6 +276,19 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_trusted_devices_tenant ON trusted_devices(tenant_id);
   CREATE INDEX IF NOT EXISTS idx_trusted_devices_user ON trusted_devices(user_id);
+
+  -- Web admin credential — single row (id=1), replaces the ADMIN_KEY env var
+  -- as the source of truth once seeded. See docs/production-hardening/
+  -- PasswordMigration.md. algo starts 'sha256' (seeded from the legacy
+  -- env-var-derived hash for exact backward compatibility) and flips to
+  -- 'bcrypt' automatically the first time that legacy password verifies
+  -- successfully — no forced reset, no new password required.
+  CREATE TABLE IF NOT EXISTS admin_credentials (
+    id            INTEGER PRIMARY KEY CHECK (id = 1),
+    password_hash TEXT NOT NULL,
+    algo          TEXT NOT NULL DEFAULT 'sha256',
+    updated_at    TEXT DEFAULT (datetime('now'))
+  );
 `);
 runMigration("ALTER TABLE tenants ADD COLUMN address TEXT NOT NULL DEFAULT ''", 'tenants.address');
 runMigration("ALTER TABLE tenants ADD COLUMN gst_number TEXT NOT NULL DEFAULT ''", 'tenants.gst_number');
@@ -286,6 +300,13 @@ runMigration('ALTER TABLE users ADD COLUMN email_verified_at TEXT', 'users.email
 db.prepare(`INSERT OR IGNORE INTO subscription_plans (code,label,device_limit,trial_days,sort_order) VALUES ('TRIAL','Trial',2,14,0)`).run();
 db.prepare(`INSERT OR IGNORE INTO subscription_plans (code,label,device_limit,trial_days,sort_order) VALUES ('BASIC','Basic',2,NULL,1)`).run();
 db.prepare(`INSERT OR IGNORE INTO subscription_plans (code,label,device_limit,trial_days,sort_order) VALUES ('PREMIUM','Premium',5,NULL,2)`).run();
+
+// Seed the admin credential from the legacy ADMIN_KEY env var (or its
+// hardcoded default) on first boot only — from then on, admin_credentials
+// is authoritative and ADMIN_KEY is never read again. This is the same
+// "env var is just the initial seed" posture ADMIN_KEY already had before
+// this table existed (it was always `process.env.ADMIN_KEY || <default>`).
+db.prepare(`INSERT OR IGNORE INTO admin_credentials (id, password_hash, algo) VALUES (1, ?, 'sha256')`).run(ADMIN_KEY);
 
 const LICENSE_KEY_CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // matches license.js's no-0/O/1/I charset
 function generateHostedLicenseKey() {
@@ -446,22 +467,41 @@ function requireLicenseWrite(req, res, next) {
   return requireLicenseRead(req, res, next);
 }
 
-// Validates X-Admin-Key header for Super Admin remote control endpoints.
-// Uses a timing-safe comparison (S-10, SecurityHardeningReview.md) instead
-// of `!==`, which short-circuits on the first mismatched byte — a
-// textbook timing side-channel, however impractical to exploit over a
-// real network. crypto.timingSafeEqual() requires equal-length buffers, so
-// the length check must happen first (and is itself not a useful timing
-// oracle: key length is not a secret, unlike its content).
+// ── Admin session tokens (Issue 2, PasswordMigration.md) ─────────────────────
+// Replaces the old model (a single static, long-lived secret compared
+// directly against X-Admin-Key on every request) with a real login: a
+// password is verified once against admin_credentials (bcrypt, or legacy
+// sha256 with automatic upgrade — see the /api/admin/login handler below),
+// and a short-lived, random, single-use-until-expiry session token is
+// issued. bcrypt hashes are non-deterministic (a fresh salt every time),
+// so they cannot themselves be sent as a repeatable bearer credential the
+// way a plain hash could — a real login exchange is the correct fix, not
+// an incidental architecture change.
+const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+const _adminSessions = new Map(); // token -> expiresAt (ms)
+function issueAdminSession() {
+  const token = crypto.randomBytes(32).toString('hex');
+  _adminSessions.set(token, Date.now() + ADMIN_SESSION_TTL_MS);
+  return token;
+}
+// Validates X-Admin-Key header against the currently-active admin session
+// tokens (not a single static secret anymore). Still timing-safe per token
+// compared (S-10, SecurityHardeningReview.md) — meaningfully stronger than
+// before regardless, since the credential being matched now rotates on
+// every login and expires, rather than being one fixed value for the life
+// of the deployment.
 function requireAdminKey(req, res, next) {
-  const key = req.headers['x-admin-key'];
-  const keyBuf = Buffer.from(key || '', 'utf8');
-  const adminKeyBuf = Buffer.from(ADMIN_KEY, 'utf8');
-  const valid = key
-    && keyBuf.length === adminKeyBuf.length
-    && crypto.timingSafeEqual(keyBuf, adminKeyBuf);
-  if (!valid) return res.status(401).json({ error: 'Invalid admin key' });
-  next();
+  const key = req.headers['x-admin-key'] || '';
+  const keyBuf = Buffer.from(key, 'utf8');
+  const now = Date.now();
+  for (const [token, expiresAt] of _adminSessions) {
+    if (expiresAt <= now) { _adminSessions.delete(token); continue; }
+    const tokenBuf = Buffer.from(token, 'utf8');
+    if (keyBuf.length === tokenBuf.length && crypto.timingSafeEqual(keyBuf, tokenBuf)) {
+      return next();
+    }
+  }
+  return res.status(401).json({ error: 'Invalid or expired admin session. Please log in again.' });
 }
 
 // ── In-memory rate limiter (no npm dependency) ───────────────────────────────
@@ -576,11 +616,25 @@ app.use(function(req, res, next) {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // Issue 4 (DevOpsHardening.md) — this app never requests any browser
+  // hardware/sensor permission, so a fully-locked-down default costs
+  // nothing and closes off a class of feature-hijack via injected/embedded
+  // content. Independent of, and does not touch, the CSP below.
+  res.setHeader('Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()'
+  );
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://prod.spline.design https://app.spline.design; media-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src 'self' https://prod.spline.design https://unpkg.com; worker-src 'self' blob:; frame-ancestors 'none';"
   );
   next();
 });
+
+// Issue 4 (DevOpsHardening.md) — gzip/brotli response compression. Placed
+// after the security-headers middleware (so those headers are always set
+// regardless of whether a given response ends up compressed) and before
+// the routes it applies to; compression is purely a transport-encoding
+// concern and doesn't interact with CSP or any other header's semantics.
+app.use(compression());
 
 app.use(express.json({ limit: '5mb' }));
 
@@ -875,11 +929,17 @@ app.post('/api/auth/login', rateLimit(10, 5 * 60 * 1000), (req, res) => {
        JOIN tenants t ON t.id = u.tenant_id
        WHERE u.mobile = ? AND u.is_active = 1`
     ).get(mob);
+    // Generic, identical failure for "no such account" and "wrong PIN" —
+    // distinguishing them lets an attacker enumerate which mobile numbers
+    // are registered ShopERP customers (Issue 3, AuthenticationReview.md).
+    // The real reason is still logged, server-side only, for diagnostics.
     if (!row) {
-      return res.status(401).json({ error: 'Mobile number not registered. Please do First Time Setup.' });
+      logger.warn('[Auth] Login failed', { reason: 'mobile not registered' });
+      return res.status(401).json({ error: 'Invalid mobile number or PIN.' });
     }
     if (!bcrypt.compareSync(pin, row.password_hash)) {
-      return res.status(401).json({ error: 'Incorrect PIN. Please try again.' });
+      logger.warn('[Auth] Login failed', { reason: 'incorrect PIN', tenantId: row.tid, userId: row.id });
+      return res.status(401).json({ error: 'Invalid mobile number or PIN.' });
     }
     // Device-limit enforcement (Phase 8) — only when a deviceId is sent (new
     // client builds); absent = old client build, byte-identical old behavior.
@@ -1081,6 +1141,49 @@ app.get('/api/license/status', requireAuth, (req, res) => {
     return res.json({ status: 'expired', reason: '', licenseExpiry: t.license_expiry, licensePlan: t.license_plan, license });
   }
   res.json({ status: t.status || 'active', reason: t.suspend_reason || '', licenseExpiry: t.license_expiry, licensePlan: t.license_plan, license });
+});
+
+// ── POST /api/admin/login — exchange the admin password for a session token ─
+// New (Issue 2, PasswordMigration.md). Verifies against admin_credentials:
+// bcrypt if already migrated, else the legacy single-round SHA-256 the
+// original ADMIN_KEY was — and on a successful *legacy* verification,
+// transparently re-hashes with bcrypt and persists that going forward. No
+// password reset, no new password, no downtime for the existing operator.
+app.post('/api/admin/login', rateLimit(10, 5 * 60 * 1000), (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: 'Invalid credentials' }); // generic — see AuthenticationReview.md
+  try {
+    const row = db.prepare('SELECT * FROM admin_credentials WHERE id = 1').get();
+    if (!row) return res.status(500).json({ error: 'Admin credentials not configured' });
+
+    let verified = false;
+    if (row.algo === 'bcrypt') {
+      verified = bcrypt.compareSync(password, row.password_hash);
+    } else {
+      // Legacy path: the original scheme was a single SHA-256 round of the
+      // password, compared timing-safely against ADMIN_KEY.
+      const candidate = crypto.createHash('sha256').update(password).digest('hex');
+      const candidateBuf = Buffer.from(candidate, 'utf8');
+      const storedBuf = Buffer.from(row.password_hash, 'utf8');
+      verified = candidateBuf.length === storedBuf.length && crypto.timingSafeEqual(candidateBuf, storedBuf);
+      if (verified) {
+        // Automatic migration on successful login — same password, stronger hash from now on.
+        const newHash = bcrypt.hashSync(password, 10);
+        db.prepare(`UPDATE admin_credentials SET password_hash = ?, algo = 'bcrypt', updated_at = datetime('now') WHERE id = 1`).run(newHash);
+        logger.info('[Admin] Credential automatically migrated from sha256 to bcrypt on successful login');
+      }
+    }
+
+    if (!verified) {
+      logger.warn('[Admin] Login failed', { reason: 'incorrect password' }); // detail stays server-side only — see AuthenticationReview.md
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    const token = issueAdminSession();
+    res.json({ ok: true, adminToken: token });
+  } catch (e) {
+    logger.error('[Admin] Login error', { error: e.message });
+    res.status(500).json({ error: 'Invalid credentials' }); // generic even on an internal error — no stack trace, no detail leaked
+  }
 });
 
 // ── POST /api/admin/tenant/status — pause / terminate / restore (remote) ─────
