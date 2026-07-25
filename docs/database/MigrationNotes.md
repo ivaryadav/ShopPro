@@ -68,4 +68,34 @@ See `docs/architecture/Operations.md`'s "Documented deviations" section for the 
 
 ## Known gap: no live MariaDB verification in this environment (same as Phase 2)
 
-`server/src/tests/operationsCore.integration.test.js` reports an honest skip in this session, for the same reason as Phase 2's `identityCore.integration.test.js`. All business logic is fully tested via repository mocking in `inventoryService.test.js`, `customerService.test.js`, `saleService.test.js`, `repairService.test.js`, `expenseService.test.js`, and `paymentService.test.js`. **Re-run `npm run test:src` against a real, credentialed MariaDB instance before relying on this stack in production.**
+`server/src/tests/operationsCore.integration.test.js` reports an honest skip in this session, for the same reason as Phase 2's `identityCore.integration.test.js`. All business logic is fully tested via repository mocking in `inventoryService.test.js`, `customerService.test.js`, `saleService.test.js`, `repairService.test.js`, `expenseService.test.js`, and `paymentService.test.js`. **Closed in Phase 6 — see below.**
+
+---
+
+# Phase 6 additions — Cutover Readiness
+
+## Real MariaDB validation, finally performed
+
+Phases 1/2/4/5 all reported an honest skip for anything requiring a live database — no credentials were ever available to those sessions, and none of them attempted to bypass another user's pre-existing database authentication. Phase 6 closed this gap **without** bypassing anything: it provisioned its own dedicated MariaDB instance via a second Homebrew install (`mariadb`, distinct from the shared system `mysql` formula already running other users' work), running on its own port (3307) and datadir, with its own root/app-user credentials created fresh — never touching the shared instance's data or authentication at all. `npm run migrate:up`/`migrate:status`, full CRUD, transactions (including a forced rollback via a real duplicate-invoice_no constraint violation), FK enforcement, 20-way connection-pool concurrency, and a real performance baseline were all exercised against this instance for real. Every previously-hardcoded `TEST_DB_CONFIG` in `database.test.js`/`identityCore.integration.test.js`/`operationsCore.integration.test.js` is now env-overridable (`TEST_DB_HOST`/`PORT`/`USER`/`PASSWORD`/`NAME`), defaulting to the exact same values as before when unset — the honest-skip behavior is preserved for any environment without a real database, this is purely additive.
+
+**A real bug was found and fixed as a direct result**: `database.test.js` had two assertions hardcoded from when only migration 001 existed (`schema_migrations records exactly 1 applied migration`, `migrateDown(1) reverts the identity-core migration cleanly`) — both silently stale since Phase 4 added migration 002, both invisible because Part 2 of that test always honestly skipped until now. Fixed to expect 2 migrations and to correctly test reverse-order rollback (002 first, then 001). Separately, `inventoryService.createProduct`'s SKU-auto-generation fallback called `inventoryRepository.update()` with the snake_case row `create()` had just returned, instead of the camelCase shape `update()` expects — every other NOT NULL column silently went to `NULL` in the UPDATE statement, only caught because a real MariaDB NOT NULL constraint rejected it (`ER_BAD_NULL_ERROR`). Fixed with a dedicated `inventoryRepository.setSku()` single-column update, avoiding the field-shape mismatch entirely.
+
+New test file: `server/src/tests/mariadbValidation.integration.test.js` — connection pool concurrency, transaction atomicity, and the Phase 6 performance baseline, all against real MariaDB.
+
+## Rate limiting fix
+
+Phase 5's parity review found the 6 Operations route groups (`/api/inventory`, `/api/customers`, `/api/sales`, `/api/repairs`, `/api/expenses`, `/api/settings`) had no rate-limiting middleware at all, unlike every auth-related route in both `local.js` and `server/src/`. Fixed by applying `rateLimit(120, 60s)` (the existing, already-ported limiter — no new dependency) immediately after `requireAuth`/`requireActive` in each router, matching `local.js`'s own convention for already-authenticated mutation routes (e.g. `/api/admin/tenant/status`: `requireAdminKey, rateLimit(...)`). Verified via `server/src/tests/operationsRateLimit.test.js` (route-stack introspection, since triggering a real 429 end-to-end would require a live database-backed session).
+
+## JSON → Relational migration tool (new)
+
+`server/src/migrationTools/jsonToRelational/` — `transform.js` (pure field-mapping functions), `validationService.js` (pre/post validation), `migrationService.js` (orchestration: dry-run, real run, rollback, integrity verification), `reconciliationReport.js` (markdown report builder). CLI: `server/src/scripts/migrateTenantData.js` (`dry-run`/`migrate`/`rollback` subcommands).
+
+Scope is Operations-domain data only (Inventory/Customer/Sale/Repair/Expense/RecurringExpense/cash entries/Configuration) — Identity data (tenants/users) is already relational in `local.js`'s own SQLite, not a JSON blob, and out of scope for this tool. The tool never reads or writes `local.js`'s SQLite database directly — the caller extracts `tenant_data.data` into a JSON file first, keeping this tool fully decoupled from the live production database it migrates away from (a deliberate design choice, not an oversight — it means this tool cannot accidentally corrupt or delete anything in `shoperpro.db`, satisfying "customer data is never deleted" trivially by construction).
+
+**One real, non-obvious edge case handled**: a repair job's advance payment (`job.advanceAmount`/`advanceMethod`, set at job creation) is never pushed into `RepairJob.payments[]` by `local.js` itself — only later `collectRepairPayment` calls append to that array. A naive migration copying only `payments[]` would silently lose every repair's advance payment. `transform.mapRepair()` synthesizes a payment record from `advanceAmount`/`advanceMethod` in addition to whatever's in `payments[]` — caught and verified via a real round-trip test (`jsonToRelationalMigration.integration.test.js`) before it could have caused silent data loss in a real cutover.
+
+Tested against synthetic sample data shaped exactly like `local.js`'s `DB` object (NOT real production data) — dry-run (writes nothing, reports accurate expected counts), real run (correct row creation, unresolvable-customer sales/repairs skipped with a named reason rather than fabricated), post-migration integrity verification (row counts + financial totals reconcile), and rollback (removes every created row, never touches the `tenants` row) all verified against the same real, disposable MariaDB instance used for the rest of Phase 6's validation.
+
+## Known gap, still open
+
+No real tenant's actual production data has been migrated by this tool — by design, per this phase's "do not perform production cutover" instruction. The tool is built and tested; running it against real `local.js` data is a future, separately-approved cutover step.

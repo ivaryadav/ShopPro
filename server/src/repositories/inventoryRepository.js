@@ -92,6 +92,23 @@ async function update(tenantId, id, data) {
 }
 
 /**
+ * Single-column update for the auto-generated-SKU fallback
+ * (inventoryService.createProduct) — deliberately NOT routed through
+ * update() above, which expects a full camelCase field set; passing it a
+ * partial/snake_case object (e.g. the row returned by create()) silently
+ * nulls out every other NOT NULL column. Caught by real MariaDB
+ * validation (Phase 6) — mocked tests never exercised the real
+ * create()-then-update() field-shape mismatch end to end.
+ * @param {number} tenantId @param {number} id @param {string} sku
+ */
+async function setSku(tenantId, id, sku) {
+  return withConnection(async (conn) => {
+    await conn.query('UPDATE inventory_items SET sku=? WHERE tenant_id=? AND id=?', [sku, tenantId, id]);
+    return findById(tenantId, id);
+  });
+}
+
+/**
  * Atomic decrement, clamped at 0 — matches `p.stock=Math.max(0,p.stock-item.qty)`
  * (saveSale:10074, updateSale:9981, addJobPart:11297) exactly.
  * @param {number} tenantId @param {number} id @param {number} qty
@@ -136,6 +153,6 @@ async function remove(tenantId, id) {
 }
 
 module.exports = {
-  listByTenant, findById, findByImei, create, update,
+  listByTenant, findById, findByImei, create, update, setSku,
   decrementStock, incrementStock, setStock, remove,
 };

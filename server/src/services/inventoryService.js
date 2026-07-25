@@ -61,9 +61,13 @@ async function createProduct(params) {
 
   // Matches saveProduct's 'PRD-'+padded fallback (~line 9073) — local.js
   // uses a pre-increment counter; here the AUTO_INCREMENT id fills the
-  // same "auto-generated, distinguishing" role.
+  // same "auto-generated, distinguishing" role. Uses the single-column
+  // setSku() rather than update() — a real bug caught by Phase 6's live
+  // MariaDB validation: update() expects a full camelCase field set, and
+  // `created` (from create()) has snake_case DB column names, so passing
+  // it through update() silently nulled every NOT NULL column.
   if (!created.sku) {
-    return inventoryRepository.update(params.tenantId, created.id, { ...created, sku: 'PRD-' + String(created.id).padStart(3, '0') });
+    return inventoryRepository.setSku(params.tenantId, created.id, 'PRD-' + String(created.id).padStart(3, '0'));
   }
   return created;
 }

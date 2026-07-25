@@ -25,6 +25,18 @@
 const { discoverMigrations, computeChecksum } = require('../database/migrationRunner');
 const { getPool, migrateUp, migrateDown, getAppliedMigrations, checkDatabaseHealth, closePool, _resetForTests } = require('../database');
 
+// Phase 6: env-overridable (TEST_DB_HOST/PORT/USER/PASSWORD/NAME) so this can
+// run against a real, credentialed instance — same defaults as before
+// (root/no-password/3306) when unset, preserving the honest-skip behavior
+// in environments with no real database available.
+const TEST_DB_CONFIG = {
+  DB_HOST: process.env.TEST_DB_HOST || '127.0.0.1',
+  DB_PORT: process.env.TEST_DB_PORT || '3306',
+  DB_USER: process.env.TEST_DB_USER || 'root',
+  DB_PASSWORD: process.env.TEST_DB_PASSWORD || '',
+  DB_NAME: process.env.TEST_DB_NAME || 'shoperpro_phase2_test',
+};
+
 let passed = 0, failed = 0, skipped = 0;
 function assert(cond, label) {
   if (cond) { passed++; console.log('  \x1b[32m✓\x1b[0m ' + label); }
@@ -54,9 +66,7 @@ async function main() {
 
   // ── Part 2: real MariaDB integration, if reachable ─────────────────────
   _resetForTests();
-  const health = await checkDatabaseHealth({
-    DB_HOST: '127.0.0.1', DB_PORT: '3306', DB_USER: 'root', DB_PASSWORD: '', DB_NAME: 'shoperpro_phase2_test',
-  });
+  const health = await checkDatabaseHealth(TEST_DB_CONFIG);
 
   if (!health.ok) {
     skip('migrateUp() applies the identity-core schema', `no reachable/authenticated database: ${health.error}`);
@@ -75,7 +85,7 @@ async function main() {
     );
   } else {
     _resetForTests();
-    const pool = getPool({ DB_HOST: '127.0.0.1', DB_PORT: '3306', DB_USER: 'root', DB_PASSWORD: '', DB_NAME: 'shoperpro_phase2_test' });
+    const pool = getPool(TEST_DB_CONFIG);
     try {
       const upResult = await migrateUp(pool);
       assert(upResult.filter((r) => r.action === 'applied').length === 1 || upResult.every((r) => r.action === 'already-applied'), 'migrateUp() applies the identity-core migration on a fresh database (or reports already-applied on a reused one)');
@@ -86,10 +96,22 @@ async function main() {
       const conn = await pool.getConnection();
       const applied = await getAppliedMigrations(conn);
       await conn.release();
-      assert(applied.size === 1, 'schema_migrations records exactly 1 applied migration');
+      // Phase 6: real-database run against BOTH migrations (Phase 4 added
+      // 002_operations_domain) — this assertion was never actually exercised
+      // against a real database before Phase 6 (Part 2 always honestly
+      // skipped), so the stale "exactly 1" expectation from Phase 2 went
+      // unnoticed until now. Genuinely caught by real verification, not mocking.
+      assert(applied.size === 2, 'schema_migrations records exactly 2 applied migrations (001, 002)');
 
-      const downResult = await migrateDown(pool, 1);
-      assert(downResult.length === 1 && downResult[0].version === '001', 'migrateDown(1) reverts the identity-core migration cleanly');
+      // migrateDown(1) reverts the MOST RECENTLY applied migration first —
+      // with 2 migrations now applied, that's 002 (operations_domain), not
+      // 001 (identity_tenant_core). Verified in reverse-application order,
+      // exercising real multi-migration rollback for the first time.
+      const downResult1 = await migrateDown(pool, 1);
+      assert(downResult1.length === 1 && downResult1[0].version === '002', 'migrateDown(1) reverts the most-recently-applied migration (002_operations_domain) first');
+
+      const downResult2 = await migrateDown(pool, 1);
+      assert(downResult2.length === 1 && downResult2[0].version === '001', 'a second migrateDown(1) then reverts 001_identity_tenant_core, completing a full rollback');
     } finally {
       await closePool();
     }

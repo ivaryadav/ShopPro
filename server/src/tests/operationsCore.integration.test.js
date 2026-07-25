@@ -36,7 +36,16 @@ function skip(label, reason) {
   console.log('  \x1b[33m○ SKIP\x1b[0m ' + label + ' — ' + reason);
 }
 
-const TEST_DB_CONFIG = { DB_HOST: '127.0.0.1', DB_PORT: '3306', DB_USER: 'root', DB_PASSWORD: '', DB_NAME: 'shoperpro_phase4_test' };
+// Phase 6: env-overridable (TEST_DB_HOST/PORT/USER/PASSWORD/NAME) so this can
+// run against a real, credentialed instance — same defaults as before
+// (root/no-password/3306) when unset, preserving the honest-skip behavior.
+const TEST_DB_CONFIG = {
+  DB_HOST: process.env.TEST_DB_HOST || '127.0.0.1',
+  DB_PORT: process.env.TEST_DB_PORT || '3306',
+  DB_USER: process.env.TEST_DB_USER || 'root',
+  DB_PASSWORD: process.env.TEST_DB_PASSWORD || '',
+  DB_NAME: process.env.TEST_DB_NAME || 'shoperpro_phase4_test',
+};
 
 async function main() {
   console.log('Phase 4 integration test: full Operations Domain stack against real MariaDB');

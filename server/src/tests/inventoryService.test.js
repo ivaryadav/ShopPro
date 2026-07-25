@@ -61,7 +61,7 @@ async function main() {
     const restore = patch(inventoryRepository, {
       findByImei: async () => null,
       create: async (data) => ({ id: 7, sku: data.sku || null, ...data }),
-      update: async (t, id, data) => ({ id, ...data }),
+      setSku: async (t, id, sku) => ({ id, sku }),
     });
     const product = await inventoryService.createProduct({ tenantId: 1, name: 'Phone', sellPrice: 100 });
     assert(product.sku === 'PRD-007', "createProduct auto-generates SKU 'PRD-XXX' when blank, matching saveProduct:9073's fallback shape");

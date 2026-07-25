@@ -1,4 +1,4 @@
-# Architecture — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4)
+# Architecture — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4) + Cutover Readiness (Phases 5–6)
 
 Status: `server/src/` now contains a real, working, MariaDB-backed implementation of the Identity & Tenant Core bounded context (Phase 2) AND the Operations domain (Phase 4 — Inventory, Customer, Sale/SaleItem, Repair/RepairPart, Expense, RecurringExpense, StockMovement, Payment; Configuration stays JSON per ADR-0008) — see `docs/architecture/Operations.md` for the Phase 4 layer in full detail. **It is not the running production server** — `server/local.js` remains that until a future cutover phase (`docs/adr/0001-enterprise-reconstruction.md`, Phase 9). Nothing here is wired into `local.js` or `app/ShopERP_Pro_v8.html`'s main flows; both are unchanged except for a small number of necessary additions (see "Frontend changes" below).
 
@@ -34,4 +34,18 @@ Desktop authentication (ADR-0003), Licensing/Subscriptions/Billing (`tenant_lice
 
 ## Deployment status
 
-Not deployed, not cut over. `server/src/app.js` assembles a complete, runnable Express app (`createApp({jwtSecret})`) covering both Identity & Tenant Core and the Operations domain — proof this architecture actually works end-to-end, not just in isolated unit tests. Starting it requires a real MariaDB instance (none was available in this session — see `docs/database/MigrationNotes.md` and every `*.test.js` file's honest skip behavior). Per Phase 4's mission, real per-entity REST endpoints now exist for Operations data (`/api/inventory`, `/api/customers`, `/api/sales`, `/api/repairs`, `/api/expenses`, `/api/settings`) — a necessary consequence of ADR-0008's normalization decision, since `local.js` itself has no equivalent (everything there still goes through one `GET/PUT /api/data` whole-blob path, unchanged).
+Not deployed, not cut over. `server/src/app.js` assembles a complete, runnable Express app (`createApp({jwtSecret})`) covering both Identity & Tenant Core and the Operations domain — proof this architecture actually works end-to-end, not just in isolated unit tests. Per Phase 4's mission, real per-entity REST endpoints now exist for Operations data (`/api/inventory`, `/api/customers`, `/api/sales`, `/api/repairs`, `/api/expenses`, `/api/settings`) — a necessary consequence of ADR-0008's normalization decision, since `local.js` itself has no equivalent (everything there still goes through one `GET/PUT /api/data` whole-blob path, unchanged).
+
+## Phase 5 — Parity Validation
+
+Systematically compared `server/local.js` against `server/src/` across 15 behavioral areas. Result consolidated in `docs/architecture/ParityValidation.md`: strong parity everywhere comparable, every intentional divergence already covered by an ADR, plus one genuinely new finding (Operations routes had no rate limiting) — fixed in Phase 6. No source code was changed in Phase 5 itself; it was pure verification.
+
+## Phase 6 — Cutover Readiness Implementation
+
+Closed every blocker Phase 5 identified:
+- **Rate limiting** applied consistently to all 6 Operations route groups (`middleware/rateLimit.js`, already-existing, now wired in).
+- **Real MariaDB validation performed for real** — this phase provisioned its own dedicated, isolated MariaDB instance (a separate Homebrew install, own datadir/port/credentials, never touching the shared system MySQL instance or its existing authentication) and ran migrations, rollback, CRUD, transactions, FK constraints, connection-pool concurrency, and a real performance baseline against it. This closed the single most-repeated gap from Phases 1/2/4/5. One real bug was found and fixed in the process (`inventoryService.createProduct`'s SKU-fallback path passed snake_case DB fields into a function expecting camelCase, silently nulling every other column — caught only because a real NOT NULL constraint rejected it; mocked tests never exercised this code path for real).
+- **JSON→Relational migration tool built** (`server/src/migrationTools/jsonToRelational/`) — transforms a tenant's `local.js`-shaped JSON blob into the normalized Operations tables, with dry-run mode, rollback, integrity verification, and a reconciliation report. Tested against synthetic sample data (not real production data) through a full round trip against real MariaDB. See `docs/architecture/Operations.md`-adjacent detail in `docs/database/MigrationNotes.md`.
+- **Production readiness checklists** generated: `docs/architecture/ProductionReadinessChecklists.md`, `docs/architecture/DeploymentGuide.md`, `docs/architecture/Runbook.md`.
+
+Still not deployed, not cut over — this phase closed tooling and verification gaps, it did not perform a cutover.
