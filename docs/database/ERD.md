@@ -78,7 +78,7 @@ erDiagram
 
 ## Deliberately excluded (out of scope, not an oversight)
 
-`tenant_licenses`, `license_history`, `subscription_plans`, `admin_credentials`, `cloud_backups` — Licensing and Administration domains, explicitly out of scope for Phase 2 (`docs/database/MigrationNotes.md`). `tenants.license_key_hash`/`license_expiry`/`license_plan` — present on `local.js`'s `tenants` table today, but Licensing-domain data that happens to live there historically, not carried into this schema.
+`tenant_licenses`, `license_history`, `subscription_plans`, `admin_credentials`, `cloud_backups` — Licensing, Administration, and Cloud Backup domains, explicitly out of scope for Phase 2 (`docs/database/MigrationNotes.md`). `tenants.license_key_hash`/`license_expiry`/`license_plan` — present on `local.js`'s `tenants` table today, but Licensing-domain data that happens to live there historically, not carried into this schema. (`cloud_backups` was added in RC1 Sprint 3, see below.)
 
 ---
 
@@ -298,3 +298,28 @@ TEXT timestamp column becomes a proper `TIMESTAMP` type — matches this project
 ## Deliberately excluded (out of scope, not an oversight)
 
 No new columns on `tenants`/`users`/`trusted_devices`/`tenant_licenses` — every Administration action reuses the existing schema from migrations/001 and migrations/003 unchanged, via new repository queries (`adminDirectoryRepository.js`) rather than new columns or tables.
+
+---
+
+# Entity Relationship Diagram — Cloud Backup Domain (MariaDB, RC1 Sprint 3)
+
+Scope: the 1 table `migrations/005_cloud_backup_domain.sql` creates. Full narrative: `docs/architecture/Backup.md`. Structurally different from every table above: no `tenant_id`, no foreign key to `tenants` at all — keyed purely by `key_hash` (the offline desktop product's license-key hash, ADR-0003).
+
+```mermaid
+erDiagram
+    CLOUD_BACKUPS {
+        varchar key_hash PK "hash of an offline-desktop license key — NOT a tenant_id, no FK to tenants"
+        varchar shop_name "optional, defaults to empty string"
+        longtext data "opaque blob, client-encrypted — server never validates its contents"
+        timestamp backed_up_at
+    }
+```
+
+## Deliberate deviations from `local.js`'s actual SQLite schema
+
+1. **`data TEXT` → `data LONGTEXT`**: MariaDB's `TEXT` caps at 65,535 bytes; SQLite's `TEXT` has no practical cap. A real backup blob could exceed 64KB and be silently truncated under a literal `TEXT` port. `LONGTEXT` (4GB cap) avoids this — a structural type promotion, not a behavior change, matching this project's established convention for other type-cap mismatches.
+2. **TEXT timestamp column becomes a proper `TIMESTAMP` type** — same established convention as every prior migration in this project.
+
+## Deliberately excluded (out of scope, not an oversight)
+
+No `tenant_id` column was added — `local.js` has none, and retrofitting tenant scoping onto a table that was never tenant-scoped would be inventing new behavior, not preserving existing behavior. No new columns for checksumming/encryption/versioning — `local.js`'s validation is presence-checks only, preserved exactly (see `docs/architecture/Backup.md`).

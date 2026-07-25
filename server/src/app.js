@@ -28,6 +28,7 @@ const { createExpensesRouter } = require('./routes/expenses');
 const { createSettingsRouter } = require('./routes/settings');
 const { createLicenseRouter } = require('./routes/license');
 const { createAdminRouter } = require('./routes/admin');
+const { createCloudBackupRouter } = require('./routes/cloudBackup');
 const { errorHandler } = require('./errors');
 const { checkDatabaseHealth } = require('./database');
 const sessionService = require('./services/sessionService');
@@ -147,6 +148,12 @@ function createApp({ jwtSecret, allowedOrigins, startCleanupJob = true, adminKey
   // separate credential/session system (adminAuthService), not the
   // tenant-user JWT auth above.
   app.use('/api/admin', createAdminRouter());
+
+  // Cloud Backup domain (RC1 Sprint 3) — the offline desktop product's
+  // server-side backup bridge, keyed by license-key hash (not tenant_id;
+  // see migrations/005_cloud_backup_domain.sql). Gated by the same
+  // Administration admin-session middleware as local.js's requireAdminKey.
+  app.use('/api/cloud', createCloudBackupRouter());
 
   app.use(errorHandler);
 

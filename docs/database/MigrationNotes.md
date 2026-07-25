@@ -1,4 +1,4 @@
-# Migration Notes — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4) + Licensing Domain (RC1 Sprint 1) + Administration Domain (RC1 Sprint 2)
+# Migration Notes — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4) + Licensing Domain (RC1 Sprint 1) + Administration Domain (RC1 Sprint 2) + Cloud Backup Domain (RC1 Sprint 3)
 
 Consolidated reference for every place this phase's implementation deliberately deviates from, defers, or extends `server/local.js`'s actual behavior. Per the mission's own instruction ("if code and documentation disagree: document it, do not silently change behavior"), nothing below is silent.
 
@@ -161,3 +161,34 @@ Sprint 1's real-database integration testing caught 2 real gaps (see above). Spr
 ## Known gap: same real-database-verification standard as every prior phase
 
 `server/src/tests/administrationCore.integration.test.js` reports an honest skip in environments with no real, credentialed MariaDB instance available. All business logic is fully tested via repository mocking in `adminAuthService.test.js`/`adminTenantService.test.js`/`adminUserService.test.js`/`adminDeviceService.test.js` (38 assertions) plus `tenantLicenseService.test.js`'s 8 new Sprint 2 assertions.
+
+---
+
+# RC1 Sprint 3 additions — Cloud Backup Domain
+
+Full narrative: `docs/architecture/Backup.md`. This section covers only what's specific to `005_cloud_backup_domain.sql` and Part B's new MariaDB backup/verify tool, beyond what that document already states.
+
+## Database
+
+- **`005_cloud_backup_domain.sql`** adds exactly 1 table: `cloud_backups`, matching `local.js:186-195` exactly — **no `tenant_id` column**, keyed purely by `key_hash` (a hash of the offline desktop product's license key, ADR-0003). Structurally different from every other domain migrated so far (all `tenant_id`-scoped).
+- **`data TEXT` → `data LONGTEXT`**: a structural type promotion, not a behavior change. SQLite's `TEXT` has no practical size cap; MariaDB's `TEXT` caps at 65,535 bytes, which would silently truncate a real backup blob. `LONGTEXT` (4GB cap) avoids that, matching this engagement's precedent of promoting column types where the new engine's defaults would otherwise introduce silent data loss.
+
+## Endpoints — 3 routes matching `local.js` exactly, plus one repository-only addition
+
+See `docs/architecture/API.md`'s "Cloud Backup domain endpoints" table. `POST /api/cloud/backup` (upsert), `GET /api/cloud/restore/:keyHash`, `DELETE /api/cloud/backup/:keyHash` — all gated by Sprint 2's `requireAdminSession`, reused unmodified. `cloudBackupRepository.listAll()`/`cloudBackupService.listBackups()` exist with no public route (see `Backup.md`'s judgment call #1).
+
+## Business-rule deviations
+
+None. Validation, upsert semantics, and the unconditional (no-existence-check) delete all match `local.js:1751-1784` exactly, including its real quirks (one backup slot per key hash, overwritten forever; delete always succeeds even for a nonexistent key hash).
+
+## Part B — a new capability, not a port, and why that's still in scope
+
+`databaseBackupService.js`/`backupVerify.js` have no `local.js` equivalent to port — `local.js`'s own backup tooling (`server/scripts/backup-verify.js`) is SQLite-file-specific and stays unmodified. This sprint's mission explicitly requires backup/restore integrity verification ("Verify backup integrity. Verify restore integrity.") for the database this engagement is migrating TO, which had no such tool before this sprint. Built as the direct MariaDB analog of the existing SQLite tool: `mysqldump` for creation, restore-into-a-scratch-database plus `CHECK TABLE` and row-count comparison for verification, same exit-code contract (0 = good, 1 = any failure).
+
+## Real bug found and fixed by this sprint's real-database integration testing
+
+`verifyBackup`'s initial implementation compared restored tables only against their own row counts/`CHECK TABLE` results — never against the live database's full table set. A truncated/corrupted dump that dropped several tables entirely (the `mysql` client aborts execution on the first parse error, leaving everything after that point unrestored) still reported `ok: true`, since every table that DID land in the scratch database passed its own individual checks. Reproduced with a real, deliberately-truncated dump against a real disposable MariaDB instance (port 3310) — confirmed several whole tables were silently missing from the restore while `verifyBackup` reported success. **Fixed** by adding an explicit live-vs-restored table-set comparison (`missingTables`); the corrected version correctly reports `ok: false` and names the missing tables. Regression-tested in `databaseBackupService.integration.test.js`.
+
+## Known gap: same real-database-verification standard as every prior phase
+
+`cloudBackupCore.integration.test.js` and `databaseBackupService.integration.test.js` both report an honest skip in environments with no real, credentialed MariaDB instance available (the latter also skips independently if `mysqldump`/`mysql` CLI binaries aren't on `PATH`). All HTTP-domain business logic is fully tested via repository mocking in `cloudBackupService.test.js` (9 assertions).

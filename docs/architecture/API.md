@@ -1,4 +1,4 @@
-# API — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4) + Licensing Domain (RC1 Sprint 1) + Administration Domain (RC1 Sprint 2)
+# API — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4) + Licensing Domain (RC1 Sprint 1) + Administration Domain (RC1 Sprint 2) + Cloud Backup Domain (RC1 Sprint 3)
 
 Identity & Tenant Core paths match `server/local.js` exactly ("API compatibility preserved where possible"). The Operations domain endpoints below are **new** — `local.js` has no per-entity REST surface for this data at all (everything there goes through one `GET/PUT /api/data` whole-blob path); real per-entity endpoints are a necessary, approved consequence of ADR-0008's normalization decision, not new scope invented by this phase. All mounted by `server/src/app.js`, not by `local.js` — this is a parallel implementation, not yet cut over (`docs/architecture/Architecture.md`).
 
@@ -91,10 +91,22 @@ All require `X-Admin-Key: <admin session token>` (obtained from `POST /api/admin
 | `POST` | `/api/admin/tenant-licenses/:tenantId/devices/reset-all` | |
 | `POST` | `/api/admin/tenant-licenses/:tenantId/devices/limit` | Reuses Sprint 1's `setDeviceLimit`. |
 
+## Cloud Backup domain endpoints (RC1 Sprint 3)
+
+All require `X-Admin-Key: <admin session token>` — Sprint 2's `requireAdminSession`, reused unmodified. Matches `local.js:1753-1784` exactly. The offline desktop product's server-side backup bridge, keyed by license-key hash, not `tenant_id` (see `docs/architecture/Backup.md`).
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/api/cloud/backup` | Upsert — a second call for the same `keyHash` overwrites the first (one slot per license, no history, matches `local.js` exactly). |
+| `GET` | `/api/cloud/restore/:keyHash` | Returns `{data, shopName, backedUpAt}`. 404 if no backup exists for that key hash. |
+| `DELETE` | `/api/cloud/backup/:keyHash` | Unconditional delete, no prior existence check — matches `local.js`'s real behavior exactly, preserved as-is. |
+
+`listBackups()` (repository/service only, no route — see `docs/architecture/Backup.md`'s judgment call #1) and Part B's `databaseBackupService.js`/`backupVerify.js` (a CLI tool, not an HTTP endpoint) have no entries here since neither is exposed over HTTP.
+
 ## Response shapes
 
 Every response field name matches `local.js`'s exact JSON shape — see each route's controller (`controllers/authController.js`, `sessionController.js`, `userController.js`) for the literal object returned. Errors always follow `errors/errorHandler.js`'s shape: `{ error: { code, message, details? } }` — this is new (Phase 1), `local.js` returns a flatter `{ error: string }`; a client written against `local.js` would need updating for this once/if this system is ever actually deployed behind the same client. Not a concern for Phase 2 itself, since nothing is cut over yet — flagged here for whichever future phase does the cutover.
 
 ## Not implemented
 
-`POST /api/auth/register`, `POST /api/auth/signup`, `POST /api/auth/renew-license` — see `docs/architecture/Architecture.md`'s "explicitly NOT implemented" section for why each is out of scope. (`POST /api/admin/reset-user-pin`/`toggle-user` were in this list through Sprint 1 — RC1 Sprint 2 implemented both.)
+`POST /api/auth/register`, `POST /api/auth/signup`, `POST /api/auth/renew-license`, `/api/admin/generate-key`/`validate-key` (offline-desktop license engine) — see `docs/architecture/Architecture.md`'s "explicitly NOT implemented" section for why each is out of scope. (`POST /api/admin/reset-user-pin`/`toggle-user` were in this list through Sprint 1 — RC1 Sprint 2 implemented both. `/api/cloud/*` was in this list through Sprint 2 — RC1 Sprint 3 implemented it.)
