@@ -6,6 +6,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/); versioni
 
 Tracked in `docs/adr/0001-enterprise-reconstruction.md`. Not deployed, not cut over — `v1.0.0` remains the released, running product throughout this work.
 
+### RC1 Repository Audit
+- Full-repository audit ahead of an eventual release candidate: read every ADR/Phase Review/architecture doc, then checked every module for dead code, duplicate utilities, large files, circular dependencies, naming/folder inconsistencies, TODOs/FIXMEs, and layering violations.
+- Removed `renderer/` (`index.html` + `license-engine.js`) — confirmed dead: an early Electron renderer draft from before the `main`/`master` branch consolidation, already documented in `docs/architecture/BranchingStrategy.md` as "superseded by `app/ShopERP_Pro_v8.html`", never loaded by `main.js`, and not included in `package.json`'s `build.files` packaging list.
+- Added the missing root `README.md` (none existed before).
+- Fixed the ADR index (`docs/adr/README.md`) — ADR-0007 and ADR-0008 existed as real, accepted ADRs but were never added to the index table.
+- Corrected two stale `server/src/routes/*/README.md` files (`tenants/`, `licenses/`) that referenced an old, superseded phase-numbering scheme (a different "Phase 3"/"Phase 4" than the ones this reconstruction actually executed).
+- Verified: layered architecture boundaries hold with zero violations (no SQL outside `repositories/`+`database/`, no controller touches a repository directly, no route contains business logic); zero circular service dependencies; zero hardcoded secrets in tracked files; existing 436 + `test:src` suites and lint all pass unmodified.
+- No business logic changed, no UI redesigned, no new features added — pure audit-and-cleanup, per this task's explicit scope.
 ### Phase 6 — Cutover Readiness Implementation
 - Closed every blocker Phase 5's parity review identified. Applied `rateLimit(120, 60s)` consistently to all 6 Operations route groups (a real gap — these routes had no rate limiting at all, unlike every auth-related route in both codebases).
 - Performed real MariaDB validation for the first time across this entire reconstruction, without bypassing any existing credentials: provisioned a dedicated, isolated MariaDB instance (separate Homebrew install, own port/datadir/credentials) and ran migrations, rollback, CRUD, transactions (including a forced real constraint-violation rollback), FK enforcement, 20-way connection-pool concurrency, and a real performance baseline against it.

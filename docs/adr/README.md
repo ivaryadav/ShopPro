@@ -45,3 +45,5 @@ What this makes easier, what it makes harder, what it costs.
 | [0004](0004-incremental-frontend-modularization.md) | Incremental Frontend Modularization | Accepted |
 | [0005](0005-layered-backend-architecture.md) | Layered Backend Architecture | Accepted |
 | [0006](0006-table-driven-authorization.md) | Table-Driven Authorization (Role/Permission) | Accepted |
+| [0007](0007-api-error-response-strategy.md) | API Error Response Strategy | Accepted |
+| [0008](0008-operations-domain-storage-strategy.md) | Operations Domain Storage Strategy | Accepted |
