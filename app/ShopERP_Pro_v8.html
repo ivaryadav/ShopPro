@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.59">
-<title>ShopERP Pro v8.59</title>
+<meta name="shoperpro-version" content="v8.60">
+<title>ShopERP Pro v8.60</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -3193,7 +3193,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.59 · Licensed</div>
+        <div class="sb-footer-ver">v8.60 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3236,6 +3236,12 @@ spline-viewer{width:100%;height:100%;border:none}
 </div>
 
 <!-- License validation engine (inlined for standalone HTML) -->
+
+<!-- Phase 2 (Identity & Tenant Core) extraction — generateBrowserMachineId()
+     and the _api session/auth-helper object now live in modules/auth.js,
+     loaded here so they're defined before any inline script below uses
+     them. See app/modules/auth.js's own header for what was moved and why. -->
+<script src="modules/auth.js"></script>
 
 <script>
 /**
@@ -3374,21 +3380,9 @@ function validateKey(key, machineId) {
 }
 
 // ── BROWSER MACHINE ID ────────────────────────────────────────
-function generateBrowserMachineId() {
-  try {
-    const f = [
-      typeof navigator !== 'undefined' ? navigator.userAgent   : 'UA',
-      typeof navigator !== 'undefined' ? navigator.language    : 'EN',
-      typeof screen    !== 'undefined' ? screen.width + 'x' + screen.height : '1920x1080',
-      typeof screen    !== 'undefined' ? String(screen.colorDepth) : '24',
-      String(new Date().getTimezoneOffset()),
-      typeof navigator !== 'undefined' ? String(navigator.hardwareConcurrency || 4) : '4',
-      typeof navigator !== 'undefined' ? (navigator.platform || 'PLAT') : 'PLAT',
-    ].join('|');
-    return [fnv32(f+'_A'), fnv32(f+'_B'), fnv32(f+'_C'), fnv32(f+'_D')]
-      .map(h => enc(h, 4)).join('-');
-  } catch { return 'BROW-SER0-MACH-ID00'; }
-}
+// generateBrowserMachineId() moved to modules/auth.js (Phase 2 — Identity &
+// Tenant Core frontend extraction). Still a global function, unchanged
+// behavior — see that file's header comment.
 
 // ── SELF-TEST ─────────────────────────────────────────────────
 function runSelfTest() {
@@ -3558,89 +3552,9 @@ if(!window.electronAPI && !SHOPERPRO_API_URL) SHOPERPRO_API_URL = window.locatio
 // Leave as '' to use local backup only.
 const SHOPERPRO_CLOUD_URL = '';  // e.g. 'https://yourdomain.com'
 
-const _api = {
-  token() { return sessionStorage.getItem('shoperpro_token') || ''; },
-  setToken(t) { sessionStorage.setItem('shoperpro_token', t); },
-  clearToken() { sessionStorage.removeItem('shoperpro_token'); },
-  // Refresh token, Wave 1 — deliberately in localStorage, not sessionStorage:
-  // the access token above is short-lived (15 min) and tab-scoped by design;
-  // the refresh token is what makes a login last up to 30 days across tab
-  // closes and browser restarts, which sessionStorage cannot do. This is the
-  // one storage-location expansion in this wave — see
-  // docs/architecture-review/SessionArchitecture.md for the tradeoff.
-  refreshToken() { return localStorage.getItem('shoperpro_refresh') || ''; },
-  setRefreshToken(t) { if(t) localStorage.setItem('shoperpro_refresh', t); },
-  clearRefreshToken() { localStorage.removeItem('shoperpro_refresh'); },
-  headers() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + this.token() }; },
-  // Dedupes concurrent refresh attempts if several requests 401 around the
-  // same moment (realistic now that access tokens expire every 15 minutes).
-  async _tryRefresh() {
-    if(this._refreshPromise) return this._refreshPromise;
-    const rt = this.refreshToken();
-    if(!rt){ return false; }
-    this._refreshPromise = (async () => {
-      try{
-        const r = await fetch(SHOPERPRO_API_URL + '/api/auth/refresh', {
-          method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({refreshToken: rt})
-        });
-        if(!r.ok) return false;
-        const d = await r.json();
-        if(!d.token) return false;
-        _api.setToken(d.token);
-        _api.setRefreshToken(d.refreshToken);
-        return true;
-      }catch(e){ return false; }
-    })();
-    const result = await this._refreshPromise;
-    this._refreshPromise = null;
-    return result;
-  },
-  _sessionExpired() {
-    _api.clearToken(); _api.clearRefreshToken(); showWebLoginScreen(); throw new Error('Session expired');
-  },
-  async _fetch(path, opts) {
-    let r = await fetch(SHOPERPRO_API_URL + path, opts(this.headers()));
-    if (r.status === 401) {
-      if (await this._tryRefresh()) {
-        r = await fetch(SHOPERPRO_API_URL + path, opts(this.headers()));
-      }
-      if (r.status === 401) this._sessionExpired();
-    }
-    if (r.status === 403) {
-      const b=await r.json().catch(()=>{});
-      if(b&&b.status)showSuspendedScreen(b.status,b.reason||'');
-      // New SaaS licensing gates (requireLicenseRead/Write) respond with
-      // licenseStatus instead of status — defense in depth: any blocked
-      // write anywhere in the app (not just the ones pssRefreshLicenseStatus
-      // already checks at boot) still surfaces the right lock screen/toast.
-      else if(b&&b.licenseStatus){
-        if(b.licenseStatus==='SUSPENDED'||b.licenseStatus==='ARCHIVED') pssShowLicenseSuspendedScreen(b.licenseStatus);
-        else if(b.licenseStatus==='PENDING_APPROVAL') pssShowPendingApprovalScreen();
-        else if(b.licenseStatus==='READ_ONLY'&&typeof toast==='function') toast(b.error||'Your subscription has expired. Renew to continue editing.','error');
-      }
-      throw new Error(b?.error||'Forbidden');
-    }
-    if (r.status === 409) { const b=await r.json().catch(()=>({})); const err=new Error(b.error||'Conflict'); err.status=409; err.conflict=b; throw err; }
-    return r.json();
-  },
-  async get(path) {
-    return this._fetch(path, (h) => ({ headers: h }));
-  },
-  async put(path, body) {
-    return this._fetch(path, (h) => ({ method: 'PUT', headers: h, body: JSON.stringify(body) }));
-  },
-  // Deliberately NOT routed through _fetch()'s 401/403/409 interception:
-  // every existing caller of post() (login, register, renew-license, verify-
-  // license) treats a 401/409 as a normal business-logic response ("wrong
-  // PIN", "key already registered", ...) and reads res.error itself — those
-  // are not session-expiry signals the way a 401 from an authenticated GET/PUT
-  // always is. Changing this contract broke login error messages during this
-  // wave's own testing; kept as the original simple pass-through on purpose.
-  async post(path, body) {
-    const r = await fetch(SHOPERPRO_API_URL + path, { method: 'POST', headers: this.headers(), body: JSON.stringify(body) });
-    return r.json();
-  },
-};
+// _api (session token storage, refresh-on-401, fetch wrapper) moved to
+// modules/auth.js (Phase 2 — Identity & Tenant Core frontend extraction).
+// Still a global const, unchanged behavior — see that file's header comment.
 
 // ── Inline SVG Icon Library (works offline, no CDN required) ──────────────
 const _icons={

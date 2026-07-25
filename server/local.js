@@ -1910,6 +1910,17 @@ function stripLicenseSecrets(html) {
   return out;
 }
 
+// ── Serve extracted frontend modules (Phase 2 — Identity & Tenant Core) ──────
+// app/ShopERP_Pro_v8.html now loads app/modules/auth.js via a plain relative
+// <script src> tag (see docs/adr/0004-incremental-frontend-modularization.md —
+// no build step exists for this project). That relative path resolves fine
+// in Electron (file:// URLs resolve directly against the filesystem) but
+// needs an explicit route here, since GET / below serves the HTML by reading
+// its content directly rather than via express.static — without this route,
+// a browser hitting the hosted server would 404 on modules/auth.js and lose
+// the client-side auth helpers (generateBrowserMachineId, _api) it defines.
+app.use('/modules', express.static(path.join(__dirname, '..', 'app', 'modules')));
+
 // ── Serve the ShopERP HTML (local/single-device mode) ────────────────────────
 // App runs in local mode — data stays in browser localStorage on this device.
 app.get('/', (req, res) => {

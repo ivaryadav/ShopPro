@@ -44,3 +44,4 @@ What this makes easier, what it makes harder, what it costs.
 | [0003](0003-desktop-offline-architecture.md) | Desktop Offline Architecture (Out of MariaDB Scope) | Accepted |
 | [0004](0004-incremental-frontend-modularization.md) | Incremental Frontend Modularization | Accepted |
 | [0005](0005-layered-backend-architecture.md) | Layered Backend Architecture | Accepted |
+| [0006](0006-table-driven-authorization.md) | Table-Driven Authorization (Role/Permission) | Accepted |
