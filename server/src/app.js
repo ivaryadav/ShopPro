@@ -27,10 +27,13 @@ const { createRepairsRouter } = require('./routes/repairs');
 const { createExpensesRouter } = require('./routes/expenses');
 const { createSettingsRouter } = require('./routes/settings');
 const { createLicenseRouter } = require('./routes/license');
+const { createAdminRouter } = require('./routes/admin');
 const { errorHandler } = require('./errors');
 const { checkDatabaseHealth } = require('./database');
 const sessionService = require('./services/sessionService');
 const tenantLicenseService = require('./services/tenantLicenseService');
+const adminAuthService = require('./services/adminAuthService');
+const { getAdminConfig } = require('./config/admin');
 const { getLogger } = require('./logging');
 
 const SESSION_CLEANUP_INTERVAL_MS = 30 * 60 * 1000; // matches local.js's _runSessionCleanup() interval exactly
@@ -39,10 +42,10 @@ const SESSION_CLEANUP_INTERVAL_MS = 30 * 60 * 1000; // matches local.js's _runSe
 const LICENSE_SWEEP_INTERVAL_MS = Number(process.env.LICENSE_SWEEP_INTERVAL_MS) || 15 * 60 * 1000;
 
 /**
- * @param {{jwtSecret: string, allowedOrigins?: string[], startCleanupJob?: boolean}} config
+ * @param {{jwtSecret: string, allowedOrigins?: string[], startCleanupJob?: boolean, adminKeySeed?: string}} config
  * @returns {import('express').Express}
  */
-function createApp({ jwtSecret, allowedOrigins, startCleanupJob = true }) {
+function createApp({ jwtSecret, allowedOrigins, startCleanupJob = true, adminKeySeed }) {
   if (!jwtSecret) {
     throw new Error('createApp requires config.jwtSecret');
   }
@@ -69,6 +72,11 @@ function createApp({ jwtSecret, allowedOrigins, startCleanupJob = true }) {
     };
     runSweep();
     setInterval(runSweep, LICENSE_SWEEP_INTERVAL_MS).unref();
+
+    // Matches local.js:321's boot-time admin_credentials seed exactly
+    // (idempotent, only ever inserts if unset) — RC1 Sprint 2 (Administration).
+    const seed = adminKeySeed || getAdminConfig().adminKeySeed;
+    adminAuthService.ensureSeeded(seed).catch((e) => logger.error('[Administration] admin_credentials seed failed', { error: e.message }));
   }
 
   app.use(cors({
@@ -132,6 +140,13 @@ function createApp({ jwtSecret, allowedOrigins, startCleanupJob = true }) {
   // sprint — same "tested service, no public route yet" precedent as
   // Phase 2's resetPin/setActive.
   app.use('/api/license', createLicenseRouter({ jwtSecret }));
+
+  // Administration domain (RC1 Sprint 2) — Admin Dashboard, Tenant
+  // Management, Registration Approval, Subscription/License
+  // Administration, User Administration, Device Management. Its own
+  // separate credential/session system (adminAuthService), not the
+  // tenant-user JWT auth above.
+  app.use('/api/admin', createAdminRouter());
 
   app.use(errorHandler);
 

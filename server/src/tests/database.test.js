@@ -53,10 +53,11 @@ async function main() {
 
   // ── Part 1: pure logic, always runs ────────────────────────────────────
   const migrations = discoverMigrations();
-  assert(migrations.length === 3, "discoverMigrations finds exactly the 3 real migrations (001_identity_tenant_core, 002_operations_domain, 003_licensing_domain — RC1 Sprint 1 added the third)");
+  assert(migrations.length === 4, "discoverMigrations finds exactly the 4 real migrations (001_identity_tenant_core, 002_operations_domain, 003_licensing_domain, 004_administration_domain — RC1 Sprint 2 added the fourth)");
   assert(migrations[0].version === '001' && migrations[0].name === 'identity_tenant_core', 'migration 001 is discovered with the correct name');
   assert(migrations[1].version === '002' && migrations[1].name === 'operations_domain', 'migration 002 is discovered with the correct name');
   assert(migrations[2].version === '003' && migrations[2].name === 'licensing_domain', 'migration 003 is discovered with the correct name');
+  assert(migrations[3].version === '004' && migrations[3].name === 'administration_domain', 'migration 004 is discovered with the correct name');
 
   const checksumA = computeChecksum('CREATE TABLE x (id INT);');
   const checksumB = computeChecksum('CREATE TABLE x (id INT);');
@@ -97,19 +98,22 @@ async function main() {
       const conn = await pool.getConnection();
       const applied = await getAppliedMigrations(conn);
       await conn.release();
-      assert(applied.size === 3, 'schema_migrations records exactly 3 applied migrations (001, 002, 003 — RC1 Sprint 1 added the third)');
+      assert(applied.size === 4, 'schema_migrations records exactly 4 applied migrations (001, 002, 003, 004 — RC1 Sprint 2 added the fourth)');
 
       // migrateDown(1) reverts the MOST RECENTLY applied migration first —
-      // with 3 migrations now applied, that's 003 (licensing_domain), then
-      // 002 (operations_domain), then 001 (identity_tenant_core).
+      // with 4 migrations now applied, that's 004 (administration_domain),
+      // then 003 (licensing_domain), then 002, then 001.
       const downResult1 = await migrateDown(pool, 1);
-      assert(downResult1.length === 1 && downResult1[0].version === '003', 'migrateDown(1) reverts the most-recently-applied migration (003_licensing_domain) first');
+      assert(downResult1.length === 1 && downResult1[0].version === '004', 'migrateDown(1) reverts the most-recently-applied migration (004_administration_domain) first');
 
       const downResult2 = await migrateDown(pool, 1);
-      assert(downResult2.length === 1 && downResult2[0].version === '002', 'a second migrateDown(1) then reverts 002_operations_domain');
+      assert(downResult2.length === 1 && downResult2[0].version === '003', 'a second migrateDown(1) then reverts 003_licensing_domain');
 
       const downResult3 = await migrateDown(pool, 1);
-      assert(downResult3.length === 1 && downResult3[0].version === '001', 'a third migrateDown(1) then reverts 001_identity_tenant_core, completing a full rollback');
+      assert(downResult3.length === 1 && downResult3[0].version === '002', 'a third migrateDown(1) then reverts 002_operations_domain');
+
+      const downResult4 = await migrateDown(pool, 1);
+      assert(downResult4.length === 1 && downResult4[0].version === '001', 'a fourth migrateDown(1) then reverts 001_identity_tenant_core, completing a full rollback');
     } finally {
       await closePool();
     }

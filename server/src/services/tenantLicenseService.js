@@ -215,6 +215,31 @@ async function reactivateTenant(tenantId) {
   await licenseHistoryRepository.record({ tenantId, eventType: 'STATUS_CHANGED', fromStatus: lic.status, toStatus: 'ACTIVE', detail: 'manual admin reactivate', actor: 'admin' });
 }
 
+// ── RC1 Sprint 2 additions (Administration integration) ──────────────────
+// Sprint 1 didn't need these — they have no caller except the standalone
+// admin actions Sprint 2 wires up routes for. Adding them here is
+// "Licensing (except integration)" per Sprint 2's own mission: no
+// existing function's behavior changes, these are new, additive exports.
+
+/** Matches the kill-sessions endpoint exactly (local.js:1587-1592) — kills sessions WITHOUT changing status, unlike suspendTenant. @param {number} tenantId */
+async function killSessions(tenantId) {
+  const revoked = await tenantLicenseRepository.revokeAllSessionsForTenant(tenantId);
+  await licenseHistoryRepository.record({ tenantId, eventType: 'SESSIONS_KILLED', detail: `${revoked} session(s) revoked`, actor: 'admin' });
+  return { revoked };
+}
+
+/** Matches the notes endpoint exactly (local.js:1595-1601). @param {number} tenantId @param {string} note */
+async function addNote(tenantId, note) {
+  if (!note) throw new ValidationError('note required');
+  await licenseHistoryRepository.record({ tenantId, eventType: 'NOTE_ADDED', detail: note, actor: 'admin' });
+}
+
+/** Matches the call-note endpoint exactly (local.js:1604-1610). @param {number} tenantId @param {string} note */
+async function addCallNote(tenantId, note) {
+  if (!note) throw new ValidationError('note required');
+  await licenseHistoryRepository.record({ tenantId, eventType: 'CALL_LOGGED', detail: note, actor: 'admin' });
+}
+
 /** Matches the devices/limit endpoint exactly (local.js:1644-1652), minus its trusted_devices-touching siblings (remove/reset-all — Authentication domain, out of scope). */
 async function setDeviceLimit(tenantId, deviceLimit) {
   if (typeof deviceLimit !== 'number' || deviceLimit < 1) throw new ValidationError('deviceLimit must be a positive number');
@@ -312,5 +337,6 @@ module.exports = {
   generateLicenseKey, createPendingLicense, assignPlanToTenant, assignPlan, startTrial,
   approveRegistration, rejectRegistration, generateLicenseForTenant, extendLicense,
   suspendTenant, reactivateTenant, setDeviceLimit, getLicenseStatus, runTransitionSweep,
-  listTenantLicenses, listPendingRegistrations, getHistory, BILLING_CYCLE_DAYS,
+  listTenantLicenses, listPendingRegistrations, getHistory, killSessions, addNote,
+  addCallNote, BILLING_CYCLE_DAYS,
 };

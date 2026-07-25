@@ -23,6 +23,7 @@ const { getMailConfig } = require('./mail');
 const { getLoggerConfig } = require('./logger');
 const { getLicenseConfig } = require('./license');
 const { getStorageConfig } = require('./storage');
+const { getAdminConfig } = require('./admin');
 
 /**
  * @param {NodeJS.ProcessEnv} [source] - Defaults to process.env; injectable for tests.
@@ -48,6 +49,7 @@ function getConfig(source, opts = {}) {
     logger: getLoggerConfig(source),
     license: getLicenseConfig(source),
     storage: getStorageConfig(source),
+    admin: getAdminConfig(source),
   });
 }
 
@@ -59,4 +61,5 @@ module.exports = {
   getLoggerConfig,
   getLicenseConfig,
   getStorageConfig,
+  getAdminConfig,
 };

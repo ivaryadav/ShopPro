@@ -254,6 +254,33 @@ async function main() {
     restoreLic(); restoreHist();
   }
 
+  // ── RC1 Sprint 2 additions: killSessions / addNote / addCallNote ──────
+  {
+    let historyRecorded = null;
+    const restoreLic = patch(tenantLicenseRepository, { revokeAllSessionsForTenant: async () => 5 });
+    const restoreHist = patch(licenseHistoryRepository, { record: async (d) => { historyRecorded = d; } });
+    const result = await tenantLicenseService.killSessions(1);
+    assert(result.revoked === 5, "killSessions returns the real revoked count — matches local.js:1587-1592 exactly");
+    assert(historyRecorded.eventType === 'SESSIONS_KILLED' && historyRecorded.detail === '5 session(s) revoked', 'killSessions logs a SESSIONS_KILLED history event with the exact count, unlike suspendTenant it does NOT change status');
+    restoreLic(); restoreHist();
+  }
+  await assertThrows(() => tenantLicenseService.addNote(1, ''), ValidationError, "addNote requires a non-empty note — matches local.js:1598 exactly");
+  {
+    let historyRecorded = null;
+    const restore = patch(licenseHistoryRepository, { record: async (d) => { historyRecorded = d; } });
+    await tenantLicenseService.addNote(1, 'Called about renewal');
+    assert(historyRecorded.eventType === 'NOTE_ADDED' && historyRecorded.detail === 'Called about renewal', 'addNote logs a NOTE_ADDED history event with the exact text — matches local.js:1599 exactly');
+    restore();
+  }
+  await assertThrows(() => tenantLicenseService.addCallNote(1, ''), ValidationError, 'addCallNote requires a non-empty note');
+  {
+    let historyRecorded = null;
+    const restore = patch(licenseHistoryRepository, { record: async (d) => { historyRecorded = d; } });
+    await tenantLicenseService.addCallNote(1, 'Discussed pricing');
+    assert(historyRecorded.eventType === 'CALL_LOGGED' && historyRecorded.detail === 'Discussed pricing', "addCallNote logs a CALL_LOGGED history event — matches local.js:1609 exactly, distinct event type from addNote's NOTE_ADDED");
+    restore();
+  }
+
   console.log('\n' + passed + ' passed, ' + failed + ' failed');
   process.exit(failed > 0 ? 1 : 0);
 }

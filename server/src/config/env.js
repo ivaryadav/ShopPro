@@ -70,6 +70,12 @@ const SPEC = {
   LICENSE_OFFLINE_GRACE_DAYS: { default: '15', parse: (v) => Number(v), validate: (v) => Number.isInteger(v) && v > 0, validateMessage: 'must be a positive integer' },
 
   BACKUP_DIR: { default: './backups' },
+
+  // Administration domain (Sprint 2) — matches local.js:65 exactly,
+  // including its exact non-fatal fallback hash (local.js warns, doesn't
+  // fail, when unset — a known, documented default admin credential, not
+  // a security hole introduced here; see docs/architecture/Administration.md).
+  ADMIN_KEY: { default: '2b5877210c3581cccac2431c0a5681ea1c5674ae71dbb5d664eda93e3965a3dd' },
 };
 
 /**

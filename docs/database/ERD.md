@@ -273,4 +273,28 @@ erDiagram
 
 ## Deliberately excluded (out of scope, not an oversight)
 
-`trusted_devices` (already exists, migrations/001, Authentication domain — untouched by this sprint), `admin_credentials` (Administration domain), any Operations/Cloud-Backup table.
+`trusted_devices` (already exists, migrations/001, Authentication domain — untouched by this sprint), any Operations/Cloud-Backup table. (`admin_credentials` was excluded here through Sprint 1 — RC1 Sprint 2 added it, see below.)
+
+---
+
+# Entity Relationship Diagram — Administration Domain (MariaDB, RC1 Sprint 2)
+
+Scope: the 1 table `migrations/004_administration_domain.sql` creates. Full narrative: `docs/architecture/Administration.md`. Every other Administration endpoint reads/writes tables that already exist (`tenants`, `users`, `trusted_devices` — migrations/001; `subscription_plans`, `tenant_licenses`, `license_history` — migrations/003) via new repositories, not new tables.
+
+```mermaid
+erDiagram
+    ADMIN_CREDENTIALS {
+        int id PK "always 1 — single row"
+        varchar password_hash
+        varchar algo "sha256 (legacy) or bcrypt, auto-upgrades on successful legacy login"
+        timestamp updated_at
+    }
+```
+
+## Deliberate deviations from `local.js`'s actual SQLite schema
+
+TEXT timestamp column becomes a proper `TIMESTAMP` type — matches this project's established MariaDB convention, a structural type change only. The `CHECK (id = 1)` single-row constraint is preserved exactly (`local.js:299`).
+
+## Deliberately excluded (out of scope, not an oversight)
+
+No new columns on `tenants`/`users`/`trusted_devices`/`tenant_licenses` — every Administration action reuses the existing schema from migrations/001 and migrations/003 unchanged, via new repository queries (`adminDirectoryRepository.js`) rather than new columns or tables.

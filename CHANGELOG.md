@@ -6,6 +6,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/); versioni
 
 Tracked in `docs/adr/0001-enterprise-reconstruction.md`. Not deployed, not cut over — `v1.0.0` remains the released, running product throughout this work.
 
+### RC1 Sprint 2 — Administration Domain
+- Migrated ONLY the Administration domain into `server/src/`: a real bcrypt admin login (`POST /api/admin/login`, with automatic legacy-sha256-to-bcrypt upgrade and its own 12-hour in-memory session tokens, `admin_credentials` table), Tenant Management (`tenant/status`, with the exact `syncLegacyStatusToLicense` behavior including its real fail-open no-op), Admin Dashboard listings (`tenants`, `web-users`), Registration Approval, Subscription/License Administration, User Administration (`reset-user-pin`, `toggle-user`), and Device Management — every one of Sprint 1's previously-routeless `tenantLicenseService` functions now has a real endpoint.
+- Every "Do NOT touch" boundary (Authentication, Licensing except integration, Operations, database architecture) honored at the file level: zero lines changed in any Phase 2 or Sprint 1 file. New capability landed only as additive exports (`tenantLicenseService.killSessions/addNote/addCallNote`) or entirely new files (`adminDirectoryRepository.js` for cross-tenant queries local.js's admin console needs, not belonging in any tenant-scoped repository).
+- 63 new test assertions (46 mocked + 17 real-MariaDB, a fresh disposable instance torn down afterward), zero regressions. Unlike Sprint 1, this sprint's real-database testing passed cleanly on the first run — no new bugs found.
+- Full detail, including every documented deviation (the admin-login "not configured" 401-vs-500 status-code choice, `web-users`' omitted `licensePlan` field): `docs/architecture/Administration.md`.
+
 ### RC1 Sprint 1 — Licensing Domain
 - Migrated ONLY the Licensing domain into `server/src/`: `subscription_plans`/`tenant_licenses`/`license_history` tables, full repository/service layer (`tenantLicenseService.js`), and `GET /api/license/status`. Every admin action (approve/reject/assign-plan/start-trial/generate-license/extend/suspend/reactivate/device-limit) is a fully tested service function, matching `local.js` exactly — no public route yet, since the real gate (`requireAdminKey`) is Administration domain.
 - The status-transition sweep (`ACTIVE→READ_ONLY→SUSPENDED→ARCHIVED`) runs for real, wired into `createApp()` on the same timer pattern as Phase 2's session cleanup.

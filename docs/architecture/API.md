@@ -1,4 +1,4 @@
-# API — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4) + Licensing Domain (RC1 Sprint 1)
+# API — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4) + Licensing Domain (RC1 Sprint 1) + Administration Domain (RC1 Sprint 2)
 
 Identity & Tenant Core paths match `server/local.js` exactly ("API compatibility preserved where possible"). The Operations domain endpoints below are **new** — `local.js` has no per-entity REST surface for this data at all (everything there goes through one `GET/PUT /api/data` whole-blob path); real per-entity endpoints are a necessary, approved consequence of ADR-0008's normalization decision, not new scope invented by this phase. All mounted by `server/src/app.js`, not by `local.js` — this is a parallel implementation, not yet cut over (`docs/architecture/Architecture.md`).
 
@@ -64,12 +64,37 @@ All require `requireAuth(jwtSecret), requireActive` unless noted. `:id` params a
 |---|---|---|---|
 | `GET` | `/api/license/status` | `requireAuth` only | Matches `local.js:1152` exactly — deliberately no `requireActive` gate, since a suspended/archived tenant must still be able to check its own status. Response is `{license}` only — narrower than `local.js`'s (no outer legacy `tenants`-column fields; see `docs/architecture/Licensing.md`'s deviation #1). |
 
-Every other Licensing action (`approveRegistration`, `rejectRegistration`, `assignPlan`, `startTrial`, `generateLicenseForTenant`, `extendLicense`, `suspendTenant`, `reactivateTenant`, `setDeviceLimit`, `listTenantLicenses`, `listPendingRegistrations`, `getHistory`) is a fully tested `tenantLicenseService` function with **no public route** — its real-world gate (`requireAdminKey`) is Administration domain, out of scope for this sprint. Same precedent as Phase 2's `resetPin`/`setActive`.
+Every other Licensing action listed here was routeless as of Sprint 1 — **RC1 Sprint 2 added real routes for all of them**, gated by Administration's own admin-session auth. See the table below.
+
+## Administration domain endpoints (RC1 Sprint 2)
+
+All require `X-Admin-Key: <admin session token>` (obtained from `POST /api/admin/login`) except login itself. Matches `local.js:1197-1652` exactly.
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/api/admin/login` | Real bcrypt login (legacy sha256 auto-upgrades on success). Returns `{ok, adminToken}`. |
+| `POST` | `/api/admin/tenant/status` | Pause/terminate/restore — syncs `tenant_licenses.status` in the same request (`TenantStatusConsistency.md`'s fix, preserved). |
+| `GET` | `/api/admin/tenants` | All tenants with status. |
+| `GET` | `/api/admin/web-users` | All users grouped by shop. |
+| `POST` | `/api/admin/reset-user-pin` | Force a new 6-digit PIN — reuses Phase 2's unmodified `userService.resetPin`. |
+| `POST` | `/api/admin/toggle-user` | Enable/disable a user — reuses Phase 2's unmodified last-owner-protected `userService.setActive`. |
+| `GET` | `/api/admin/registrations` | PENDING_APPROVAL queue. |
+| `POST` | `/api/admin/registrations/:tenantId/approve` | Reuses Sprint 1's `tenantLicenseService.approveRegistration`. |
+| `POST` | `/api/admin/registrations/:tenantId/reject` | Reuses Sprint 1's `rejectRegistration`. |
+| `GET` | `/api/admin/tenant-licenses` | Full dashboard — reuses `listTenantLicenses`. |
+| `GET` | `/api/admin/tenant-licenses/:tenantId/history` | Reuses `getHistory`. |
+| `POST` | `/api/admin/tenant-licenses/:tenantId/{assign-plan,start-trial,generate-license,extend,suspend,reactivate}` | Reuse Sprint 1's corresponding service functions exactly. |
+| `POST` | `/api/admin/tenant-licenses/:tenantId/kill-sessions` | New Sprint 2 integration addition to `tenantLicenseService` (`killSessions`). |
+| `POST` | `/api/admin/tenant-licenses/:tenantId/notes` / `call-note` | New Sprint 2 integration additions (`addNote`/`addCallNote`). |
+| `GET` | `/api/admin/tenant-licenses/:tenantId/devices` | This sprint's own `adminDeviceService`/`adminDirectoryRepository` (not Phase 2's `trustedDeviceRepository.js`). |
+| `POST` | `/api/admin/tenant-licenses/:tenantId/devices/:rowId/remove` | Soft-deactivate only, audit trail preserved. |
+| `POST` | `/api/admin/tenant-licenses/:tenantId/devices/reset-all` | |
+| `POST` | `/api/admin/tenant-licenses/:tenantId/devices/limit` | Reuses Sprint 1's `setDeviceLimit`. |
 
 ## Response shapes
 
 Every response field name matches `local.js`'s exact JSON shape — see each route's controller (`controllers/authController.js`, `sessionController.js`, `userController.js`) for the literal object returned. Errors always follow `errors/errorHandler.js`'s shape: `{ error: { code, message, details? } }` — this is new (Phase 1), `local.js` returns a flatter `{ error: string }`; a client written against `local.js` would need updating for this once/if this system is ever actually deployed behind the same client. Not a concern for Phase 2 itself, since nothing is cut over yet — flagged here for whichever future phase does the cutover.
 
-## Not implemented in this phase
+## Not implemented
 
-`POST /api/auth/register`, `POST /api/auth/signup`, `POST /api/auth/renew-license`, `POST /api/admin/reset-user-pin`, `POST /api/admin/toggle-user` — see `docs/architecture/Architecture.md`'s "explicitly NOT implemented" section for why each is out of scope.
+`POST /api/auth/register`, `POST /api/auth/signup`, `POST /api/auth/renew-license` — see `docs/architecture/Architecture.md`'s "explicitly NOT implemented" section for why each is out of scope. (`POST /api/admin/reset-user-pin`/`toggle-user` were in this list through Sprint 1 — RC1 Sprint 2 implemented both.)

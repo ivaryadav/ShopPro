@@ -1,4 +1,4 @@
-# Migration Notes — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4) + Licensing Domain (RC1 Sprint 1)
+# Migration Notes — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4) + Licensing Domain (RC1 Sprint 1) + Administration Domain (RC1 Sprint 2)
 
 Consolidated reference for every place this phase's implementation deliberately deviates from, defers, or extends `server/local.js`'s actual behavior. Per the mission's own instruction ("if code and documentation disagree: document it, do not silently change behavior"), nothing below is silent.
 
@@ -128,3 +128,36 @@ See `docs/architecture/Licensing.md`'s "Documented deviations" section for the f
 ## Known gap: same real-database-verification standard as every prior phase
 
 `server/src/tests/licensingCore.integration.test.js` reports an honest skip in environments with no real, credentialed MariaDB instance available — same pattern as every other integration test in this project. All business logic is fully tested via repository mocking in `tenantLicenseService.test.js` (32 assertions). This sprint's own real-database run (a fresh, disposable, isolated MariaDB instance, torn down afterward — same technique as Phase 6) exercised the full lifecycle for real: pending → approved → plan-assigned → extended → the complete 4-state sweep (backdated timestamps to fast-forward ACTIVE→READ_ONLY→SUSPENDED→ARCHIVED) → reactivated → suspended, with `license_history` verified to contain every transition.
+
+---
+
+# RC1 Sprint 2 additions — Administration Domain
+
+Full narrative: `docs/architecture/Administration.md`. This section covers only what's specific to `004_administration_domain.sql` and this sprint's cross-domain integration decisions beyond what that document already states.
+
+## Database
+
+- **`004_administration_domain.sql`** adds exactly 1 table: `admin_credentials` (single-row, `CHECK (id=1)`), matching `local.js:298-303` exactly. Every other Administration endpoint reads/writes tables that already existed (`tenants`, `users`, `trusted_devices` from migrations/001; `subscription_plans`, `tenant_licenses`, `license_history` from migrations/003) — no `ALTER TABLE` against any of them appears anywhere in this migration.
+- **`config/env.js`** gained one new entry, `ADMIN_KEY` (matching `local.js:65`'s exact default fallback hash) — Phase 1's general, cross-cutting config layer (already extended for `LICENSE_*` in Sprint 1), not an Authentication-domain file.
+
+## Endpoints — every remaining `/api/admin/*` path from `local.js` now exists
+
+See `docs/architecture/API.md`'s "Administration domain endpoints" table for the full list. Every action wraps either a brand-new Administration service (`adminAuthService`, `adminTenantService`, `adminUserService`, `adminDeviceService`) or reuses an existing, unmodified Phase 2/Sprint 1 service function directly (`userService.resetPin/setActive`, every `tenantLicenseService` function).
+
+## Cross-domain integration, not modification (the "except integration" boundary)
+
+- **`tenantLicenseService.js` gained 3 new, additive exports** (`killSessions`, `addNote`, `addCallNote`) — genuinely new capability with no caller in Sprint 1, not a change to any existing function.
+- **New repository, `adminDirectoryRepository.js`**, holds every cross-tenant query this domain needs (tenant-by-shop-name lookup, all-tenants, all-users-with-tenant, device list/remove/reset-all) — deliberately not added to Phase 2's `tenantRepository.js`/`userRepository.js`/`trustedDeviceRepository.js`, matching the precedent Sprint 1 set with `revokeAllSessionsForTenant`.
+- **`tenantRepository.updateStatus`** (Phase 2, unmodified) is called directly by `adminTenantService.setTenantStatus` — read/write reuse of a stable, already-existing function.
+
+## Business-rule deviations (all documented, not silent)
+
+See `docs/architecture/Administration.md`'s "Documented deviations" section: the admin-login "credentials not configured" case returns 401 (not `local.js`'s 500, to preserve Phase 1's message-hiding security posture for what should be an unreachable misconfiguration state); `GET /api/admin/web-users` omits `licensePlan` (a Licensing-domain column never added to `server/src/`'s `tenants` table); `resetUserPin`/`toggleUser` read `userRepository.findById` twice (once for the admin-side existence check, once inside `userService.setActive`'s own last-owner guard) — a minor, accepted redundant read, not a behavior change.
+
+## Zero new bugs found (unlike Sprint 1)
+
+Sprint 1's real-database integration testing caught 2 real gaps (see above). Sprint 2's equivalent real-MariaDB run (`administrationCore.integration.test.js`, 17 assertions) passed cleanly on its first execution — every cross-domain reuse (Phase 2's `userService`, Sprint 1's `tenantLicenseService`/`tenantLicenseRepository`) worked exactly as designed against a real database with no fixes needed.
+
+## Known gap: same real-database-verification standard as every prior phase
+
+`server/src/tests/administrationCore.integration.test.js` reports an honest skip in environments with no real, credentialed MariaDB instance available. All business logic is fully tested via repository mocking in `adminAuthService.test.js`/`adminTenantService.test.js`/`adminUserService.test.js`/`adminDeviceService.test.js` (38 assertions) plus `tenantLicenseService.test.js`'s 8 new Sprint 2 assertions.
