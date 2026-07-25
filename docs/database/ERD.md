@@ -216,3 +216,61 @@ erDiagram
 ## Deliberately excluded (out of scope, not an oversight)
 
 An `invoices` table (no current behavior justifies one, per `OperationsDomainAnalysis.md`), `repairs.technician_id`, a `purchases`/`purchase_items` pair, and a scheduler-driven `recurring_expenses` — all explicitly forbidden by the Phase 4 mission.
+
+---
+
+# Entity Relationship Diagram — Licensing Domain (MariaDB, RC1 Sprint 1)
+
+Scope: the 3 tables `migrations/003_licensing_domain.sql` creates. Full narrative: `docs/architecture/Licensing.md`.
+
+```mermaid
+erDiagram
+    TENANTS ||--|| TENANT_LICENSES : "has exactly one"
+    TENANTS ||--o{ LICENSE_HISTORY : "audits"
+    SUBSCRIPTION_PLANS ||--o{ TENANT_LICENSES : "assigned via plan_code"
+
+    SUBSCRIPTION_PLANS {
+        int id PK
+        varchar code UK "TRIAL, BASIC, PREMIUM"
+        varchar label
+        int device_limit
+        int trial_days "14 for TRIAL, NULL otherwise"
+        boolean is_active
+        int sort_order
+    }
+    TENANT_LICENSES {
+        bigint id PK
+        bigint tenant_id FK UK "one row per tenant"
+        enum status "PENDING_APPROVAL, ACTIVE, READ_ONLY, SUSPENDED, ARCHIVED"
+        varchar plan_code FK
+        varchar requested_plan_code
+        varchar billing_cycle "trial, monthly, halfyearly, yearly, lifetime"
+        int device_limit
+        varchar license_key UK "nullable, SHOP-XXXX-XXXX-XXXX"
+        json requested_modules "capture-only, never enforced"
+        timestamp starts_at
+        timestamp expires_at "NULL = never (lifetime)"
+        timestamp read_only_since "drives 30-day READ_ONLY->SUSPENDED timer"
+        timestamp suspended_since "drives 365-day SUSPENDED->ARCHIVED timer"
+        timestamp last_verified_at "offline-grace anchor"
+        int offline_grace_days
+    }
+    LICENSE_HISTORY {
+        bigint id PK
+        bigint tenant_id FK
+        varchar event_type "free text, matches local.js exactly"
+        varchar from_status
+        varchar to_status
+        varchar detail
+        varchar actor "system or admin"
+    }
+```
+
+## Deliberate deviations from `local.js`'s actual SQLite schema
+
+1. **TEXT timestamp columns become proper `TIMESTAMP`/`DATE` types** — matches this project's established MariaDB convention (migrations 001/002), a structural type change only.
+2. **`tenants.license_key_hash`/`license_expiry`/`license_plan` (legacy, pre-`tenant_licenses` columns) are NOT added to `server/src/`'s `tenants` table** — that table is owned by migrations/001 (Phase 2), out of scope for this sprint to modify. See `docs/architecture/Licensing.md`'s "Documented deviations" #1 for the full consequence (a narrower `GET /api/license/status` response).
+
+## Deliberately excluded (out of scope, not an oversight)
+
+`trusted_devices` (already exists, migrations/001, Authentication domain — untouched by this sprint), `admin_credentials` (Administration domain), any Operations/Cloud-Backup table.

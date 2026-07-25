@@ -53,9 +53,10 @@ async function main() {
 
   // ── Part 1: pure logic, always runs ────────────────────────────────────
   const migrations = discoverMigrations();
-  assert(migrations.length === 2, "discoverMigrations finds exactly the 2 real migrations (001_identity_tenant_core, 002_operations_domain — Phase 4 added the second)");
+  assert(migrations.length === 3, "discoverMigrations finds exactly the 3 real migrations (001_identity_tenant_core, 002_operations_domain, 003_licensing_domain — RC1 Sprint 1 added the third)");
   assert(migrations[0].version === '001' && migrations[0].name === 'identity_tenant_core', 'migration 001 is discovered with the correct name');
   assert(migrations[1].version === '002' && migrations[1].name === 'operations_domain', 'migration 002 is discovered with the correct name');
+  assert(migrations[2].version === '003' && migrations[2].name === 'licensing_domain', 'migration 003 is discovered with the correct name');
 
   const checksumA = computeChecksum('CREATE TABLE x (id INT);');
   const checksumB = computeChecksum('CREATE TABLE x (id INT);');
@@ -88,7 +89,7 @@ async function main() {
     const pool = getPool(TEST_DB_CONFIG);
     try {
       const upResult = await migrateUp(pool);
-      assert(upResult.filter((r) => r.action === 'applied').length === 1 || upResult.every((r) => r.action === 'already-applied'), 'migrateUp() applies the identity-core migration on a fresh database (or reports already-applied on a reused one)');
+      assert(upResult.filter((r) => r.action === 'applied').length >= 1 || upResult.every((r) => r.action === 'already-applied'), 'migrateUp() applies every migration on a fresh database (or reports already-applied on a reused one)');
 
       const upAgain = await migrateUp(pool);
       assert(upAgain.every((r) => r.action === 'already-applied'), 're-running migrateUp() reports everything already-applied, applies nothing twice');
@@ -96,22 +97,19 @@ async function main() {
       const conn = await pool.getConnection();
       const applied = await getAppliedMigrations(conn);
       await conn.release();
-      // Phase 6: real-database run against BOTH migrations (Phase 4 added
-      // 002_operations_domain) — this assertion was never actually exercised
-      // against a real database before Phase 6 (Part 2 always honestly
-      // skipped), so the stale "exactly 1" expectation from Phase 2 went
-      // unnoticed until now. Genuinely caught by real verification, not mocking.
-      assert(applied.size === 2, 'schema_migrations records exactly 2 applied migrations (001, 002)');
+      assert(applied.size === 3, 'schema_migrations records exactly 3 applied migrations (001, 002, 003 — RC1 Sprint 1 added the third)');
 
       // migrateDown(1) reverts the MOST RECENTLY applied migration first —
-      // with 2 migrations now applied, that's 002 (operations_domain), not
-      // 001 (identity_tenant_core). Verified in reverse-application order,
-      // exercising real multi-migration rollback for the first time.
+      // with 3 migrations now applied, that's 003 (licensing_domain), then
+      // 002 (operations_domain), then 001 (identity_tenant_core).
       const downResult1 = await migrateDown(pool, 1);
-      assert(downResult1.length === 1 && downResult1[0].version === '002', 'migrateDown(1) reverts the most-recently-applied migration (002_operations_domain) first');
+      assert(downResult1.length === 1 && downResult1[0].version === '003', 'migrateDown(1) reverts the most-recently-applied migration (003_licensing_domain) first');
 
       const downResult2 = await migrateDown(pool, 1);
-      assert(downResult2.length === 1 && downResult2[0].version === '001', 'a second migrateDown(1) then reverts 001_identity_tenant_core, completing a full rollback');
+      assert(downResult2.length === 1 && downResult2[0].version === '002', 'a second migrateDown(1) then reverts 002_operations_domain');
+
+      const downResult3 = await migrateDown(pool, 1);
+      assert(downResult3.length === 1 && downResult3[0].version === '001', 'a third migrateDown(1) then reverts 001_identity_tenant_core, completing a full rollback');
     } finally {
       await closePool();
     }

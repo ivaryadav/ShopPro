@@ -26,12 +26,17 @@ const { createSalesRouter } = require('./routes/sales');
 const { createRepairsRouter } = require('./routes/repairs');
 const { createExpensesRouter } = require('./routes/expenses');
 const { createSettingsRouter } = require('./routes/settings');
+const { createLicenseRouter } = require('./routes/license');
 const { errorHandler } = require('./errors');
 const { checkDatabaseHealth } = require('./database');
 const sessionService = require('./services/sessionService');
+const tenantLicenseService = require('./services/tenantLicenseService');
 const { getLogger } = require('./logging');
 
 const SESSION_CLEANUP_INTERVAL_MS = 30 * 60 * 1000; // matches local.js's _runSessionCleanup() interval exactly
+// Matches local.js's LICENSE_SWEEP_INTERVAL_MS exactly, including the same
+// env-var override for tests that want to fast-forward it (local.js:564).
+const LICENSE_SWEEP_INTERVAL_MS = Number(process.env.LICENSE_SWEEP_INTERVAL_MS) || 15 * 60 * 1000;
 
 /**
  * @param {{jwtSecret: string, allowedOrigins?: string[], startCleanupJob?: boolean}} config
@@ -56,6 +61,14 @@ function createApp({ jwtSecret, allowedOrigins, startCleanupJob = true }) {
     };
     runCleanup();
     setInterval(runCleanup, SESSION_CLEANUP_INTERVAL_MS).unref();
+
+    // Matches local.js's runLicenseTransitionSweep() pattern exactly (run
+    // once at boot, then on a timer) — RC1 Sprint 1 (Licensing Domain).
+    const runSweep = () => {
+      tenantLicenseService.runTransitionSweep().catch((e) => logger.error('[Licensing] sweep failed', { error: e.message }));
+    };
+    runSweep();
+    setInterval(runSweep, LICENSE_SWEEP_INTERVAL_MS).unref();
   }
 
   app.use(cors({
@@ -111,6 +124,14 @@ function createApp({ jwtSecret, allowedOrigins, startCleanupJob = true }) {
   app.use('/api/repairs', createRepairsRouter({ jwtSecret }));
   app.use('/api/expenses', createExpensesRouter({ jwtSecret }));
   app.use('/api/settings', createSettingsRouter({ jwtSecret }));
+
+  // Licensing domain (RC1 Sprint 1) — GET /api/license/status only; every
+  // other Licensing action (approve/reject/assign-plan/extend/suspend/etc.)
+  // is service-layer-only for now, since its real-world gate
+  // (requireAdminKey) is Administration domain, out of scope for this
+  // sprint — same "tested service, no public route yet" precedent as
+  // Phase 2's resetPin/setActive.
+  app.use('/api/license', createLicenseRouter({ jwtSecret }));
 
   app.use(errorHandler);
 

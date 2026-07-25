@@ -1,4 +1,4 @@
-# Migration Notes — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4)
+# Migration Notes — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4) + Licensing Domain (RC1 Sprint 1)
 
 Consolidated reference for every place this phase's implementation deliberately deviates from, defers, or extends `server/local.js`'s actual behavior. Per the mission's own instruction ("if code and documentation disagree: document it, do not silently change behavior"), nothing below is silent.
 
@@ -99,3 +99,32 @@ Tested against synthetic sample data shaped exactly like `local.js`'s `DB` objec
 ## Known gap, still open
 
 No real tenant's actual production data has been migrated by this tool — by design, per this phase's "do not perform production cutover" instruction. The tool is built and tested; running it against real `local.js` data is a future, separately-approved cutover step.
+
+---
+
+# RC1 Sprint 1 additions — Licensing Domain
+
+Full narrative: `docs/architecture/Licensing.md`. This section covers only what's specific to `003_licensing_domain.sql` and this sprint's cross-domain boundary decisions beyond what that document already states.
+
+## Database
+
+- **`003_licensing_domain.sql`** adds 3 tables: `subscription_plans`, `tenant_licenses`, `license_history` — matching `local.js:228-273` exactly, TEXT timestamps promoted to proper `TIMESTAMP` types (structural only).
+- **`tenants.license_key_hash`/`license_expiry`/`license_plan` (legacy columns) are NOT added** to `server/src/`'s `tenants` table (Phase 2, migrations/001) — out of scope for this sprint to modify (Authentication domain). Consequence: `getLicenseStatus`'s response is narrower than `local.js`'s (see `Licensing.md` deviation #1).
+- **`users.email_verify_token_hash`/`email_verify_expires`/`email_verified_at` are NOT added** to `server/src/`'s `users` table either — same reason. Consequence: `approveRegistration` omits the owner-email-verification gate (see `Licensing.md` deviation #2).
+
+## Endpoints — one new public route, everything else service-layer-only
+
+`GET /api/license/status` is the only public Licensing route this sprint adds — see `docs/architecture/API.md`'s "Licensing domain endpoints" table. Every admin action is a tested service function with no route, matching Phase 2's `resetPin`/`setActive` precedent exactly (their real gate, `requireAdminKey`, is Administration domain, out of scope).
+
+## Business-rule deviations (all documented, not silent)
+
+See `docs/architecture/Licensing.md`'s "Documented deviations" section for the full list (narrower license-status response, no email-verification gate on approval, `createPendingLicense` as signup's Licensing-only half, device-limit value/enforcement decoupling, device-management actions not ported, and the one cross-domain repository function — `revokeAllSessionsForTenant`).
+
+## Real bugs found and fixed by this sprint's real-database integration testing
+
+1. **A missing admin-action wrapper.** `assignPlanToTenant` (the shared, non-logging helper `local.js` itself uses internally from `startTrial`/`approveRegistration`) was ported correctly, but the STANDALONE admin action `local.js`'s `/api/admin/tenant-licenses/:tenantId/assign-plan` performs (call `assignPlanToTenant`, then log a `PLAN_ASSIGNED` history event) was missing entirely. Caught by `licensingCore.integration.test.js` asserting `license_history` contained a `PLAN_ASSIGNED` event after calling what should have been the equivalent action — fixed by adding `tenantLicenseService.assignPlan` (distinct from `assignPlanToTenant`).
+2. **A test-authored bug, not an implementation bug**: the integration test's own expectation for `daysRemaining` after `extendLicense` didn't account for `extendLicense`'s real, correct behavior (stacking `days` onto an existing FUTURE `expires_at` rather than resetting it, matching `local.js:1552` exactly) — the test's expected range was fixed, not the implementation, once the real behavior was traced back to `local.js`'s own logic.
+
+## Known gap: same real-database-verification standard as every prior phase
+
+`server/src/tests/licensingCore.integration.test.js` reports an honest skip in environments with no real, credentialed MariaDB instance available — same pattern as every other integration test in this project. All business logic is fully tested via repository mocking in `tenantLicenseService.test.js` (32 assertions). This sprint's own real-database run (a fresh, disposable, isolated MariaDB instance, torn down afterward — same technique as Phase 6) exercised the full lifecycle for real: pending → approved → plan-assigned → extended → the complete 4-state sweep (backdated timestamps to fast-forward ACTIVE→READ_ONLY→SUSPENDED→ARCHIVED) → reactivated → suspended, with `license_history` verified to contain every transition.

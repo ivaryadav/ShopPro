@@ -6,6 +6,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/); versioni
 
 Tracked in `docs/adr/0001-enterprise-reconstruction.md`. Not deployed, not cut over — `v1.0.0` remains the released, running product throughout this work.
 
+### RC1 Sprint 1 — Licensing Domain
+- Migrated ONLY the Licensing domain into `server/src/`: `subscription_plans`/`tenant_licenses`/`license_history` tables, full repository/service layer (`tenantLicenseService.js`), and `GET /api/license/status`. Every admin action (approve/reject/assign-plan/start-trial/generate-license/extend/suspend/reactivate/device-limit) is a fully tested service function, matching `local.js` exactly — no public route yet, since the real gate (`requireAdminKey`) is Administration domain.
+- The status-transition sweep (`ACTIVE→READ_ONLY→SUSPENDED→ARCHIVED`) runs for real, wired into `createApp()` on the same timer pattern as Phase 2's session cleanup.
+- Two real bugs found and fixed by this sprint's real-MariaDB integration testing: a missing `assignPlan` admin-action wrapper that never logged its `PLAN_ASSIGNED` history event (the shared `assignPlanToTenant` helper was ported correctly, but the standalone admin action wrapping it was not), and a test's own incorrect expectation about `extendLicense` stacking days onto an existing future expiry rather than resetting it.
+- Explicitly did not touch Inventory, Sales, Repairs, Expenses, the frontend, Administration, Cloud Backup, or Authentication — one small, documented exception: a `revokeAllSessionsForTenant` function was added to this sprint's own `tenantLicenseRepository.js` (not any Authentication-domain file) to preserve the real "suspending a tenant kills their sessions" behavior.
+- Full detail, including every documented deviation (narrower `license.status` response, no email-verification gate on approval pending a future Identity-domain phase, device-limit value/enforcement decoupling): `docs/architecture/Licensing.md`.
+- 32 new mocked assertions + 20 new real-MariaDB integration assertions (a fresh, disposable, isolated instance, torn down afterward). Zero regressions: existing 436-assertion suite and every prior `test:src` file pass unmodified.
+
 ### RC1 Repository Audit
 - Full-repository audit ahead of an eventual release candidate: read every ADR/Phase Review/architecture doc, then checked every module for dead code, duplicate utilities, large files, circular dependencies, naming/folder inconsistencies, TODOs/FIXMEs, and layering violations.
 - Removed `renderer/` (`index.html` + `license-engine.js`) — confirmed dead: an early Electron renderer draft from before the `main`/`master` branch consolidation, already documented in `docs/architecture/BranchingStrategy.md` as "superseded by `app/ShopERP_Pro_v8.html`", never loaded by `main.js`, and not included in `package.json`'s `build.files` packaging list.

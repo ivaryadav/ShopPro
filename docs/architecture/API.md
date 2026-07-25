@@ -1,4 +1,4 @@
-# API — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4)
+# API — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4) + Licensing Domain (RC1 Sprint 1)
 
 Identity & Tenant Core paths match `server/local.js` exactly ("API compatibility preserved where possible"). The Operations domain endpoints below are **new** — `local.js` has no per-entity REST surface for this data at all (everything there goes through one `GET/PUT /api/data` whole-blob path); real per-entity endpoints are a necessary, approved consequence of ADR-0008's normalization decision, not new scope invented by this phase. All mounted by `server/src/app.js`, not by `local.js` — this is a parallel implementation, not yet cut over (`docs/architecture/Architecture.md`).
 
@@ -57,6 +57,14 @@ All require `requireAuth(jwtSecret), requireActive` unless noted. `:id` params a
 | `POST` | `/api/expenses/cash-entries` | Matches `saveCashEntry` exactly — the only Payment context allowing `Bank Transfer`. |
 | `GET` | `/api/settings` | Configuration — returns the whole JSON blob, matches `DB.settings`. |
 | `PUT` | `/api/settings` | Whole-object replace, matches `PUT /api/data`'s semantics for `DB.settings`. |
+
+## Licensing domain endpoints (RC1 Sprint 1)
+
+| Method | Path | Middleware chain | Notes |
+|---|---|---|---|
+| `GET` | `/api/license/status` | `requireAuth` only | Matches `local.js:1152` exactly — deliberately no `requireActive` gate, since a suspended/archived tenant must still be able to check its own status. Response is `{license}` only — narrower than `local.js`'s (no outer legacy `tenants`-column fields; see `docs/architecture/Licensing.md`'s deviation #1). |
+
+Every other Licensing action (`approveRegistration`, `rejectRegistration`, `assignPlan`, `startTrial`, `generateLicenseForTenant`, `extendLicense`, `suspendTenant`, `reactivateTenant`, `setDeviceLimit`, `listTenantLicenses`, `listPendingRegistrations`, `getHistory`) is a fully tested `tenantLicenseService` function with **no public route** — its real-world gate (`requireAdminKey`) is Administration domain, out of scope for this sprint. Same precedent as Phase 2's `resetPin`/`setActive`.
 
 ## Response shapes
 
