@@ -32,7 +32,16 @@
     "test:legacy-tenant-status-consistency": "node test/legacy-tenant-status-consistency.test.js",
     "test": "npm run test:unit && npm run test:integration && npm run test:migration && npm run test:concurrency && npm run test:security && npm run test:migration-safety && npm run test:security-phase2 && npm run test:operational && npm run test:license-registration && npm run test:license-email-verification && npm run test:license-admin-approval && npm run test:license-state-machine && npm run test:license-renewal && npm run test:license-offline-grace && npm run test:license-devices && npm run test:license-suspension && npm run test:license-backfill-regression && npm run test:admin-auth-migration && npm run test:auth-enumeration && npm run test:devops-hardening && npm run test:legacy-tenant-status-consistency",
     "backup:verify": "node scripts/backup-verify.js",
-    "validate:migrations": "node scripts/validate-migrations.js"
+    "validate:migrations": "node scripts/validate-migrations.js",
+
+    "test:src:config": "node src/tests/config.test.js",
+    "test:src:logging": "node src/tests/logging.test.js",
+    "test:src:errors": "node src/tests/errors.test.js",
+    "test:src:database": "node src/tests/database.test.js",
+    "test:src": "npm run test:src:config && npm run test:src:logging && npm run test:src:errors && npm run test:src:database",
+    "migrate:up": "node src/scripts/migrate.js up",
+    "migrate:down": "node src/scripts/migrate.js down",
+    "migrate:status": "node src/scripts/migrate.js status"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -43,6 +52,7 @@
     "express": "^4.19.2",
     "express-rate-limit": "^7.3.1",
     "jsonwebtoken": "^9.0.2",
+    "mariadb": "^3.5.3",
     "nodemailer": "^6.9.14",
     "pg": "^8.11.5"
   },

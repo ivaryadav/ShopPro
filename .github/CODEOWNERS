@@ -1,0 +1,36 @@
+# CODEOWNERS — ShopERP Pro
+#
+# Every pull request touching a path below requires review/approval from
+# its owner before merge (once branch protection is enabled on GitHub for
+# `main` and `develop` — see docs/architecture/BranchingStrategy.md).
+#
+# This project currently has a single maintainer; this file exists so the
+# ownership model is explicit and ready to extend the moment a second
+# engineer joins, rather than being retrofitted under pressure later.
+
+# Default owner for anything not matched more specifically below.
+*                           @ivaryadav
+
+# Backend / API / database
+/server/                   @ivaryadav
+
+# SaaS licensing, registration, and subscription domain specifically —
+# called out separately since it is this product's most business-critical
+# and most heavily audited subsystem (see docs/independent-audit/).
+/server/local.js           @ivaryadav
+/server/sessions.js        @ivaryadav
+/server/mailer.js          @ivaryadav
+
+# Frontend application (single-file today — see ADR-0004)
+/app/                      @ivaryadav
+
+# Electron desktop shell
+/main.js                   @ivaryadav
+/preload.js                @ivaryadav
+
+# Documentation and governance
+/docs/                     @ivaryadav
+/.github/                  @ivaryadav
+
+# CI/CD
+/.github/workflows/        @ivaryadav
