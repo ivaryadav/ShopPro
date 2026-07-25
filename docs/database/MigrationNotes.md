@@ -1,4 +1,4 @@
-# Migration Notes — Identity & Tenant Core (Phase 2)
+# Migration Notes — Identity & Tenant Core (Phase 2) + Operations Domain (Phase 4)
 
 Consolidated reference for every place this phase's implementation deliberately deviates from, defers, or extends `server/local.js`'s actual behavior. Per the mission's own instruction ("if code and documentation disagree: document it, do not silently change behavior"), nothing below is silent.
 
@@ -40,4 +40,32 @@ Consolidated reference for every place this phase's implementation deliberately 
 
 ## Known gap: no live MariaDB verification in this environment
 
-Every `*.test.js` file's database-dependent assertions report an honest skip in this session (a MySQL server is running locally but this session has no credentials to it, and did not attempt to bypass another user's pre-existing authentication). All non-DB-dependent logic is fully tested via repository mocking. **Re-run `npm run test:src` against a real, credentialed MariaDB instance before Phase 3 builds on this stack.**
+Every `*.test.js` file's database-dependent assertions report an honest skip in this session (a MySQL server is running locally but this session has no credentials to it, and did not attempt to bypass another user's pre-existing authentication). All non-DB-dependent logic is fully tested via repository mocking. **Re-run `npm run test:src` against a real, credentialed MariaDB instance before relying on this stack in production.**
+
+---
+
+# Phase 4 additions — Operations Domain
+
+Full narrative: `docs/architecture/Operations.md`. This section covers only what's specific to `002_operations_domain.sql` beyond what that document already states.
+
+## Database
+
+- **`002_operations_domain.sql`** adds 10 tables: `inventory_items`, `customers`, `sales`, `sale_items`, `repairs`, `repair_parts`, `expenses`, `recurring_expenses`, `stock_movements` (new), `payments` (new, unifying), `tenant_settings`. Implements `docs/database/OperationsSchemaDesign.md` (Phase 3 design) with two documented deviations (see `docs/architecture/Operations.md`'s "Documented deviations" section) — no `is_deleted` column, and nullable `created_by`/`product_id` FKs with `ON DELETE SET NULL`.
+- **No data migration from the JSON blob.** This phase builds the layered MariaDB implementation in `server/src/`, exactly like Phase 2 — it does NOT parse `tenant_data.data`'s existing JSON blob and insert rows. `local.js`'s live data remains completely untouched and unread by this migration. A future cutover phase would need a separate, one-time blob-to-relational data migration (already flagged as "a real, nontrivial future undertaking" in ADR-0008).
+
+## Endpoints — all new (see `docs/architecture/API.md`'s "Operations domain endpoints" table)
+
+`local.js` never had per-entity Operations endpoints to preserve compatibility with — the entire surface in `docs/architecture/API.md`'s Phase 4 table is new REST surface, a direct, necessary consequence of ADR-0008's normalization decision.
+
+## Business-rule deviations (all documented, not silent)
+
+See `docs/architecture/Operations.md`'s "Documented deviations" section for the full list (soft-delete reversal, payment-overpayment simplification, customer phone-duplicate reproduction via `allowDuplicate`).
+
+## What was extended beyond a literal 1:1 port (low-risk, justified)
+
+- `stock_movements` — genuinely new capability (audit trail), not an extraction; no current data to migrate.
+- Atomic SQL stock increment/decrement (`GREATEST(0, stock ± ?)`) instead of JS read-then-write, for the sale/repair hot paths — a real hardening against concurrent writes `local.js`'s single in-process array never had to consider, while preserving the exact same clamp-at-zero semantics. `adjustStock` (manual, low-frequency) still reads-then-writes so its audit-log delta matches `local.js`'s own prev→new message exactly.
+
+## Known gap: no live MariaDB verification in this environment (same as Phase 2)
+
+`server/src/tests/operationsCore.integration.test.js` reports an honest skip in this session, for the same reason as Phase 2's `identityCore.integration.test.js`. All business logic is fully tested via repository mocking in `inventoryService.test.js`, `customerService.test.js`, `saleService.test.js`, `repairService.test.js`, `expenseService.test.js`, and `paymentService.test.js`. **Re-run `npm run test:src` against a real, credentialed MariaDB instance before relying on this stack in production.**

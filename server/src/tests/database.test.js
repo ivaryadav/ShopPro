@@ -36,13 +36,14 @@ function skip(label, reason) {
 }
 
 async function main() {
-  console.log('Phase 2: database/ tests (migration framework against the real identity-core migration)');
+  console.log('Phase 2/4: database/ tests (migration framework against the real identity-core + operations-domain migrations)');
   console.log('');
 
   // ── Part 1: pure logic, always runs ────────────────────────────────────
   const migrations = discoverMigrations();
-  assert(migrations.length === 1, "discoverMigrations finds exactly the 1 real migration (001_identity_tenant_core) — the Phase 1 placeholders were replaced, not left alongside it");
+  assert(migrations.length === 2, "discoverMigrations finds exactly the 2 real migrations (001_identity_tenant_core, 002_operations_domain — Phase 4 added the second)");
   assert(migrations[0].version === '001' && migrations[0].name === 'identity_tenant_core', 'migration 001 is discovered with the correct name');
+  assert(migrations[1].version === '002' && migrations[1].name === 'operations_domain', 'migration 002 is discovered with the correct name');
 
   const checksumA = computeChecksum('CREATE TABLE x (id INT);');
   const checksumB = computeChecksum('CREATE TABLE x (id INT);');

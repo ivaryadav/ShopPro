@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.62">
-<title>ShopERP Pro v8.62</title>
+<meta name="shoperpro-version" content="v8.63">
+<title>ShopERP Pro v8.63</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -3193,7 +3193,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.62 · Licensed</div>
+        <div class="sb-footer-ver">v8.63 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -3242,6 +3242,14 @@ spline-viewer{width:100%;height:100%;border:none}
      loaded here so they're defined before any inline script below uses
      them. See app/modules/auth.js's own header for what was moved and why. -->
 <script src="modules/auth.js"></script>
+
+<!-- Phase 4 (Operations Domain Implementation) extraction — the shared
+     field-validation helpers (validatePhone/validateEmail/validateRequired/
+     validateNumeric/validateGST/validateIMEI/runValidations/fieldErr) used
+     across Inventory/Customer/Sales/Repairs/Expenses/Configuration forms
+     now live in modules/validation.js. See that file's own header for
+     what was moved and why (and what was deliberately NOT moved). -->
+<script src="modules/validation.js"></script>
 
 <script>
 /**
@@ -15681,91 +15689,12 @@ function checkSellVsCost(sellId, costId){
   }
 }
 
-// ── Validation on save (returns error string or null) ──
+// validatePhone/validateOptionalPhone/validateEmail/validateRequired/
+// validateNumeric/validateGST/validateIMEI/fieldErr/clearFieldErr/
+// runValidations moved to modules/validation.js (Phase 4 — Operations
+// Domain Implementation frontend extraction). Loaded via <script src>
+// above, before this block, so they remain available here unchanged.
 
-function validatePhone(val, label){
-  label=label||'Phone';
-  const v=(val||'').replace(/\D/g,'');
-  if(!v) return label+' is required';
-  if(v.length!==10) return label+' must be exactly 10 digits';
-  return null;
-}
-function validateOptionalPhone(val, label){
-  if(!val||!val.trim()) return null; // optional - ok if empty
-  return validatePhone(val, label);
-}
-function validateEmail(val){
-  if(!val||!val.trim()) return null; // optional
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim())) return 'Invalid email address';
-  return null;
-}
-function validateRequired(val, label){
-  if(!val||!String(val).trim()) return (label||'This field')+' is required';
-  return null;
-}
-function validateNumeric(val, label, min, max){
-  const n=parseFloat(val);
-  if(isNaN(n)) return (label||'Value')+' must be a number';
-  if(min!==undefined&&n<min) return (label||'Value')+' must be at least '+min;
-  if(max!==undefined&&n>max) return (label||'Value')+' must be at most '+max;
-  return null;
-}
-function validateGST(val){
-  if(!val||!val.trim()) return null; // optional
-  if(!/^[A-Z0-9]{15}$/.test(val.trim().toUpperCase()))
-    return 'GST number must be exactly 15 alphanumeric characters';
-  return null;
-}
-function validateIMEI(val){
-  if(!val||!val.trim()) return null; // optional
-  if(!/^\d{15}$/.test(val.trim())) return 'IMEI must be exactly 15 digits';
-  return null;
-}
-
-// ── Show inline field error ──
-function fieldErr(id, msg){
-  // Remove old error
-  const old=document.getElementById('err-'+id);
-  if(old)old.remove();
-  if(!msg)return;
-  const el=document.getElementById(id);
-  if(!el)return;
-  // Highlight field
-  el.style.borderColor='var(--red)';
-  el.style.boxShadow='0 0 0 2px rgba(239,68,68,.25)';
-  // Show error message below
-  const err=document.createElement('div');
-  err.id='err-'+id;
-  err.style.cssText='color:var(--red);font-size:10px;margin-top:3px;font-weight:600';
-  err.textContent=msg;
-  el.parentNode.insertBefore(err,el.nextSibling);
-  // Auto-clear on input
-  el.addEventListener('input',function clearErr(){
-    el.style.borderColor='';el.style.boxShadow='';
-    const e=document.getElementById('err-'+id);if(e)e.remove();
-    el.removeEventListener('input',clearErr);
-  },{once:true});
-}
-function clearFieldErr(id){
-  const el=document.getElementById(id);
-  if(el){el.style.borderColor='';el.style.boxShadow='';}
-  const err=document.getElementById('err-'+id);
-  if(err)err.remove();
-}
-// Run multiple validations - shows first error found, returns true if all pass
-function runValidations(checks){
-  let allPass=true;
-  checks.forEach(([id,msg])=>{
-    if(msg){fieldErr(id,msg);allPass=false;}
-    else clearFieldErr(id);
-  });
-  if(!allPass){
-    // Scroll to first error
-    const first=document.querySelector('[id^="err-"]');
-    if(first)first.scrollIntoView({behavior:'smooth',block:'center'});
-  }
-  return allPass;
-}
 document.getElementById('modal-overlay').addEventListener('click',function(e){
   // Do NOT close modal on outside click - user may lose entered data
   // Modal only closes via Cancel button or closeModal() call

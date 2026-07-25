@@ -1,11 +1,12 @@
 /**
  * server/src/app.js
  *
- * Assembles the Identity & Tenant Core Express app for Phase 2. NOT the
- * running production server — server/local.js remains that until a future
- * cutover phase (docs/adr/0001-enterprise-reconstruction.md, Phase 9).
- * This exists so the new architecture is genuinely testable end-to-end,
- * not just unit-tested in isolation.
+ * Assembles the Identity & Tenant Core + Operations Domain Express app
+ * (Phase 2 + Phase 4). NOT the running production server — server/local.js
+ * remains that until a future cutover phase
+ * (docs/adr/0001-enterprise-reconstruction.md, Phase 9). This exists so
+ * the new architecture is genuinely testable end-to-end, not just
+ * unit-tested in isolation.
  *
  * Security headers, CORS, and compression are ported from local.js
  * verbatim (local.js:599-637) — cross-cutting infra, not tied to any one
@@ -19,6 +20,12 @@ const cors = require('cors');
 const compression = require('compression');
 const { createAuthRouter } = require('./routes/auth');
 const { createUsersRouter } = require('./routes/users');
+const { createInventoryRouter } = require('./routes/inventory');
+const { createCustomersRouter } = require('./routes/customers');
+const { createSalesRouter } = require('./routes/sales');
+const { createRepairsRouter } = require('./routes/repairs');
+const { createExpensesRouter } = require('./routes/expenses');
+const { createSettingsRouter } = require('./routes/settings');
 const { errorHandler } = require('./errors');
 const { checkDatabaseHealth } = require('./database');
 const sessionService = require('./services/sessionService');
@@ -85,7 +92,7 @@ function createApp({ jwtSecret, allowedOrigins, startCleanupJob = true }) {
     const dbHealth = await checkDatabaseHealth();
     res.json({
       status: dbHealth.ok ? 'ok' : 'degraded',
-      mode: 'mariadb-identity-core',
+      mode: 'mariadb-identity-and-operations',
       time: new Date().toISOString(),
       db: dbHealth.ok ? 'ok' : 'error',
     });
@@ -93,6 +100,17 @@ function createApp({ jwtSecret, allowedOrigins, startCleanupJob = true }) {
 
   app.use('/api/auth', createAuthRouter({ jwtSecret }));
   app.use('/api/data', createUsersRouter({ jwtSecret }));
+
+  // Operations domain (Phase 4) — real per-entity REST endpoints, a
+  // necessary consequence of ADR-0008's normalization decision (local.js
+  // itself has no equivalent; everything there goes through one
+  // GET/PUT /api/data whole-blob path).
+  app.use('/api/inventory', createInventoryRouter({ jwtSecret }));
+  app.use('/api/customers', createCustomersRouter({ jwtSecret }));
+  app.use('/api/sales', createSalesRouter({ jwtSecret }));
+  app.use('/api/repairs', createRepairsRouter({ jwtSecret }));
+  app.use('/api/expenses', createExpensesRouter({ jwtSecret }));
+  app.use('/api/settings', createSettingsRouter({ jwtSecret }));
 
   app.use(errorHandler);
 

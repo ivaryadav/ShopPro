@@ -79,3 +79,140 @@ erDiagram
 ## Deliberately excluded (out of scope, not an oversight)
 
 `tenant_licenses`, `license_history`, `subscription_plans`, `admin_credentials`, `cloud_backups` — Licensing and Administration domains, explicitly out of scope for Phase 2 (`docs/database/MigrationNotes.md`). `tenants.license_key_hash`/`license_expiry`/`license_plan` — present on `local.js`'s `tenants` table today, but Licensing-domain data that happens to live there historically, not carried into this schema.
+
+---
+
+# Entity Relationship Diagram — Operations Domain (MariaDB, Phase 4)
+
+Scope: the 10 tables `migrations/002_operations_domain.sql` creates, implementing `docs/database/OperationsSchemaDesign.md` (Phase 3, design) against real MariaDB per ADR-0008 (Hybrid Storage Strategy). Full narrative: `docs/architecture/Operations.md`.
+
+```mermaid
+erDiagram
+    TENANTS ||--o{ INVENTORY_ITEMS : "stocks"
+    TENANTS ||--o{ CUSTOMERS : "serves"
+    TENANTS ||--o{ SALES : "records"
+    TENANTS ||--o{ REPAIRS : "records"
+    TENANTS ||--o{ EXPENSES : "records"
+    TENANTS ||--o{ RECURRING_EXPENSES : "records"
+    TENANTS ||--o{ STOCK_MOVEMENTS : "audits"
+    TENANTS ||--o{ PAYMENTS : "records"
+    TENANTS ||--|| TENANT_SETTINGS : "configures"
+    CUSTOMERS ||--o{ SALES : "buys"
+    CUSTOMERS ||--o{ REPAIRS : "brings in"
+    SALES ||--o{ SALE_ITEMS : "line items"
+    REPAIRS ||--o{ REPAIR_PARTS : "consumes"
+    INVENTORY_ITEMS |o--o{ SALE_ITEMS : "sold as (nullable — ON DELETE SET NULL)"
+    INVENTORY_ITEMS |o--o{ REPAIR_PARTS : "used as (nullable — ON DELETE SET NULL)"
+    INVENTORY_ITEMS |o--o{ STOCK_MOVEMENTS : "moves (nullable — ON DELETE SET NULL)"
+    SALES ||--o{ PAYMENTS : "collects (source_type='sale')"
+    REPAIRS ||--o{ PAYMENTS : "collects (source_type='repair')"
+
+    INVENTORY_ITEMS {
+        bigint id PK
+        bigint tenant_id FK
+        varchar name
+        varchar category "free text, no Category entity"
+        varchar sku "NOT unique — local.js never enforced this"
+        varchar imei UK "tenant-scoped unique"
+        decimal cost_price
+        decimal sell_price
+        int stock
+        int min_stock
+        varchar unit
+    }
+    CUSTOMERS {
+        bigint id PK
+        bigint tenant_id FK
+        varchar name
+        varchar phone "NOT unique — real, preserved inconsistency"
+        varchar email
+        enum type "Regular, VIP, Wholesale, Shopkeeper"
+    }
+    SALES {
+        bigint id PK
+        bigint tenant_id FK
+        varchar invoice_no UK "self-healing INV-NNN"
+        bigint customer_id FK
+        decimal subtotal
+        decimal discount
+        decimal total
+        date sale_date
+        bigint created_by FK "nullable, ON DELETE SET NULL"
+    }
+    SALE_ITEMS {
+        bigint id PK
+        bigint sale_id FK
+        bigint product_id FK "nullable — survives product deletion"
+        varchar product_name "denormalized snapshot"
+        decimal price "denormalized snapshot, editable per line"
+        int qty
+    }
+    REPAIRS {
+        bigint id PK
+        bigint tenant_id FK
+        varchar job_no UK "self-healing JOB-NNN"
+        bigint customer_id FK
+        enum status "Received, Diagnosing, Repairing, Ready, Delivered — free transitions"
+        decimal estimated_cost
+        decimal final_cost "always parts + labour"
+        decimal labour_charge
+        int warranty_days
+        bigint created_by FK "nullable, ON DELETE SET NULL"
+    }
+    REPAIR_PARTS {
+        bigint id PK
+        bigint repair_id FK
+        bigint product_id FK "nullable — survives product deletion"
+        varchar product_name "denormalized snapshot"
+        decimal price
+        int qty
+    }
+    EXPENSES {
+        bigint id PK
+        bigint tenant_id FK
+        varchar title
+        varchar category
+        decimal amount
+        date expense_date
+    }
+    RECURRING_EXPENSES {
+        bigint id PK
+        bigint tenant_id FK
+        varchar title
+        decimal amount
+        boolean is_active
+        varchar last_applied "'YYYY-MM', manual-trigger only, no scheduler"
+    }
+    STOCK_MOVEMENTS {
+        bigint id PK
+        bigint tenant_id FK
+        bigint product_id FK "nullable"
+        int delta "positive=in, negative=out"
+        enum reason "sale, sale_edit_restore, repair_parts, repair_delete_restore, manual_adjust, product_delete_restore"
+        varchar reference_type
+        bigint reference_id
+    }
+    PAYMENTS {
+        bigint id PK
+        bigint tenant_id FK
+        enum source_type "sale, repair, manual"
+        bigint source_id "nullable for manual"
+        enum direction "in, out"
+        enum method "Cash, UPI, Card, Bank Transfer — union of both contexts, restriction enforced in service layer"
+        decimal amount
+        date payment_date
+    }
+    TENANT_SETTINGS {
+        bigint tenant_id PK_FK
+        json settings_json "Configuration — kept as JSON, ADR-0008"
+    }
+```
+
+## Deliberate deviations from the Phase 3 design doc (`OperationsSchemaDesign.md`)
+
+1. **No `inventory_items.is_deleted`** — the design doc proposed soft-delete but explicitly flagged it as "not decided unilaterally." Never approved, so this migration reproduces `local.js`'s actual hard-delete behavior instead. To make that compatible with real FK constraints, `sale_items.product_id`/`repair_parts.product_id`/`stock_movements.product_id` are nullable with `ON DELETE SET NULL` (not `RESTRICT`, which would forbid a delete `local.js` allows, and not `CASCADE`, which would destroy sales/repair history).
+2. **`created_by` columns are nullable `ON DELETE SET NULL` FKs to `users(id)`** — `local.js` only ever stored a free-text name; a real FK is new structure, not a behavior change, so it must tolerate the referenced user later being removed.
+
+## Deliberately excluded (out of scope, not an oversight)
+
+An `invoices` table (no current behavior justifies one, per `OperationsDomainAnalysis.md`), `repairs.technician_id`, a `purchases`/`purchase_items` pair, and a scheduler-driven `recurring_expenses` — all explicitly forbidden by the Phase 4 mission.
