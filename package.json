@@ -1,34 +1,33 @@
 {
   "name": "shoperpro",
   "version": "1.0.0",
-  "description": "ShopERP Pro - Mobile Shop Management System",
+  "description": "ShopERP Pro - Professional ERP for Indian Mobile Phone Shops",
   "main": "main.js",
+  "author": "ShopERP Pro",
+  "license": "UNLICENSED",
+  "private": true,
   "scripts": {
     "start": "electron .",
-    "build:mac": "electron-builder --mac dmg",
-    "build:win": "electron-builder --win nsis --x64",
-    "build": "electron-builder"
+    "build-win": "electron-builder --win --x64",
+    "build-mac": "electron-builder --mac",
+    "build-linux": "electron-builder --linux"
   },
   "build": {
-    "appId": "com.shoperpro.app",
+    "appId": "com.shoperpro.desktop",
     "productName": "ShopERP Pro",
-    "copyright": "Copyright © 2025 ShopERP Pro",
+    "asar": false,
     "directories": {
-      "output": "dist",
-      "buildResources": "build"
+      "output": "dist"
     },
     "files": [
       "main.js",
       "preload.js",
-      "renderer/**/*"
+      "app/**/*",
+      "icons/**/*"
     ],
-    "mac": {
-      "category": "public.app-category.business",
-      "darkModeSupport": true,
-      "target": "dmg"
-    },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "icons/icon.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -37,19 +36,19 @@
       "createStartMenuShortcut": true,
       "shortcutName": "ShopERP Pro"
     },
-    "dmg": {
-      "title": "ShopERP Pro",
-      "window": {
-        "width": 540,
-        "height": 380
-      }
+    "mac": {
+      "target": "dmg",
+      "icon": "icons/icon.icns",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "icons/icon.png",
+      "category": "Office"
     }
   },
   "devDependencies": {
-    "electron": "^28.0.0",
+    "electron": "^36.0.0",
     "electron-builder": "^24.0.0"
-  },
-  "dependencies": {
-    "node-machine-id": "^1.1.12"
   }
 }
