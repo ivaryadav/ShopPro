@@ -16,7 +16,7 @@ const inventoryRepository = require('../repositories/inventoryRepository');
 const customerRepository = require('../repositories/customerRepository');
 const stockMovementRepository = require('../repositories/stockMovementRepository');
 const paymentService = require('./paymentService');
-const { ValidationError, NotFoundError } = require('../errors');
+const { ValidationError, NotFoundError, ConflictError } = require('../errors');
 
 /** Matches nextInvoiceNo's self-healing numbering exactly (~line 3952-3964). */
 async function nextInvoiceNo(tenantId) {
@@ -85,6 +85,23 @@ async function createSale(params) {
   const validPayments = paymentService.validateCollectionPayments(params.payments, total);
   const invoiceNo = await nextInvoiceNo(params.tenantId);
 
+  // Decrement stock atomically BEFORE creating the sale row (RC1 Validation
+  // fix): loadAndValidateStock's check above is a read-then-act gap — two
+  // concurrent createSale calls for the same product could both pass it and
+  // both proceed, overselling the last unit. decrementStock now re-validates
+  // stock atomically at the moment of the actual UPDATE and reports failure;
+  // any failure here reverts this attempt's own decrements (no sale is ever
+  // recorded against stock that wasn't truly available) and aborts cleanly.
+  const decremented = [];
+  for (const item of params.items) {
+    const ok = await inventoryRepository.decrementStock(params.tenantId, item.productId, item.qty);
+    if (!ok) {
+      for (const prev of decremented) await inventoryRepository.incrementStock(params.tenantId, prev.productId, prev.qty);
+      throw new ConflictError(`"${products.get(item.productId).name}" no longer has enough stock — it was just sold by another transaction. Please refresh and try again.`);
+    }
+    decremented.push(item);
+  }
+
   const sale = await saleRepository.create({
     tenantId: params.tenantId, invoiceNo, customerId: params.customerId, subtotal, discount, total,
     saleDate: params.saleDate, note: params.note, createdBy: params.createdBy,
@@ -92,7 +109,6 @@ async function createSale(params) {
   });
 
   for (const item of params.items) {
-    await inventoryRepository.decrementStock(params.tenantId, item.productId, item.qty);
     await stockMovementRepository.record({
       tenantId: params.tenantId, productId: item.productId, delta: -item.qty, reason: 'sale',
       referenceType: 'sale', referenceId: sale.id, createdBy: params.createdBy,
@@ -136,8 +152,25 @@ async function updateSale(tenantId, id, params) {
     if (!product) throw new NotFoundError(`Product ${item.productId} not found`);
     products.set(item.productId, product);
   }
+  // RC1 Validation fix: the original port carried no stock-sufficiency
+  // check at all on this path (unlike createSale's loadAndValidateStock) —
+  // increasing an item's quantity on edit could silently oversell with no
+  // error surfaced. decrementStock is now guarded+atomic; on failure, undo
+  // both this loop's own partial decrements AND the original-items restore
+  // above, returning inventory to exactly its pre-call state before aborting.
+  const decremented = [];
   for (const item of params.items) {
-    await inventoryRepository.decrementStock(tenantId, item.productId, item.qty);
+    const ok = await inventoryRepository.decrementStock(tenantId, item.productId, item.qty);
+    if (!ok) {
+      for (const prev of decremented) await inventoryRepository.incrementStock(tenantId, prev.productId, prev.qty);
+      for (const orig of existing.items) {
+        if (orig.product_id) await inventoryRepository.decrementStock(tenantId, orig.product_id, orig.qty);
+      }
+      throw new ConflictError(`"${products.get(item.productId).name}" does not have enough stock for this change — please refresh and try again.`);
+    }
+    decremented.push(item);
+  }
+  for (const item of params.items) {
     await stockMovementRepository.record({
       tenantId, productId: item.productId, delta: -item.qty, reason: 'sale',
       referenceType: 'sale', referenceId: id, note: `Invoice ${existing.invoice_no} edited`,

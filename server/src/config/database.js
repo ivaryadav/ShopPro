@@ -18,6 +18,7 @@ const { loadEnv } = require('./env');
  * @property {string} password
  * @property {number} connectionLimit
  * @property {number} minimumIdle
+ * @property {number} connectTimeoutMs
  */
 
 /**
@@ -34,6 +35,7 @@ function getDatabaseConfig(source) {
     password: env.DB_PASSWORD,
     connectionLimit: env.DB_POOL_MAX,
     minimumIdle: env.DB_POOL_MIN,
+    connectTimeoutMs: env.DB_CONNECT_TIMEOUT_MS,
   });
 }
 

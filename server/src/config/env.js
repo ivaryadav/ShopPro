@@ -52,6 +52,12 @@ const SPEC = {
   DB_PASSWORD: { default: '' },
   DB_POOL_MIN: { default: '0', parse: (v) => Number(v), validate: (v) => Number.isInteger(v) && v >= 0, validateMessage: 'must be a non-negative integer' },
   DB_POOL_MAX: { default: '10', parse: (v) => Number(v), validate: (v) => Number.isInteger(v) && v > 0, validateMessage: 'must be a positive integer' },
+  // RC1 Validation fix: the mariadb driver's own default (10s) meant every
+  // request hung for 10+ seconds during a real database outage before
+  // failing — found via a live "kill the database mid-request" test. 5s is
+  // still generous for a healthy connection but fails fast enough that a
+  // real outage doesn't look like the whole app has frozen.
+  DB_CONNECT_TIMEOUT_MS: { default: '5000', parse: (v) => Number(v), validate: (v) => Number.isInteger(v) && v > 0, validateMessage: 'must be a positive integer' },
 
   JWT_SECRET: { default: '' },
   JWT_ACCESS_TTL: { default: '15m' },

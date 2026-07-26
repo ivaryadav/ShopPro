@@ -35,6 +35,17 @@ function getPool(source) {
       connectionLimit: config.connectionLimit,
       minimumIdle: config.minimumIdle,
       bigIntAsNumber: true,
+      // RC1 Validation fix: the driver's own defaults (10s connect timeout,
+      // NO socket timeout at all — 0, meaning "wait forever") meant a real
+      // database outage made every in-flight request on an already-pooled
+      // connection hang indefinitely (found via a live "kill the database
+      // mid-request" test: 10+ seconds even with connectTimeout alone,
+      // since that setting only governs establishing brand-new connections,
+      // not detecting an existing one going dead). Both are set from the
+      // same config value — 5s is generous for a healthy connection but
+      // fails fast enough that a real outage doesn't look like a frozen app.
+      connectTimeout: config.connectTimeoutMs,
+      socketTimeout: config.connectTimeoutMs,
     });
   }
   return _pool;

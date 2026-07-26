@@ -1942,6 +1942,29 @@ app.get('/', (req, res) => {
   res.send(html);
 });
 
+// ── Global error handler (RC1 Validation fix) ────────────────────────────────
+// Without this, any error Express itself catches before reaching a route
+// (a malformed JSON body, or a request body over express.json()'s 5mb limit
+// — a real ceiling a long-running shop's /api/data blob can outgrow) falls
+// through to Express's default handler, which — since NODE_ENV is never set
+// to 'production' anywhere in this deployment — sends the client a raw HTML
+// page containing the full server-side stack trace (internal file paths,
+// line numbers, library internals). That's a real information-disclosure
+// gap this app's own routes never have, since every one of them already
+// catches its own errors and returns a plain {error} JSON message. This
+// closes the same gap for framework-level errors, in the same flat
+// {error: string} shape every other endpoint here already uses.
+app.use((err, req, res, next) => {
+  if (err && err.type === 'entity.too.large') {
+    console.error('[SECURITY] Request body too large:', req.method, req.path, err.message);
+    return res.status(413).json({
+      error: 'This request is too large to save. If this is happening while saving your shop\'s data, please contact support — your shop may have grown enough history to need a larger-capacity plan.',
+    });
+  }
+  console.error('[SECURITY] Unhandled error:', req.method, req.path, err && err.message);
+  res.status(err && err.status ? err.status : 500).json({ error: 'Something went wrong. Please try again.' });
+});
+
 // ── Start ────────────────────────────────────────────────────────────────────
 const server = app.listen(PORT, '0.0.0.0', () => {
   const ip  = getLocalIp();

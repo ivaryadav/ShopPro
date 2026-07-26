@@ -18,7 +18,7 @@ const customerRepository = require('../repositories/customerRepository');
 const stockMovementRepository = require('../repositories/stockMovementRepository');
 const paymentRepository = require('../repositories/paymentRepository');
 const paymentService = require('./paymentService');
-const { ValidationError, NotFoundError } = require('../errors');
+const { ValidationError, NotFoundError, ConflictError } = require('../errors');
 
 const STATUSES = ['Received', 'Diagnosing', 'Repairing', 'Ready', 'Delivered'];
 
@@ -108,10 +108,17 @@ async function addPart(tenantId, repairId, params) {
   if (!product) throw new NotFoundError('Product not found');
   if (product.stock < qty) throw new ValidationError(`Only ${product.stock} unit(s) of "${product.name}" in stock`);
 
+  // RC1 Validation fix: decrement atomically BEFORE adding the part row, not
+  // after — the stock check above is a read-then-act gap (two concurrent
+  // addPart calls for the same product could both pass it). decrementStock
+  // now re-validates atomically at the moment of the UPDATE; on failure, no
+  // part row is ever added for stock that wasn't truly available.
+  const ok = await inventoryRepository.decrementStock(tenantId, product.id, qty);
+  if (!ok) throw new ConflictError(`"${product.name}" no longer has enough stock — it was just used by another transaction. Please refresh and try again.`);
+
   await repairRepository.addOrMergePart(tenantId, repairId, {
     productId: product.id, productName: product.name, price: product.sell_price, qty,
   });
-  await inventoryRepository.decrementStock(tenantId, product.id, qty);
   await stockMovementRepository.record({
     tenantId, productId: product.id, delta: -qty, reason: 'repair_parts',
     referenceType: 'repair', referenceId: repairId, createdBy: params.actorUserId,

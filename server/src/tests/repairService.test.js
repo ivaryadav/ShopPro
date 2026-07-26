@@ -73,7 +73,7 @@ async function main() {
     });
     const restoreInv = patch(inventoryRepository, {
       findById: async () => ({ id: 5, name: 'Screen', stock: 5, sell_price: 500 }),
-      decrementStock: async () => { decremented = true; },
+      decrementStock: async () => { decremented = true; return true; },
     });
     const restoreMovement = patch(stockMovementRepository, { record: async () => {} });
     await repairService.addPart(1, 1, { productId: 5, qty: 1 });

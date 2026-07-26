@@ -97,7 +97,7 @@ async function main() {
     const restore = patch(customerRepository, { findById: async () => ({ id: 1, name: 'Cust' }) });
     const restoreInv = patch(inventoryRepository, {
       findById: async () => ({ id: 1, name: 'Phone', stock: 10 }),
-      decrementStock: async (t, id, qty) => { decremented = { id, qty }; },
+      decrementStock: async (t, id, qty) => { decremented = { id, qty }; return true; },
     });
     const restoreSale = patch(saleRepository, {
       maxInvoiceNumber: async () => 0, invoiceNoExists: async () => false,

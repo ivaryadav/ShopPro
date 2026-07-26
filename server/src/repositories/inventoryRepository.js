@@ -109,14 +109,29 @@ async function setSku(tenantId, id, sku) {
 }
 
 /**
- * Atomic decrement, clamped at 0 — matches `p.stock=Math.max(0,p.stock-item.qty)`
- * (saveSale:10074, updateSale:9981, addJobPart:11297) exactly.
+ * Guarded, atomic decrement — only applies if `stock >= qty` at the moment
+ * of the UPDATE itself, returning whether it succeeded. The frontend's own
+ * logic (`p.stock=Math.max(0,p.stock-item.qty)`, saveSale:10074,
+ * updateSale:9981, addJobPart:11297) never needed this: it operates on one
+ * whole-blob JSON object per tenant in a single browser tab, guarded by
+ * `/api/data`'s own optimistic-concurrency `version` field, so two
+ * concurrent edits to the SAME tenant already conflict at the blob level
+ * before either's stock math runs. server/src's per-entity REST endpoints
+ * are a new concurrency surface the blob model never had (real, independent
+ * DB rows, not one JSON object) — without this guard, two simultaneous
+ * sales of the last unit of a product could both pass a prior read-based
+ * stock check and both succeed, overselling it (RC1 Validation finding).
  * @param {number} tenantId @param {number} id @param {number} qty
+ * @returns {Promise<boolean>} true if stock was sufficient and decremented
  */
 async function decrementStock(tenantId, id, qty) {
-  return withConnection((conn) =>
-    conn.query('UPDATE inventory_items SET stock = GREATEST(0, stock - ?) WHERE tenant_id=? AND id=?', [qty, tenantId, id])
-  );
+  return withConnection(async (conn) => {
+    const result = await conn.query(
+      'UPDATE inventory_items SET stock = stock - ? WHERE tenant_id=? AND id=? AND stock >= ?',
+      [qty, tenantId, id, qty]
+    );
+    return Number(result.affectedRows) > 0;
+  });
 }
 
 /**
