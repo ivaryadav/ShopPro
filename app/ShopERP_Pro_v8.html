@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="shoperpro-version" content="v8.70">
-<title>ShopERP Pro v8.70</title>
+<meta name="shoperpro-version" content="v8.73">
+<title>ShopERP Pro v8.73</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js"></script>
@@ -487,11 +487,6 @@ nav{flex:1;padding:8px;overflow-y:auto}
 .btn-wa{background:#25d366;color:#fff}
 .btn-wa:hover{opacity:.88}
 .btn-purple{background:var(--purple);color:#fff}
-/* ── ADMIN PANEL NAV ── */
-.adm-nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;transition:.15s;margin-bottom:1px;position:relative}
-.adm-nav-item:hover{background:var(--bg3);color:var(--text)}
-.adm-nav-item.active{background:rgba(239,68,68,.12);color:var(--red);font-weight:600}
-.adm-nav-item.active::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:3px;background:var(--red);border-radius:0 3px 3px 0}
 /* ── ADMIN KEY DISPLAY ── */
 .adm-key-display{background:var(--bg);border:2px solid var(--accent);border-radius:12px;padding:20px;text-align:center;margin:16px 0}
 .adm-key-text{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--accent);letter-spacing:5px;user-select:all;cursor:text}
@@ -1692,11 +1687,6 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
   .nav-icon{font-size:19px}
 
   /* Admin console sidebar — "DEVELOPER ONLY" per its own label, lowest
-     priority screen. Its nav items have no separate icon/label span
-     (unlike the main .nav-item), so an icon-only collapse isn't possible
-     without restructuring markup; touch-sizing it in place instead. */
-  #adm-sidebar{width:170px!important}
-  .adm-nav-item{padding:13px 10px;min-height:44px;font-size:13px}
 
   body{font-size:15px}
   .content{padding:24px}
@@ -1741,9 +1731,6 @@ body.light-mode ::-webkit-scrollbar-track{background:transparent}
   .sb-user{justify-content:center;padding:10px 6px}
   .nav-item{justify-content:center;padding:13px;min-height:var(--touch-min);margin-bottom:4px}
   .nav-icon{font-size:18px}
-
-  #adm-sidebar{width:150px!important}
-  .adm-nav-item{padding:12px 8px;min-height:44px;font-size:12px}
 
   body{font-size:16px}
   .content{padding:16px}
@@ -2749,19 +2736,6 @@ spline-viewer{width:100%;height:100%;border:none}
             </div>
             <div class="pss-item-arr">&#8250;</div>
           </div>
-          <div id="pss-item-admin" class="pss-item c-admin" onclick="pssOpenPanel('admin')">
-            <div class="pss-item-ico" style="background:rgba(248,113,113,.09);border:1px solid rgba(248,113,113,.2)">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 3L4 6.5V11C4 15.4183 7.58172 19.4 12 21C16.4183 19.4 20 15.4183 20 11V6.5L12 3Z" stroke="#F87171" stroke-width="1.8" stroke-linejoin="round"/>
-                <path d="M9 12L11 14L15 10" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <div>
-              <div class="pss-item-title">Super Admin</div>
-              <div class="pss-item-desc">License &amp; system management console</div>
-            </div>
-            <div class="pss-item-arr">&#8250;</div>
-          </div>
           <div id="pss-item-demo" class="pss-item c-demo" onclick="pssClickDemo()">
             <div class="pss-item-ico" style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.22)">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2882,17 +2856,6 @@ spline-viewer{width:100%;height:100%;border:none}
             <button class="pss-fbtn blu" onclick="pssResendVerification()" id="pss-reg-resend-btn">Resend Verification Email</button>
             <div class="pss-switch-link"><a href="#" onclick="pssClosePanel();return false">&#8592; Back to Start</a></div>
           </div>
-        </div>
-
-        <!-- SUPER ADMIN -->
-        <div id="pss-panel-admin" style="display:none">
-          <div class="pss-form-title">Super Admin</div>
-          <div class="pss-form-sub">License &amp; system management console</div>
-          <div class="pss-field">
-            <label class="pss-flabel">Admin Password</label>
-            <input class="pss-finput" id="pss-adm-pass" type="password" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter')pssAdminLogin()">
-          </div>
-          <button class="pss-fbtn red" id="pss-adm-btn" onclick="pssAdminLogin()">Enter Console &#8594;</button>
         </div>
 
         <!-- MY EXISTING SHOP (web: license key -> shop -> users -> PIN) -->
@@ -3037,86 +3000,6 @@ spline-viewer{width:100%;height:100%;border:none}
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
-     ADMIN LOGIN SCREEN
-     ═══════════════════════════════════════════════════════════ -->
-<!-- ADMIN LOGIN SCREEN - 21st.dev inspired -->
-<style>
-.al-bg{position:fixed;inset:0;background:#07070F;overflow:hidden;pointer-events:none}
-.al-bg::before{content:'';position:absolute;width:700px;height:500px;top:50%;left:50%;transform:translate(-50%,-55%);background:radial-gradient(ellipse,rgba(239,68,68,.1) 0%,transparent 65%);pointer-events:none}
-</style>
-<div id="admin-login-screen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:9991">
-  <div class="al-bg"></div>
-  <div class="wl-card" style="max-width:380px">
-    <div style="text-align:center;margin-bottom:28px">
-      <div style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);border-radius:14px;margin-bottom:14px;font-size:22px">🛡️</div>
-      <div style="font-size:20px;font-weight:900;background:linear-gradient(135deg,#F87171,#EF4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.5px">Admin Console</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:5px">Developer & License Management</div>
-    </div>
-    <!-- Warning badge -->
-    <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.18);border-radius:10px;padding:9px 14px;margin-bottom:20px;text-align:center;font-size:11px;color:rgba(248,113,113,.9);font-weight:600;letter-spacing:.2px">⚠️ Authorized personnel only</div>
-    <div id="admin-login-error" style="display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#FCA5A5;padding:10px 14px;border-radius:10px;font-size:12px;margin-bottom:16px"></div>
-    <div style="margin-bottom:22px">
-      <label class="wl-label">Admin Password</label>
-      <input class="wl-input" id="adm-pass" type="password" placeholder="••••••••••••" autocomplete="off" onkeydown="if(event.key==='Enter')adminLogin()">
-    </div>
-    <button class="wl-btn" style="background:linear-gradient(135deg,#DC2626,#991B1B)" onclick="adminLogin()">Enter Admin Console →</button>
-    <div style="text-align:center;margin-top:20px">
-      <a href="#" onclick="showPortalSelect()" class="auth-back-link">← Back to portal</a>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════
-     ADMIN DASHBOARD PANEL
-     ═══════════════════════════════════════════════════════════ -->
-<div id="admin-panel" style="display:none;position:fixed;inset:0;z-index:9992;background:var(--bg)">
-  <div style="display:flex;height:100vh">
-    <!-- Admin Sidebar -->
-    <div id="adm-sidebar" style="width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0">
-      <div style="padding:16px;border-bottom:1px solid var(--border)">
-        <div style="font-size:14px;font-weight:800;color:var(--red)">🛡️ ShopERP Admin</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:2px">License Management Console</div>
-      </div>
-      <div style="padding:6px 8px;margin:8px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:6px;font-size:10px;color:var(--red);font-weight:700;text-align:center">⚠️ DEVELOPER ONLY</div>
-      <nav style="padding:8px;flex:1">
-        <div style="font-size:9px;color:var(--text3);font-weight:700;padding:8px 8px 4px;letter-spacing:.8px;text-transform:uppercase">Main</div>
-        <div class="adm-nav-item active" onclick="showAdminPage('adm-dashboard')">📊 Dashboard</div>
-        <div style="font-size:9px;color:var(--text3);font-weight:700;padding:8px 8px 4px;letter-spacing:.8px;text-transform:uppercase">License Tools</div>
-        <div class="adm-nav-item" onclick="showAdminPage('adm-generate')">🔑 Generate Key</div>
-        <div class="adm-nav-item" onclick="showAdminPage('adm-validate')">✅ Validate Key</div>
-        <div style="font-size:9px;color:var(--text3);font-weight:700;padding:8px 8px 4px;letter-spacing:.8px;text-transform:uppercase">Tenants</div>
-        <div class="adm-nav-item" onclick="showAdminPage('adm-customers')">👥 All Customers</div>
-        <div class="adm-nav-item" onclick="showAdminPage('adm-expiring')">⏳ Expiring Soon</div>
-        <div class="adm-nav-item" onclick="showAdminPage('adm-suspended')">🚫 Suspended</div>
-        <div class="adm-nav-item" onclick="showAdminPage('adm-pins')">🔐 User PINs</div>
-        <div id="adm-nav-webusers" style="display:none"><div class="adm-nav-item" onclick="showAdminPage('adm-webusers')">🌐 Web Users</div></div>
-        <div id="adm-nav-licensing" style="display:none">
-          <div style="font-size:9px;color:var(--text3);font-weight:700;padding:8px 8px 4px;letter-spacing:.8px;text-transform:uppercase">Subscriptions</div>
-          <div class="adm-nav-item" onclick="showAdminPage('adm-registrations')">📝 Registrations</div>
-          <div class="adm-nav-item" onclick="showAdminPage('adm-tenant-licenses')">📋 Tenant Licenses</div>
-        </div>
-        <div style="font-size:9px;color:var(--text3);font-weight:700;padding:8px 8px 4px;letter-spacing:.8px;text-transform:uppercase">Settings</div>
-        <div class="adm-nav-item" onclick="showAdminPage('adm-settings')">⚙️ Settings</div>
-      </nav>
-      <div style="padding:12px 16px;border-top:1px solid var(--border)">
-        <button onclick="adminLogout()" style="width:100%;padding:7px;background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">← Logout Admin</button>
-      </div>
-    </div>
-    <!-- Admin Content -->
-    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
-      <div style="padding:12px 22px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-        <div>
-          <div style="font-size:14px;font-weight:700" id="adm-page-title">Dashboard</div>
-          <div style="font-size:11px;color:var(--text2)" id="adm-page-sub">License overview & revenue summary</div>
-        </div>
-        <div style="font-size:11px;color:var(--text3)" id="adm-topbar-date"></div>
-      </div>
-      <div style="flex:1;overflow-y:auto;padding:20px" id="adm-content"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════
      SUSPENDED SCREEN - Shown when tenant is paused/terminated
      Data is safe but app is locked
      ═══════════════════════════════════════════════════════════ -->
@@ -3193,7 +3076,7 @@ spline-viewer{width:100%;height:100%;border:none}
       </svg>
       <div>
         <div class="sb-footer-name">Shop<span>ERP</span> Pro</div>
-        <div class="sb-footer-ver">v8.70 · Licensed</div>
+        <div class="sb-footer-ver">v8.73 · Licensed</div>
       </div>
     </div>
     <div class="sb-bottom">
@@ -5000,7 +4883,7 @@ function showWelcomeBack(){
   var wbMac=document.getElementById('wb-dl-mac');
   if(wbWin){if(winUrl){wbWin.href=winUrl;wbWin.removeAttribute('data-disabled');}else{wbWin.href='#';wbWin.setAttribute('data-disabled','true');}}
   if(wbMac){if(macUrl){wbMac.href=macUrl;wbMac.removeAttribute('data-disabled');}else{wbMac.href='#';wbMac.setAttribute('data-disabled','true');}}
-  ['web-login-screen','portal-select-screen','admin-login-screen','new-user-screen'].forEach(function(id){
+  ['web-login-screen','portal-select-screen','new-user-screen'].forEach(function(id){
     var e=document.getElementById(id);if(e)e.style.display='none';
   });
   el.style.display='flex';
@@ -5041,7 +4924,7 @@ function getRegCode(){
   return code;
 }
 function showNewUserScreen(){
-  ['portal-select-screen','web-login-screen','admin-login-screen','welcome-back-screen'].forEach(function(id){
+  ['portal-select-screen','web-login-screen','welcome-back-screen'].forEach(function(id){
     var e=document.getElementById(id);if(e)e.style.display='none';
   });
   var el=document.getElementById('new-user-screen');
@@ -5182,23 +5065,16 @@ function webRegister(){
 // PORTAL SELECTION + ADMIN DASHBOARD
 // ════════════════════════════════════════════════════════════════
 
-// ── Admin password ──────────────────────────────────────────────────────────
-// Web/hosted mode (SHOPERPRO_API_URL set): the server verifies the password
-// (bcrypt, auto-migrated from the legacy scheme — see server/local.js and
-// docs/production-hardening/PasswordMigration.md) via POST /api/admin/login
-// and returns a short-lived session token, which ADMIN_PWD_HASH now holds
-// for the rest of the session — every existing admin fetch call already
-// sends this same variable as X-Admin-Key, so nothing else needed to change.
-// Offline/local desktop mode (no server to verify against — same structural
-// constraint as the offline license system): unchanged, still a client-only
-// hash comparison, using its own separate constant below.
+// ── Admin key (Z-SUPERADMIN migration) ──────────────────────────────────────
+// The Super Admin login/console that used to populate this has been removed
+// from ShopERP entirely — platform administration now lives exclusively in
+// Z-SUPERADMIN (see platform/docs/Architecture.md). This variable is kept,
+// still empty, ONLY because _pushCloudBackup()/_pullCloudRestore() below
+// still read it as their X-Admin-Key header; no code path assigns it a real
+// value anymore, so those two cloud-backup calls will always send an empty
+// key. See the Z-SUPERADMIN migration report's Remaining Risks for why this
+// was left as-is rather than silently reworked.
 let ADMIN_PWD_HASH='';
-// Offline/local-only fallback — no server exists in this mode, so a
-// client-embedded hash is unavoidable here (unrelated to, and not fixed by,
-// the web-mode bcrypt migration, since there's no server to bcrypt against).
-// To change: run   echo -n 'NewPassword' | shasum -a 256   and paste below.
-const _LOCAL_ADMIN_PWD_HASH='2b5877210c3581cccac2431c0a5681ea1c5674ae71dbb5d664eda93e3965a3dd';
-async function _adminHash(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 
 // ── PIN Security — SHA-256(machineId::salt::pin), machine-bound, never stored plain text ──
 async function _hashPin(pin){
@@ -5214,13 +5090,6 @@ async function _verifyPin(user,entered){
   if(user.pin===entered){user.pin=await _hashPin(entered);saveDB();return true;}
   return false;
 }
-
-// Admin brute-force guard — persisted in sessionStorage so page refresh doesn't reset it
-function _agGet(){try{return JSON.parse(sessionStorage.getItem('_ag')||'{"count":0,"lockedUntil":0}');}catch{return{count:0,lockedUntil:0};}}
-function _agSet(g){sessionStorage.setItem('_ag',JSON.stringify(g));}
-function _adminLockCheck(errFn){const g=_agGet();const now=Date.now();if(g.lockedUntil>now){const m=Math.ceil((g.lockedUntil-now)/60000);errFn('Too many attempts. Try again in '+m+' min.');return false;}return true;}
-function _adminFailure(errFn){const g=_agGet();g.count++;if(g.count>=5){g.lockedUntil=Date.now()+15*60*1000;g.count=0;_agSet(g);errFn('5 failed attempts - locked for 15 minutes.');}else{_agSet(g);errFn('Incorrect password. '+(5-g.count)+' attempt'+(5-g.count===1?'':'s')+' remaining.');}}
-function _adminSuccess(){const g={count:0,lockedUntil:0};_agSet(g);sessionStorage.setItem('_sa',Date.now().toString());}
 
 // ── Admin DB (separate from main app DB) ──
 const ADMIN_STORE_KEY = 'shoperpro_admin_v1';
@@ -5401,7 +5270,7 @@ function showPortalSelect(){
   var _migPending=localStorage.getItem('_sproMigPending');
   if(_migPending){showMigrationWelcomeScreen();return;}
   // Hide every possible screen before showing portal
-  ['web-login-screen','admin-login-screen','admin-panel','suspended-screen','welcome-back-screen','new-user-screen',
+  ['web-login-screen','suspended-screen','welcome-back-screen','new-user-screen',
    'activation-screen','setup-pin-screen','user-select-screen','pin-login-screen','forgot-pin-screen','app'].forEach(function(id){
     var el=document.getElementById(id);
     if(el){ el.style.display='none'; el.classList.add('hidden'); }
@@ -5424,10 +5293,8 @@ function showPortalSelect(){
   if(dlMsg)dlMsg.textContent=anyAvail?'Click to download the desktop version for the best offline experience':'Desktop downloads coming soon - contact your admin for the latest installer.';
   var el=document.getElementById('portal-select-screen'); if(el)el.style.display='flex';
   var isWeb=!!SHOPERPRO_API_URL;
-  // Desktop: show only Existing User + New User. Web: show all 4.
-  var admItem=document.getElementById('pss-item-admin');
+  // Desktop: show only Existing User + New User. Web: also shows Try Demo.
   var demoItem=document.getElementById('pss-item-demo');
-  if(admItem)admItem.style.display=isWeb?'flex':'none';
   if(demoItem)demoItem.style.display=isWeb?'flex':'none';
   // Labels
   var existingTitle=document.getElementById('pss-existing-title');
@@ -5443,1197 +5310,9 @@ function showPortalSelect(){
 function selectPortal(mode){
   localStorage.setItem('shoperpro_portal_mode', mode);
   document.getElementById('portal-select-screen').style.display='none';
-  if(mode==='admin'){
-    var el=document.getElementById('admin-login-screen'); if(el)el.style.display='flex';
-    var _ap=document.getElementById('adm-pass');if(_ap)_ap.value='';
-    var _ae=document.getElementById('admin-login-error');if(_ae){_ae.style.display='none';_ae.textContent='';}
-    setTimeout(function(){ var p=document.getElementById('adm-pass'); if(p)p.focus(); },100);
-  } else {
-    // 'user' portal: web mode → web login, local/Electron mode → boot flow
-    if(SHOPERPRO_API_URL){ showWebLoginScreen(); }
-    else { continueBootApp(); }
-  }
-}
-
-// ── Admin login / logout ──
-async function adminLogin(){
-  var errEl=document.getElementById('admin-login-error');
-  var showErr=function(m){errEl.textContent=m;errEl.style.display='block';};
-  var pass=document.getElementById('adm-pass').value;
-  if(!pass){showErr('Password required.');return;}
-  if(!_adminLockCheck(showErr))return;
-  if(SHOPERPRO_API_URL){
-    var res=await fetch(SHOPERPRO_API_URL+'/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pass})}).then(function(r){return r.json();}).catch(function(){return {error:'Connection error. Check your network.'};});
-    document.getElementById('adm-pass').value='';
-    if(!res.adminToken){_adminFailure(showErr);return;}
-    ADMIN_PWD_HASH=res.adminToken;
-  } else {
-    var hash=await _adminHash(pass);
-    document.getElementById('adm-pass').value='';
-    if(hash!==_LOCAL_ADMIN_PWD_HASH){_adminFailure(showErr);return;}
-  }
-  _adminSuccess();
-  errEl.style.display='none';
-  document.getElementById('admin-login-screen').style.display='none';
-  loadAdminDB();
-  document.getElementById('admin-panel').style.display='block';
-  document.getElementById('adm-topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
-  // Show Web Users nav item only in web/hosted mode
-  var wuNav=document.getElementById('adm-nav-webusers');if(wuNav)wuNav.style.display=SHOPERPRO_API_URL?'block':'none';
-  var licNav=document.getElementById('adm-nav-licensing');if(licNav)licNav.style.display=SHOPERPRO_API_URL?'block':'none';
-  showAdminPage('adm-dashboard');
-}
-function adminLogout(){
-  document.getElementById('admin-panel').style.display='none';
-  showPortalSelect();
-}
-
-// ── Admin navigation ──
-const ADM_PAGE_META={
-  'adm-dashboard': ['Dashboard','License overview & revenue summary'],
-  'adm-generate':  ['Generate Key','Create a new license key for a customer'],
-  'adm-validate':  ['Validate Key','Check if a key is valid for a machine'],
-  'adm-customers': ['All Customers','View and manage all license holders'],
-  'adm-expiring':  ['Expiring Soon','Licenses expiring within 30 days'],
-  'adm-suspended': ['Suspended Accounts','Paused or terminated tenants'],
-  'adm-pins':      ['User PINs','Reset or clear individual user PINs for the loaded shop'],
-  'adm-webusers':  ['Web Users','Manage all users on the web application'],
-  'adm-registrations':   ['Registrations','Pending self-service signups awaiting approval'],
-  'adm-tenant-licenses': ['Tenant Licenses','Plan, status, expiry, and devices for every hosted tenant'],
-  'adm-settings':  ['Settings','Admin preferences & download links'],
-};
-function showAdminPage(page){
-  document.querySelectorAll('.adm-nav-item').forEach(function(el){ el.classList.remove('active'); if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes("'"+page+"'"))el.classList.add('active'); });
-  var meta=ADM_PAGE_META[page]||['',''];
-  document.getElementById('adm-page-title').textContent=meta[0];
-  document.getElementById('adm-page-sub').textContent=meta[1];
-  var fns={'adm-dashboard':admPageDashboard,'adm-generate':admPageGenerate,'adm-validate':admPageValidate,'adm-customers':admPageCustomers,'adm-expiring':admPageExpiring,'adm-suspended':admPageSuspended,'adm-pins':admPagePins,'adm-webusers':admPageWebUsers,'adm-registrations':admPageRegistrations,'adm-tenant-licenses':admPageTenantLicenses,'adm-settings':admPageSettings};
-  var fn=fns[page]; if(!fn)return;
-  document.getElementById('adm-content').innerHTML=fn();
-  if(page==='adm-generate')admInitGenerate();
-  if(page==='adm-webusers')admLoadWebUsers();
-  if(page==='adm-registrations')admLoadRegistrations();
-  if(page==='adm-tenant-licenses')admLoadTenantLicenses();
-  if(page==='adm-customers'||page==='adm-suspended'||page==='adm-expiring')admRenderCurrentPage(page);
-}
-
-// ── Admin helper functions ──
-function admIsActive(c){ if(c.status==='paused'||c.status==='terminated')return false; if(c.plan==='lifetime')return true; if(!c.expiryDate)return false; return new Date(c.expiryDate)>=new Date(new Date().toDateString()); }
-function admDaysLeft(c){ if(c.plan==='lifetime')return Infinity; if(!c.expiryDate)return 0; return Math.max(0,Math.round((new Date(c.expiryDate)-new Date(new Date().toDateString()))/(86400000))); }
-function admPlanBadge(p){ return{monthly:'bg-blue',halfyearly:'bg-purple',yearly:'bg-gold',lifetime:'bg-green'}[p]||'bg-blue'; }
-function admStatusBadge(c){ if(c.status==='terminated')return'<span class="badge bg-red">Terminated</span>'; if(c.status==='paused')return'<span class="badge bg-orange">Paused</span>'; return admIsActive(c)?'<span class="badge bg-green">Active</span>':'<span class="badge bg-red">Expired</span>'; }
-
-// ── Admin Dashboard ──
-function admPageDashboard(){
-  var total=ADMIN_DB.customers.length;
-  var active=ADMIN_DB.customers.filter(c=>admIsActive(c)).length;
-  var expired=ADMIN_DB.customers.filter(c=>!admIsActive(c)&&c.status!=='paused'&&c.status!=='terminated').length;
-  var paused=ADMIN_DB.customers.filter(c=>c.status==='paused'||c.status==='terminated').length;
-  var exp30=ADMIN_DB.customers.filter(c=>{ if(!admIsActive(c)||c.plan==='lifetime')return false; return admDaysLeft(c)<=30; }).length;
-  var revenue=ADMIN_DB.customers.reduce(function(s,c){return s+(c.revenue||0);},0);
-  var cur=ADMIN_DB.settings.currency||'₹';
-  var recent=ADMIN_DB.customers.slice().reverse().slice(0,5);
-  return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px">
-    ${[['Total','bg-blue',total,'All time'],['Active','bg-green',active,'Currently valid'],['Expired','bg-red',expired,'Need renewal'],['Expiring 30d','bg-orange',exp30,'Soon'],['Revenue','bg-gold',cur+revenue.toLocaleString('en-IN'),'Collected'],['Suspended','bg-purple',paused,'Paused/Terminated']].map(function(s){
-      return `<div class="card" style="text-align:center;position:relative;overflow:hidden"><div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${s[0]}</div><div style="font-size:22px;font-weight:800;color:var(--accent)">${s[2]}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">${s[3]}</div></div>`;
-    }).join('')}
-  </div>
-  ${exp30>0?`<div class="alert alert-warn" style="margin-bottom:16px">⏳ <strong>${exp30} license${exp30>1?'s':''}</strong> expiring within 30 days - <a href="#" onclick="showAdminPage('adm-expiring')" style="color:var(--orange)">view →</a></div>`:''}
-  <div class="card"><div class="card-header"><div class="card-title">Recent Customers</div><button class="btn btn-ghost btn-sm" onclick="showAdminPage('adm-customers')">View all</button></div>
-  ${recent.length===0?'<div style="color:var(--text3);font-size:12px">No customers yet.</div>':`<div class="tbl-wrap"><table><thead><tr><th>Shop</th><th>Plan</th><th>Status</th><th>Days Left</th></tr></thead><tbody>
-    ${recent.map(function(c){return`<tr><td><strong style="font-size:12px">${esc(c.shopName)}</strong><br><span style="font-size:10px;color:var(--text3)">${esc(c.ownerName)}</span></td><td><span class="badge ${admPlanBadge(c.plan)}">${PLANS[c.plan]?.label||c.plan}</span></td><td>${admStatusBadge(c)}</td><td style="font-family:var(--mono);font-size:12px">${c.plan==='lifetime'?'∞':admDaysLeft(c)+'d'}</td></tr>`;}).join('')}
-  </tbody></table></div>`}</div>`;
-}
-
-// ── Generate Key Page ──
-var _admSelectedPlan='monthly';
-var _admRenewId=null; // set when renewing existing customer
-var _admLicType='desktop'; // 'desktop' = machine-locked, 'web' = hosted, no machine ID
-var WEB_LICENSE_MID='WEBHOSTEDNOMID00'; // fixed 16-char placeholder used when generating web/hosted keys
-function admPageGenerate(){
-  var cur=ADMIN_DB.settings.currency||'₹';
-  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:960px">
-    <div class="card">
-      <div class="card-title">Customer Information</div>
-      <div class="form-group"><label class="form-label">Shop Name *</label><input class="form-control" id="ag-shop" placeholder="e.g. Dada Mobile Store" maxlength="80"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div class="form-group"><label class="form-label">Owner Name *</label><input class="form-control" id="ag-owner" placeholder="Full name" maxlength="60"></div>
-        <div class="form-group"><label class="form-label">Phone</label><input class="form-control" id="ag-phone" placeholder="10-digit" type="tel" maxlength="10"></div>
-      </div>
-      <div class="form-group"><label class="form-label">City</label><input class="form-control" id="ag-city" placeholder="e.g. Mehsana, Gujarat"></div>
-      <div class="form-group"><label class="form-label">Notes</label><input class="form-control" id="ag-notes" placeholder="Optional"></div>
-      <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
-      <div class="card-title">License Type *</div>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button type="button" class="btn ${_admLicType==='desktop'?'btn-primary':'btn-ghost'}" id="ag-lictype-desktop" style="flex:1;justify-content:center;font-size:12px" onclick="admSetLicType('desktop')">🖥️ Desktop (Machine-Locked)</button>
-        <button type="button" class="btn ${_admLicType==='web'?'btn-primary':'btn-ghost'}" id="ag-lictype-web" style="flex:1;justify-content:center;font-size:12px" onclick="admSetLicType('web')">🌐 Web / Hosted (No Machine ID)</button>
-      </div>
-      <div id="ag-machine-wrap" style="${_admLicType==='web'?'display:none':''}">
-        <div class="card-title">Machine ID *</div>
-        <div class="alert alert-info" style="margin-bottom:12px;font-size:11px">Ask customer to share their Machine ID from Settings → License tab.</div>
-        <div class="form-group"><label class="form-label">Machine ID</label>
-          <div style="display:flex;gap:8px"><input class="form-control" id="ag-machine" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform:uppercase;font-family:var(--mono)" maxlength="19" oninput="admMachineInput(this)">
-          <button class="btn btn-ghost" onclick="navigator.clipboard.readText().then(t=>{document.getElementById('ag-machine').value=t.trim().toUpperCase();})">📋</button></div>
-        </div>
-      </div>
-      <div id="ag-web-note" class="alert alert-info" style="font-size:11px;${_admLicType==='web'?'':'display:none'}">This key is not tied to any device. The customer enters it on the web "New Shop Setup" screen — no Machine ID needed.</div>
-    </div>
-    <div>
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-title">Select Plan</div>
-        <div class="adm-plan-grid" id="adm-plan-grid">
-          ${Object.entries(PLANS).map(function([id,p]){var isTest=!!p.testOnly;return`<div class="adm-plan-card${id===_admSelectedPlan?' selected':''}${isTest?' adm-plan-test':''}" id="aplan-${id}" onclick="admSelectPlan('${id}')" style="${isTest?'border-style:dashed;opacity:.85':''}"><div class="apc-name">${p.label}${isTest?'<span style="font-size:8px;background:var(--orange);color:#fff;border-radius:3px;padding:1px 4px;margin-left:4px;vertical-align:middle">TEST</span>':''}</div><div class="apc-days">${id==='lifetime'?'Forever':p.days===1?'1 day':p.days+' days'}</div><div class="apc-price">${isTest?'<span style="font-size:9px;color:var(--text3)">Testing only</span>':cur+(ADMIN_DB.settings.plans[id]||p.price).toLocaleString('en-IN')}</div></div>`;}).join('')}
-        </div>
-        <div id="adm-plan-info" style="margin-top:10px;font-size:11px;color:var(--text3)"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Generated Key</div>
-        <div id="adm-key-output"><div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">Fill the form and click Generate →</div></div>
-        <button class="btn btn-gold" style="width:100%;justify-content:center;padding:12px;font-size:13px;margin-top:6px" onclick="admDoGenerate()">⚡ Generate License Key</button>
-      </div>
-    </div>
-  </div>`;
-}
-function admInitGenerate(){ admUpdatePlanInfo(); }
-function admSetLicType(type){
-  _admLicType=type;
-  var dBtn=document.getElementById('ag-lictype-desktop'),wBtn=document.getElementById('ag-lictype-web');
-  if(dBtn)dBtn.className='btn '+(type==='desktop'?'btn-primary':'btn-ghost');
-  if(wBtn)wBtn.className='btn '+(type==='web'?'btn-primary':'btn-ghost');
-  var mWrap=document.getElementById('ag-machine-wrap'),wNote=document.getElementById('ag-web-note');
-  if(mWrap)mWrap.style.display=type==='web'?'none':'';
-  if(wNote)wNote.style.display=type==='web'?'':'none';
-}
-function admMachineInput(el){ let v=el.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,16); el.value=v.match(/.{1,4}/g)?.join('-')||v; }
-function admSelectPlan(plan){ _admSelectedPlan=plan; document.querySelectorAll('.adm-plan-card').forEach(c=>c.classList.remove('selected')); var el=document.getElementById('aplan-'+plan); if(el)el.classList.add('selected'); admUpdatePlanInfo(); }
-function admUpdatePlanInfo(){ var info=document.getElementById('adm-plan-info'); if(!info)return; var p=PLANS[_admSelectedPlan]; if(!p)return; var isTest=!!p.testOnly; var expStr=isTest?'⚠ Test plan - expires '+new Date(Date.now()+p.days*86400000).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):_admSelectedPlan==='lifetime'?'✓ Lifetime - never expires':'✓ Valid for '+p.days+' days from today (expires '+new Date(Date.now()+p.days*86400000).toLocaleDateString('en-IN')+')'; info.textContent=expStr; info.style.color=isTest?'var(--orange)':'var(--text3)'; }
-async function admDoGenerate(){
-  var shopName=(document.getElementById('ag-shop')||{value:''}).value.trim();
-  var ownerName=(document.getElementById('ag-owner')||{value:''}).value.trim();
-  var phone=(document.getElementById('ag-phone')||{value:''}).value.replace(/\D/g,'');
-  var city=(document.getElementById('ag-city')||{value:''}).value.trim();
-  var notes=(document.getElementById('ag-notes')||{value:''}).value.trim();
-  var isWebLic=(_admLicType==='web');
-  var machineId=isWebLic?WEB_LICENSE_MID:(document.getElementById('ag-machine')||{value:''}).value.trim().toUpperCase();
-  if(!shopName||!ownerName){toast('Shop name and owner name are required','error');return;}
-  if(!isWebLic){ var midClean=machineId.replace(/-/g,''); if(midClean.length!==16){toast('Machine ID must be 16 characters','error');return;} }
-  var genBtn=document.querySelector('[onclick="admDoGenerate()"]');
-  if(genBtn){genBtn.disabled=true;genBtn.textContent='Generating...';}
-  try{
-    var isRenew=(_admRenewId!==null);
-    var custIdForKey=isRenew?_admRenewId:ADMIN_DB.nextId;
-    var key;
-    if(typeof generateKey==='function'){
-      // Electron / offline console — crypto engine runs locally
-      key=generateKey(machineId,_admSelectedPlan,'CUST'+custIdForKey);
-    } else {
-      // Web console — secret lives only on the server; ask it to mint the key
-      var genRes=await fetch(SHOPERPRO_API_URL+'/api/admin/generate-key',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-Admin-Key':ADMIN_PWD_HASH},
-        body:JSON.stringify({plan:_admSelectedPlan,machineId:isWebLic?undefined:machineId})
-      }).then(function(r){return r.json();});
-      if(genRes.error){ toast(genRes.error,'error'); if(genBtn){genBtn.disabled=false;genBtn.textContent='⚡ Generate License Key';} return; }
-      key=genRes.key;
-    }
-    var machineIdForRecord=isWebLic?'WEB / HOSTED (no device lock)':machineId;
-    var plan=PLANS[_admSelectedPlan];
-    var expiryDate=new Date(); expiryDate.setDate(expiryDate.getDate()+plan.days);
-    var expiryStr=_admSelectedPlan==='lifetime'?'lifetime':expiryDate.toISOString().split('T')[0];
-    var displayId;
-    if(isRenew){
-      var existing=ADMIN_DB.customers.find(x=>x.id===_admRenewId);
-      if(existing){
-        existing.shopName=shopName; existing.ownerName=ownerName; existing.phone=phone;
-        existing.city=city; existing.notes=notes; existing.machineId=machineIdForRecord;
-        existing.plan=_admSelectedPlan; existing.key=key; existing.status='active';
-        existing.expiryDate=expiryStr;
-        existing.revenue=(existing.revenue||0)+(ADMIN_DB.settings.plans[_admSelectedPlan]||plan.price);
-        displayId=existing.id;
-      }
-      _admRenewId=null;
-    } else {
-      var customer={id:ADMIN_DB.nextId++,shopName,ownerName,phone,city,notes,machineId:machineIdForRecord,plan:_admSelectedPlan,key,status:'active',issuedDate:new Date().toISOString().split('T')[0],expiryDate:expiryStr,revenue:ADMIN_DB.settings.plans[_admSelectedPlan]||plan.price};
-      ADMIN_DB.customers.push(customer);
-      displayId=customer.id;
-    }
-    saveAdminDB();
-    var out=document.getElementById('adm-key-output');
-    if(out)out.innerHTML=`<div class="adm-key-display"><div class="adm-key-text">${key}</div><div style="font-size:11px;color:var(--text3);margin-top:8px">${plan.label} · ${_admSelectedPlan==='lifetime'?'Never expires':'Expires '+expiryDate.toLocaleDateString('en-IN')}</div></div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-ghost" onclick="navigator.clipboard.writeText('${key}').then(()=>toast('Copied!','success'))" style="flex:1;justify-content:center">📋 Copy Key</button><button class="btn btn-wa" onclick="admSendWA('${key}','${esc(shopName)}','${esc(ownerName)}','${phone}','${_admSelectedPlan}')" style="flex:1;justify-content:center">💬 WhatsApp</button></div><div class="alert alert-success" style="margin-top:12px;font-size:11px">✓ ${isRenew?'Renewed':'Key saved'}. Customer ID: #${displayId}</div>`;
-    toast((isRenew?'Renewed ':'Key generated for ')+escHtml(shopName),'success');
-  }catch(e){ toast('Failed: '+e.message,'error'); }
-  finally{ if(genBtn){genBtn.disabled=false;genBtn.textContent='⚡ Generate License Key';} }
-}
-function admSendWA(key,shop,owner,phone,plan){
-  var cc=ADMIN_DB.settings.countryCode||'91';
-  var ph=phone.replace(/[^0-9]/g,''); if(ph&&!ph.startsWith(cc))ph=cc+ph;
-  var msg='Hello '+owner+'! 🙏\n\nYour *ShopERP Pro* license key:\n\n🔑 *'+key+'*\n\nPlan: '+(PLANS[plan]?.label||plan)+'\n\nSteps:\n1. Open ShopERP Pro\n2. Go to Settings → License\n3. Enter this key and click Activate ✓\n\nContact: '+(ADMIN_DB.settings.supportPhone||'')+'\n_ShopERP Pro Team_';
-  var url=ph?'https://wa.me/'+ph+'?text='+encodeURIComponent(msg):'https://wa.me/?text='+encodeURIComponent(msg);
-  window.open(url,'_blank');
-}
-
-// ── Validate Key Page ──
-function admPageValidate(){
-  return`<div style="max-width:600px"><div class="card" style="margin-bottom:16px"><div class="card-title">Validate License Key</div>
-    <div class="form-group"><label class="form-label">License Key</label><div style="display:flex;gap:8px"><input class="form-control" id="av-key" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform:uppercase;font-family:var(--mono);flex:1" maxlength="19"><button class="btn btn-ghost" onclick="navigator.clipboard.readText().then(t=>{document.getElementById('av-key').value=t.trim().toUpperCase();})">📋</button></div></div>
-    <div class="form-group"><label class="form-label">Machine ID <span style="color:var(--text3);font-weight:400">(leave blank for a Web/Hosted key)</span></label><div style="display:flex;gap:8px"><input class="form-control" id="av-machine" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform:uppercase;font-family:var(--mono);flex:1" maxlength="19" oninput="admMachineInput(this)"><button class="btn btn-ghost" onclick="navigator.clipboard.readText().then(t=>{document.getElementById('av-machine').value=t.trim().toUpperCase();})">📋</button></div></div>
-    <button class="btn btn-primary" onclick="admDoValidate()" style="width:100%;justify-content:center;padding:10px">🔍 Validate Key</button></div>
-    <div id="adm-validate-result"></div></div>`;
-}
-async function admDoValidate(){
-  var key=(document.getElementById('av-key')||{value:''}).value.trim();
-  var mid=(document.getElementById('av-machine')||{value:''}).value.trim();
-  var result=document.getElementById('adm-validate-result'); if(!result)return;
-  var r;
-  if(typeof validateKey==='function'){
-    r=validateKey(key,mid||WEB_LICENSE_MID);
-  } else {
-    result.innerHTML='<div style="padding:12px;color:var(--text3);font-size:12px">Checking…</div>';
-    r=await fetch(SHOPERPRO_API_URL+'/api/admin/validate-key',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-Admin-Key':ADMIN_PWD_HASH},
-      body:JSON.stringify({key:key,machineId:mid||undefined})
-    }).then(function(resp){return resp.json();}).catch(function(){return {valid:false,message:'Connection error. Check your network.'};});
-  }
-  if(r.valid&&!r.expired) result.innerHTML='<div class="alert alert-success"><strong>✓ Valid License</strong><br>Plan: '+r.planLabel+' · Expires: '+r.expiryDate+' · '+(r.message||(r.daysLeft+' days remaining'))+'</div>';
-  else if(r.valid&&r.expired) result.innerHTML='<div class="alert alert-warn"><strong>⚠ Expired</strong><br>'+(r.message||('Expired on '+r.expiryDate))+'</div>';
-  else result.innerHTML='<div class="alert alert-danger"><strong>✕ Invalid Key</strong><br>'+r.message+'</div>';
-}
-
-// ── Customers Page ──
-function admPageCustomers(){
-  var all=ADMIN_DB.customers;
-  var nActive=all.filter(function(c){return admIsActive(c)&&c.status!=='paused'&&c.status!=='terminated';}).length;
-  var nExpiring=all.filter(function(c){return admIsActive(c)&&admDaysLeft(c)<=7&&c.plan!=='lifetime'&&c.status==='active';}).length;
-  var nPaused=all.filter(function(c){return c.status==='paused'||c.status==='terminated';}).length;
-  return`
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-    <div>
-      <div style="font-size:17px;font-weight:800;color:var(--text)">Customer Licenses</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:2px">${all.length} total registered shops</div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost btn-sm" onclick="admExportCSV()" style="font-size:11px">⬇ CSV</button>
-      <button class="btn btn-primary btn-sm" onclick="showAdminPage('adm-generate')" style="font-size:12px;font-weight:700">＋ New License</button>
-    </div>
-  </div>
-
-  <div class="admin-stat-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
-    <div style="background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(5,150,105,.08));border:1px solid rgba(16,185,129,.25);border-radius:12px;padding:14px 16px;text-align:center">
-      <div style="font-size:26px;font-weight:800;color:#10B981">${nActive}</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:2px">Active</div>
-    </div>
-    <div style="background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(217,119,6,.08));border:1px solid rgba(245,158,11,.25);border-radius:12px;padding:14px 16px;text-align:center">
-      <div style="font-size:26px;font-weight:800;color:#F59E0B">${nExpiring}</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:2px">Expiring Soon</div>
-    </div>
-    <div style="background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(185,28,28,.08));border:1px solid rgba(239,68,68,.25);border-radius:12px;padding:14px 16px;text-align:center">
-      <div style="font-size:26px;font-weight:800;color:#EF4444">${nPaused}</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:2px">Paused / Stopped</div>
-    </div>
-  </div>
-
-  <div style="display:flex;gap:8px;margin-bottom:16px">
-    <input class="search-input" id="adm-cust-search" placeholder="🔍  Search shop, owner, phone..." oninput="admFilterCustomers()" style="flex:1;font-size:13px">
-    <select class="form-control" id="adm-cust-status" style="width:140px;font-size:12px" onchange="admFilterCustomers()">
-      <option value="">All Status</option>
-      <option value="active">✅ Active</option>
-      <option value="expired">⛔ Expired</option>
-      <option value="paused">⏸ Paused</option>
-      <option value="terminated">🚫 Terminated</option>
-    </select>
-  </div>
-
-  <div id="adm-cust-tbody" style="display:flex;flex-direction:column;gap:10px"></div>`;
-}
-function admRenderCurrentPage(page){
-  if(page==='adm-customers')admRenderCustomers(ADMIN_DB.customers);
-  if(page==='adm-expiring')admRenderExpiring();
-  if(page==='adm-suspended')admRenderSuspended();
-}
-function admFilterCustomers(){
-  var q=(document.getElementById('adm-cust-search')||{value:''}).value.toLowerCase();
-  var st=(document.getElementById('adm-cust-status')||{value:''}).value;
-  var list=ADMIN_DB.customers.filter(function(c){
-    var match=!q||(c.shopName||'').toLowerCase().includes(q)||(c.ownerName||'').toLowerCase().includes(q)||(c.city||'').toLowerCase().includes(q)||(c.phone||'').includes(q);
-    var statusOk=!st||
-      (st==='active'&&admIsActive(c)&&c.status!=='paused'&&c.status!=='terminated')||
-      (st==='expired'&&!admIsActive(c)&&c.status!=='paused'&&c.status!=='terminated')||
-      (st==='paused'&&c.status==='paused')||(st==='terminated'&&c.status==='terminated');
-    return match&&statusOk;
-  });
-  admRenderCustomers(list);
-}
-function _admInitials(name){
-  if(!name)return'?';
-  var w=name.trim().split(/\s+/);
-  return w.length>=2?(w[0][0]+w[1][0]).toUpperCase():name.slice(0,2).toUpperCase();
-}
-function _admAvatarColor(name){
-  var colors=['#6366F1','#8B5CF6','#EC4899','#F59E0B','#10B981','#3B82F6','#EF4444','#14B8A6'];
-  var h=0;for(var i=0;i<(name||'').length;i++)h=(h*31+name.charCodeAt(i))%colors.length;
-  return colors[Math.abs(h)];
-}
-function admRenderCustomers(list){
-  var wrap=document.getElementById('adm-cust-tbody'); if(!wrap)return;
-  if(!list.length){
-    wrap.innerHTML='<div style="text-align:center;padding:48px;color:var(--text3)"><div style="font-size:32px;margin-bottom:8px">🔍</div><div>No customers found.</div></div>';
-    return;
-  }
-  wrap.innerHTML=list.slice().reverse().map(function(c){
-    var dl=admDaysLeft(c);
-    var isSuspended=c.status==='paused'||c.status==='terminated';
-    var isActive=admIsActive(c)&&!isSuspended;
-    var isLifetime=c.plan==='lifetime';
-    var avatarColor=_admAvatarColor(c.shopName);
-    var initials=_admInitials(c.shopName);
-    // Days-left bar (0-30 day plans get a red/orange/green bar)
-    var barHTML='';
-    if(!isLifetime&&!isSuspended&&isActive){
-      var barPct=Math.min(100,Math.max(0,Math.round(dl/30*100)));
-      var barColor=dl<=3?'#EF4444':dl<=7?'#F59E0B':'#10B981';
-      barHTML=`<div style="margin-top:8px">
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:3px">
-          <span>Days remaining</span><span style="font-weight:700;color:${barColor}">${dl} day${dl!==1?'s':''}</span>
-        </div>
-        <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden">
-          <div style="height:100%;width:${barPct}%;background:${barColor};border-radius:2px;transition:width .3s"></div>
-        </div>
-      </div>`;
-    }
-    // Status chip
-    var statusChip=isSuspended
-      ?`<span style="background:rgba(239,68,68,.15);color:#EF4444;border:1px solid rgba(239,68,68,.3);border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700">${c.status==='paused'?'⏸ PAUSED':'🚫 TERMINATED'}</span>`
-      :isActive
-        ?`<span style="background:rgba(16,185,129,.15);color:#10B981;border:1px solid rgba(16,185,129,.3);border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700">● ACTIVE</span>`
-        :`<span style="background:rgba(239,68,68,.12);color:#EF4444;border:1px solid rgba(239,68,68,.2);border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700">⛔ EXPIRED</span>`;
-    // Plan chip
-    var planColors={lifetime:'#F59E0B',yearly:'#6366F1',halfyear:'#8B5CF6',quarterly:'#3B82F6',monthly:'#10B981',weekly:'#EC4899',daily:'#EF4444'};
-    var planColor=planColors[c.plan]||'#6366F1';
-    var planChip=`<span style="background:${planColor}22;color:${planColor};border:1px solid ${planColor}44;border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700">${(PLANS[c.plan]?.label||c.plan).toUpperCase()}</span>`;
-    // Action buttons
-    var actionBtns=isSuspended
-      ?`<button onclick="admRestoreCustomer(${c.id})" style="${_admActBtn('#10B981')}">✅ Restore</button>`
-      :`<button onclick="admPauseCustomer(${c.id})" style="${_admActBtn('#F59E0B')}">⏸ Pause</button>
-        <button onclick="admTerminateCustomer(${c.id})" style="${_admActBtn('#EF4444')}">🚫 Stop</button>`;
-    return`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .2s" onmouseover="this.style.borderColor='rgba(99,102,241,.4)'" onmouseout="this.style.borderColor='var(--border)'">
-      <div style="display:flex;align-items:flex-start;gap:14px">
-        <!-- Avatar -->
-        <div style="flex-shrink:0;width:46px;height:46px;border-radius:12px;background:${avatarColor};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff">
-          ${initials}
-        </div>
-        <!-- Main info -->
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-            <span style="font-size:14px;font-weight:800;color:var(--text)">${esc(c.shopName)}</span>
-            <span style="font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--bg3);padding:1px 6px;border-radius:4px">#${c.id}</span>
-            ${statusChip}
-            ${planChip}
-          </div>
-          <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text2)">
-            <span>👤 ${esc(c.ownerName||'-')}</span>
-            <span>📞 <span style="font-family:var(--mono)">${c.phone||'-'}</span></span>
-            ${c.city?`<span>📍 ${esc(c.city)}</span>`:''}
-            <span>📅 <span style="font-family:var(--mono)">${isLifetime?'∞ Lifetime':(c.expiryDate||'-')}</span></span>
-          </div>
-          ${c.notes?`<div style="margin-top:6px;font-size:11px;color:var(--text3);font-style:italic">${esc(c.notes)}</div>`:''}
-          ${barHTML}
-        </div>
-        <!-- Actions -->
-        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">
-          <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-            <button onclick="admRenewCustomer(${c.id})" style="${_admActBtn('#6366F1')}">🔄 Renew</button>
-            <button onclick="admShowKey(${c.id})" style="${_admActBtn('#8B5CF6')}">🔑 Key</button>
-            ${actionBtns}
-            <button onclick="admDeleteCustomer(${c.id})" style="${_admActBtn('#EF4444','ghost')}">🗑</button>
-          </div>
-          ${c.machineId?`<div style="font-size:10px;color:var(--text3);font-family:var(--mono);text-align:right">${c.machineId}</div>`:''}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-function _admActBtn(color,ghost){
-  if(ghost)return`background:none;border:1px solid ${color}44;color:${color};border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer`;
-  return`background:${color}22;border:1px solid ${color}44;color:${color};border-radius:8px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer`;
-}
-
-// ── Glass Modal Helper (21st.dev crystal style) ─────────────────────────────────
-function _glassModal(opts){
-  var ex=document.getElementById('_glass-modal');if(ex)ex.remove();
-  if(!document.getElementById('_gm-style')){
-    var s=document.createElement('style');s.id='_gm-style';
-    s.textContent='@keyframes _gmOv{from{opacity:0}to{opacity:1}}@keyframes _gmCard{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}';
-    document.head.appendChild(s);
-  }
-  var ov=document.createElement('div');
-  ov.id='_glass-modal';
-  ov.style.cssText='position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);animation:_gmOv .15s ease';
-  var borderColor=opts.danger?'rgba(239,68,68,.3)':'rgba(255,255,255,.12)';
-  var accentGlow=opts.danger?'0 0 60px rgba(239,68,68,.12)':'0 0 60px rgba(99,102,241,.08)';
-  var topLine=opts.danger?'rgba(239,68,68,.4)':'rgba(255,255,255,.18)';
-  var fieldsHTML=(opts.fields||[]).map(function(f){
-    return`<div style="margin-bottom:16px">
-      <label style="display:block;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.8px;text-transform:uppercase;margin-bottom:7px">${f.label||''}</label>
-      <input id="${f.id}" type="${f.type||'text'}" value="${(f.value||'').replace(/"/g,'&quot;')}" placeholder="${(f.placeholder||'').replace(/"/g,'&quot;')}"
-        style="width:100%;box-sizing:border-box;padding:12px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:11px;color:#fff;font-size:13px;outline:none;font-family:inherit;transition:all .15s;caret-color:#fff"
-        onfocus="this.style.borderColor='rgba(255,255,255,.3)';this.style.background='rgba(255,255,255,.09)'"
-        onblur="this.style.borderColor='rgba(255,255,255,.1)';this.style.background='rgba(255,255,255,.06)'"
-        onkeydown="if(event.key==='Escape'){document.getElementById('_glass-modal').remove();}">
-    </div>`;
-  }).join('');
-  var actionsHTML=(opts.actions||[]).map(function(a,i){
-    var fn='_gmAct'+i;window[fn]=a.onClick;
-    return`<button onclick="_gmAct${i}()" style="${a.style};border:none;border-radius:11px;padding:12px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.2px;transition:filter .15s" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter='none'">${a.label}</button>`;
-  }).join('');
-  ov.innerHTML=`<div style="position:relative;background:linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.03));border:1px solid ${borderColor};border-radius:22px;padding:30px 28px 24px;max-width:400px;width:92%;box-shadow:0 40px 100px rgba(0,0,0,.55),${accentGlow},inset 0 1px 0 rgba(255,255,255,.08);animation:_gmCard .2s cubic-bezier(.34,1.56,.64,1);overflow:hidden">
-    <div style="position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,${topLine},transparent)"></div>
-    ${opts.icon?`<div style="text-align:center;font-size:40px;margin-bottom:14px;filter:drop-shadow(0 4px 12px ${opts.iconColor||'rgba(255,255,255,.2))'})">${opts.icon}</div>`:''}
-    <div style="text-align:center;font-size:16px;font-weight:800;color:#fff;margin-bottom:${opts.subtitle?'6px':'20px'};letter-spacing:-.2px">${opts.title||''}</div>
-    ${opts.subtitle?`<div style="text-align:center;font-size:12px;color:rgba(255,255,255,.4);margin-bottom:22px;line-height:1.6">${opts.subtitle}</div>`:''}
-    ${fieldsHTML}
-    <div style="display:flex;gap:8px;margin-top:4px">${actionsHTML}</div>
-    <div style="position:absolute;inset:0;border-radius:22px;background:radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.04),transparent 70%);pointer-events:none"></div>
-  </div>`;
-  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
-  document.body.appendChild(ov);
-  setTimeout(function(){var fi=ov.querySelector('input');if(fi)fi.focus();},80);
-}
-
-// ── Customer Actions ──
-function admPauseCustomer(id){
-  var c=ADMIN_DB.customers.find(x=>x.id===id); if(!c)return;
-  _glassModal({
-    icon:'⏸',iconColor:'rgba(245,158,11,.4)',
-    title:'Pause Account',
-    subtitle:`<strong style="color:rgba(255,255,255,.8)">${esc(c.shopName)}</strong><br>Customer will be blocked until you restore.`,
-    fields:[{id:'_gm-reason',label:'Reason (shown to customer)',placeholder:'e.g. Payment overdue',value:'Payment overdue'}],
-    actions:[
-      {label:'Cancel',style:'flex:1;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)',onClick:function(){document.getElementById('_glass-modal').remove();}},
-      {label:'⏸ Pause',style:'flex:2;background:linear-gradient(135deg,#F59E0B,#D97706);color:#000',onClick:function(){
-        var r=(document.getElementById('_gm-reason')||{}).value||'Account paused';
-        document.getElementById('_glass-modal').remove();
-        c.status='paused';c.suspendReason=r;saveAdminDB();showAdminPage('adm-customers');
-        _admServerStatus(c.shopName,'paused',r);
-        toast('Account paused for '+escHtml(c.shopName),'info');
-      }}
-    ]
-  });
-}
-function admTerminateCustomer(id){
-  var c=ADMIN_DB.customers.find(x=>x.id===id); if(!c)return;
-  _glassModal({
-    icon:'🚫',iconColor:'rgba(239,68,68,.4)',danger:true,
-    title:'Terminate Account',
-    subtitle:`<strong style="color:rgba(255,255,255,.8)">${esc(c.shopName)}</strong><br>Customer will be permanently blocked. Restore anytime.`,
-    fields:[{id:'_gm-reason',label:'Reason (shown to customer)',placeholder:'e.g. License not renewed',value:'License not renewed'}],
-    actions:[
-      {label:'Cancel',style:'flex:1;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)',onClick:function(){document.getElementById('_glass-modal').remove();}},
-      {label:'🚫 Terminate',style:'flex:2;background:linear-gradient(135deg,#EF4444,#B91C1C);color:#fff',onClick:function(){
-        var r=(document.getElementById('_gm-reason')||{}).value||'Account terminated';
-        document.getElementById('_glass-modal').remove();
-        c.status='terminated';c.suspendReason=r;saveAdminDB();showAdminPage('adm-customers');
-        _admServerStatus(c.shopName,'terminated',r);
-        toast('Account terminated for '+escHtml(c.shopName),'error');
-      }}
-    ]
-  });
-}
-function admRestoreCustomer(id){
-  var c=ADMIN_DB.customers.find(x=>x.id===id); if(!c)return;
-  c.status='active'; c.suspendReason=''; saveAdminDB(); showAdminPage('adm-customers');
-  _admServerStatus(c.shopName,'active','');
-  toast('Account restored for '+escHtml(c.shopName),'success');
-}
-function _admServerStatus(shopName, status, reason){
-  if(!SHOPERPRO_API_URL) return; // local mode - no server to call
-  fetch(SHOPERPRO_API_URL+'/api/admin/tenant/status',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','X-Admin-Key':ADMIN_PWD_HASH},
-    body:JSON.stringify({shopName:shopName,status:status,reason:reason||''})
-  }).then(function(r){
-    if(r.ok) toast('Server updated: '+escHtml(shopName)+' is now '+status,'success');
-    else r.json().then(function(b){toast('Server: '+(b.error||'Could not update'),'error');}).catch(function(){});
-  }).catch(function(){ toast('Server unreachable - local change saved only','warn'); });
-}
-function admRenewCustomer(id){
-  var c=ADMIN_DB.customers.find(x=>x.id===id); if(!c)return;
-  _admRenewId=id;
-  showAdminPage('adm-generate');
-  // Autofill form with customer details
-  var set=function(fid,val){var el=document.getElementById(fid);if(el)el.value=val||'';};
-  set('ag-shop',c.shopName); set('ag-owner',c.ownerName);
-  set('ag-phone',c.phone||''); set('ag-city',c.city||'');
-  set('ag-notes',c.notes||''); set('ag-machine',c.machineId||'');
-  admSelectPlan(c.plan||'monthly');
-  // Show renew context banner
-  var titleEl=document.getElementById('adm-page-title');
-  if(titleEl)titleEl.textContent='Renew License - '+c.shopName;
-  var out=document.getElementById('adm-key-output');
-  if(out)out.innerHTML='<div class="alert alert-info" style="font-size:11px">🔄 Renewing <strong>'+esc(c.shopName)+'</strong> (ID #'+c.id+'). Change plan if needed and click Generate to issue a new key.</div>';
-}
-function admDeleteCustomer(id){
-  var c=ADMIN_DB.customers.find(x=>x.id===id); if(!c)return;
-  if(!confirm('Delete '+c.shopName+'? This cannot be undone.'))return;
-  ADMIN_DB.customers=ADMIN_DB.customers.filter(x=>x.id!==id); saveAdminDB(); showAdminPage('adm-customers'); toast('Deleted','info');
-}
-
-function admShowKey(id){
-  var c=ADMIN_DB.customers.find(function(x){return x.id===id;}); if(!c||!c.key)return;
-  var key=c.key;
-  var phone=(c.phone||'').replace(/\D/g,'');
-  var waMsg=encodeURIComponent('Hi '+c.ownerName+', your ShopERP Pro activation key is:\n\n'+key+'\n\nUse this key to activate your software or reset your PIN.\n\nSupport: +91 94511 00556');
-  var waUrl='https://wa.me/'+(phone?('91'+phone):'')+'?text='+waMsg;
-
-  var ov=document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;display:flex;align-items:center;justify-content:center';
-  ov.innerHTML=`
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:28px 28px 22px;max-width:420px;width:92%;box-shadow:0 24px 60px rgba(0,0,0,.5)">
-      <div style="font-size:13px;font-weight:700;color:var(--text3);letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px">Activation Key</div>
-      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px">${esc(c.shopName)} &nbsp;·&nbsp; ${esc(c.ownerName)}</div>
-
-      <div style="background:var(--bg);border:1.5px solid var(--accent);border-radius:12px;padding:18px 16px;text-align:center;margin-bottom:16px">
-        <div style="font-family:var(--mono);font-size:22px;font-weight:800;letter-spacing:6px;color:var(--accent);word-break:break-all" id="adm-key-display">${esc(key)}</div>
-      </div>
-
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <button onclick="navigator.clipboard.writeText('${key.replace(/'/g,"\\'")}').then(function(){toast('Key copied!','success');})" style="flex:1;padding:10px;background:var(--accent);color:#000;font-weight:700;font-size:13px;border:none;border-radius:10px;cursor:pointer">📋 Copy Key</button>
-        ${phone?`<button onclick="window.open('${waUrl}','_blank')" style="flex:1;padding:10px;background:#25D366;color:#fff;font-weight:700;font-size:13px;border:none;border-radius:10px;cursor:pointer">💬 Send via WhatsApp</button>`:'<button disabled style="flex:1;padding:10px;background:var(--bg);color:var(--text3);font-size:13px;border:1px solid var(--border);border-radius:10px;cursor:not-allowed">💬 No phone on file</button>'}
-      </div>
-      <div style="font-size:10px;color:var(--text3);text-align:center;margin-bottom:14px">Plan: <strong>${PLANS[c.plan]?.label||c.plan}</strong> &nbsp;·&nbsp; Expiry: <strong>${c.plan==='lifetime'?'Lifetime':c.expiryDate||'-'}</strong></div>
-
-      <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;padding:9px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer">Close</button>
-    </div>`;
-  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
-  document.body.appendChild(ov);
-}
-
-// ── Expiring Soon Page ──
-function admPageExpiring(){ return'<div id="adm-expiring-list"></div>'; }
-function admRenderExpiring(){
-  var el=document.getElementById('adm-expiring-list'); if(!el)return;
-  var list=ADMIN_DB.customers.filter(function(c){ if(!admIsActive(c)||c.plan==='lifetime')return false; return admDaysLeft(c)<=30; }).sort(function(a,b){return admDaysLeft(a)-admDaysLeft(b);});
-  if(!list.length){el.innerHTML='<div class="alert alert-success">✓ No licenses expiring within 30 days.</div>';return;}
-  el.innerHTML='<div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table><thead><tr><th>Shop</th><th>Owner</th><th>Plan</th><th>Expiry</th><th>Days Left</th><th>Actions</th></tr></thead><tbody>'+
-    list.map(function(c){var dl=admDaysLeft(c);var dlColor=dl<=7?'var(--red)':dl<=15?'var(--orange)':'var(--text)';return'<tr><td><strong>'+esc(c.shopName)+'</strong></td><td>'+esc(c.ownerName)+'</td><td><span class="badge '+admPlanBadge(c.plan)+'">'+(PLANS[c.plan]?PLANS[c.plan].label:c.plan)+'</span></td><td style="font-family:var(--mono);font-size:11px">'+(c.expiryDate||'-')+'</td><td style="color:'+dlColor+';font-weight:700">'+dl+'d</td><td><button class="btn btn-xs btn-success" onclick="admRenewCustomer('+c.id+')">🔄 Renew</button><button class="btn btn-xs btn-wa" onclick="admSendWA(\''+c.key+'\',\''+esc(c.shopName)+'\',\''+esc(c.ownerName)+'\',\''+(c.phone||'')+'\',\''+c.plan+'\')" style="margin-left:4px">💬</button></td></tr>';}).join('')+
-  '</tbody></table></div></div>';
-}
-
-// ── Suspended Page ──
-function admPageSuspended(){ return'<div id="adm-suspended-list"></div>'; }
-function admRenderSuspended(){
-  var el=document.getElementById('adm-suspended-list'); if(!el)return;
-  var list=ADMIN_DB.customers.filter(function(c){return c.status==='paused'||c.status==='terminated';});
-  if(!list.length){el.innerHTML='<div class="alert alert-success">✓ No suspended accounts.</div>';return;}
-  el.innerHTML='<div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table><thead><tr><th>Shop</th><th>Owner</th><th>Status</th><th>Reason</th><th>Actions</th></tr></thead><tbody>'+
-    list.map(function(c){return`<tr><td><strong>${esc(c.shopName)}</strong></td><td>${esc(c.ownerName)}</td><td>${admStatusBadge(c)}</td><td style="font-size:11px;color:var(--text3)">${esc(c.suspendReason||'-')}</td><td><button class="btn btn-xs btn-success" onclick="admRestoreCustomer(${c.id})">✅ Restore</button></td></tr>`;}).join('')+
-  '</tbody></table></div></div>';
-}
-
-// ── User PINs Page ──
-function admPagePins(){
-  var users=DB.users||[];
-  if(!users.length)return'<div class="card"><p style="color:var(--text2);padding:20px">No users found in current shop data. Open the app once to initialize users.</p></div>';
-  var rows=users.map(function(u){
-    var roleColor=u.role==='owner'?'var(--accent)':u.role==='superadmin'?'var(--red)':'var(--text2)';
-    var phone=(u.phone||'').replace(/\D/g,'');
-    var phoneDisplay=phone?phone:'<span style="color:var(--text3);font-size:10px">not set</span>';
-    var waQuickBtn=phone&&phone.length>=10?'<a href="https://wa.me/'+(phone.length===10?'91':'')+phone+'" target="_blank" class="btn btn-xs btn-wa" style="padding:2px 7px;font-size:10px">💬</a>':'';
-    return'<tr>'+
-      '<td><strong>'+esc(u.name||'')+'</strong></td>'+
-      '<td><span style="font-size:10px;font-weight:700;color:'+roleColor+'">'+esc(u.role||'')+'</span></td>'+
-      '<td><span style="color:'+(u.pinSet?'var(--green)':'var(--red)')+';">'+(u.pinSet?'Set ✓':'Not set')+'</span></td>'+
-      '<td><div style="display:flex;align-items:center;gap:5px">'+phoneDisplay+' '+waQuickBtn+'</div></td>'+
-      '<td>'+
-        '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+
-          '<input type="text" id="pin-new-'+u.id+'" placeholder="6 digits" maxlength="6" inputmode="numeric" pattern="[0-9]*"'+
-            ' style="width:90px;padding:5px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:var(--mono);font-size:15px;letter-spacing:4px;text-align:center">'+
-          '<button class="btn btn-xs btn-primary" onclick="admResetPin('+u.id+')">Set &amp; Share</button>'+
-          '<button class="btn btn-xs btn-ghost" onclick="admClearPin('+u.id+')" title="Force user to create a new PIN on next use">Clear</button>'+
-        '</div>'+
-        '<div id="pin-result-'+u.id+'" style="display:none;margin-top:8px;padding:10px 14px;background:var(--bg3);border:1.5px solid var(--green);border-radius:8px;font-size:13px">'+
-          '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">New PIN for <strong>'+esc(u.name)+'</strong> - share this securely:</div>'+
-          '<div style="display:flex;align-items:center;gap:10px">'+
-            '<span id="pin-show-'+u.id+'" style="font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:6px;color:var(--green)"></span>'+
-            '<button class="btn btn-xs btn-ghost" onclick="admCopyPin(\'pin-show-'+u.id+'\')" title="Copy PIN">📋 Copy</button>'+
-            '<button class="btn btn-xs btn-wa" onclick="admSharePinWA('+u.id+')" title="Send PIN to user\'s registered WhatsApp">💬 Send to User</button>'+
-          '</div>'+
-          (phone?'':'<div style="font-size:10px;color:var(--orange);margin-top:5px">⚠ No WhatsApp number on file - ask user to add it in Settings → Users.</div>')+
-          '<div style="font-size:10px;color:var(--text3);margin-top:4px">User should change their PIN after first login.</div>'+
-        '</div>'+
-      '</td>'+
-    '</tr>';
-  }).join('');
-  return'<div class="card" style="max-width:960px">'+
-    '<div class="card-header"><div class="card-title">🔐 User PINs</div></div>'+
-    '<p style="font-size:12px;color:var(--text3);margin-bottom:14px">'+
-      'Type a new 6-digit PIN and click <strong>Set &amp; Share</strong>. The new PIN is revealed so you can send it directly to the user\'s registered WhatsApp. '+
-      'Use <strong>Clear</strong> to force the user to create their own PIN on next login.'+
-    '</p>'+
-    '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Role</th><th>PIN Status</th><th>WhatsApp</th><th>Reset PIN &amp; Share</th></tr></thead>'+
-    '<tbody>'+rows+'</tbody></table></div></div>';
-}
-function admResetPin(userId){
-  var inp=document.getElementById('pin-new-'+userId);
-  if(!inp){toast('Input not found','error');return;}
-  var newPin=inp.value.replace(/\D/g,'').trim();
-  if(newPin.length!==6){toast('Enter exactly 6 digits','error');inp.focus();return;}
-  var u=(DB.users||[]).find(function(x){return x.id===userId;});
-  if(!u){toast('User not found','error');return;}
-  var _plainPin=newPin;
-  _hashPin(_plainPin).then(function(hashed){
-    _auditLog('pin-reset','user='+u.name+' id='+u.id);
-    u.pin=hashed;u.pinSet=true;_clearLockState(u.id);saveDB();
-  });
-  inp.value='';
-  // Show the plain PIN to owner so they can share it — it is only shown once
-  var resDiv=document.getElementById('pin-result-'+userId);
-  var showEl=document.getElementById('pin-show-'+userId);
-  if(resDiv&&showEl){ showEl.textContent=_plainPin; resDiv.style.display='block'; }
-  toast('PIN reset for '+esc(u.name)+' - share the new PIN with them','success');
-}
-function admCopyPin(elId){
-  var el=document.getElementById(elId);
-  if(!el)return;
-  navigator.clipboard.writeText(el.textContent).then(function(){ toast('PIN copied to clipboard','success'); }).catch(function(){ toast('Copy: '+el.textContent,'info'); });
-}
-function admSharePinWA(userId){
-  var u=(DB.users||[]).find(function(x){return x.id===userId;});
-  var showEl=document.getElementById('pin-show-'+userId);
-  if(!u||!showEl||!showEl.textContent){toast('Reset the PIN first, then click WhatsApp','error');return;}
-  var pin=showEl.textContent;
-  var shopName=(DB.settings&&DB.settings.shopName)||'ShopERP Pro';
-  var msg='Hello '+esc(u.name)+',\n\n'
-    +'Your login PIN for *'+shopName+'* has been reset by the administrator.\n\n'
-    +'🔐 Your new PIN is:\n\n*'+pin+'*\n\n'
-    +'Please use this to log in. You can change your PIN anytime from Settings → Users.\n\n'
-    +'- ShopERP Support';
-  var phone=(u.phone||'').replace(/\D/g,'');
-  if(phone&&phone.length>=10){
-    if(!phone.startsWith('91')&&phone.length===10)phone='91'+phone;
-    window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg),'_blank');
-  } else {
-    // No registered phone - open general WhatsApp so admin can pick contact
-    window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
-    toast('No phone stored for '+esc(u.name)+'. Add it in Settings → Users, then try again.','info');
-  }
-}
-function admClearPin(userId){
-  var u=(DB.users||[]).find(function(x){return x.id===userId;});
-  if(!u){toast('User not found','error');return;}
-  if(!confirm('Clear PIN for '+u.name+'?\nThey will be asked to create a new PIN on their next login.'))return;
-  u.pin=''; u.pinSet=false;
-  saveDB();
-  var resDiv=document.getElementById('pin-result-'+userId); if(resDiv)resDiv.style.display='none';
-  toast('PIN cleared for '+esc(u.name)+'. They will set a new one on next login.','info');
-}
-
-// ── Web Users Page (web/hosted mode only) ────────────────────────────────────
-function admPageWebUsers(){
-  return '<div class="card"><div class="card-header"><div class="card-title">🌐 Web Users</div><button class="btn btn-ghost btn-sm" onclick="admLoadWebUsers()">&#8635; Refresh</button></div><div id="adm-webusers-body"><div style="padding:32px;text-align:center;color:var(--text3)">Loading users…</div></div></div>';
-}
-function admLoadWebUsers(){
-  if(!SHOPERPRO_API_URL){document.getElementById('adm-webusers-body').innerHTML='<p style="color:var(--text2);padding:20px">Web Users only available in hosted/web mode.</p>';return;}
-  fetch(SHOPERPRO_API_URL+'/api/admin/web-users',{headers:{'X-Admin-Key':ADMIN_PWD_HASH}})
-    .then(function(r){return r.json();})
-    .then(function(d){
-      if(d.error){document.getElementById('adm-webusers-body').innerHTML='<p style="color:var(--red);padding:20px">Error: '+esc(d.error)+'</p>';return;}
-      var shops=d.shops||[];
-      if(!shops.length){document.getElementById('adm-webusers-body').innerHTML='<p style="color:var(--text2);padding:20px">No web users registered yet.</p>';return;}
-      var html='<div style="display:flex;flex-direction:column;gap:18px">';
-      shops.forEach(function(shop){
-        var shopStatusColor=shop.shopStatus==='active'?'var(--green)':shop.shopStatus==='paused'?'var(--orange)':'var(--red)';
-        html+='<div style="border:1px solid var(--border2);border-radius:12px;overflow:hidden">';
-        html+='<div style="background:var(--bg3);padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)">';
-        html+='<div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--text)">'+esc(shop.shopName)+'</div>';
-        html+='<div style="font-size:10px;color:var(--text3);margin-top:2px">'+shop.users.length+' user'+(shop.users.length!==1?'s':'')+'  &bull;  Plan: '+(shop.licensePlan||'—')+'</div></div>';
-        html+='<span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(0,0,0,.15);color:'+shopStatusColor+'">'+shop.shopStatus.toUpperCase()+'</span>';
-        html+='</div>';
-        html+='<div class="tbl-wrap"><table><thead><tr><th>Name</th><th class="col-secondary">Role</th><th>Mobile</th><th class="col-secondary">Last Login</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
-        shop.users.forEach(function(u){
-          var roleColor=u.role==='owner'?'var(--accent)':u.role==='manager'?'var(--blue)':'var(--text2)';
-          var lastLogin=u.lastLogin?new Date(u.lastLogin).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Never';
-          var waBtn=u.mobile?'<a href="https://wa.me/91'+u.mobile+'" target="_blank" class="btn btn-xs btn-wa" style="padding:2px 7px;font-size:10px">&#128172;</a>':'';
-          html+='<tr id="wu-row-'+u.id+'">';
-          html+='<td><strong>'+esc(u.name||'—')+'</strong></td>';
-          html+='<td class="col-secondary"><span style="font-size:10px;font-weight:700;color:'+roleColor+'">'+esc(u.role)+'</span></td>';
-          html+='<td style="font-family:var(--mono);font-size:12px">'+(u.mobile||'—')+' '+waBtn+'</td>';
-          html+='<td class="col-secondary" style="font-size:11px;color:var(--text2)">'+lastLogin+'</td>';
-          html+='<td><span id="wu-status-'+u.id+'" style="font-size:11px;font-weight:700;color:'+(u.isActive?'var(--green)':'var(--red)')+'">&#9679; '+(u.isActive?'Active':'Disabled')+'</span></td>';
-          html+='<td><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">';
-          // PIN reset inline
-          html+='<input type="text" id="wu-pin-'+u.id+'" placeholder="6 digits" maxlength="6" inputmode="numeric" style="width:80px;padding:4px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:var(--mono);font-size:14px;letter-spacing:3px;text-align:center">';
-          html+='<button class="btn btn-xs btn-primary" onclick="admResetWebPin('+u.id+','+JSON.stringify(u.name||'User')+','+JSON.stringify(u.mobile||'')+')">Reset PIN</button>';
-          // Toggle active
-          if(u.isActive){
-            html+='<button class="btn btn-xs" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red)" onclick="admToggleWebUser('+u.id+',false,\''+esc(u.name||'User')+'\')">Disable</button>';
-          } else {
-            html+='<button class="btn btn-xs" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--green)" onclick="admToggleWebUser('+u.id+',true,\''+esc(u.name||'User')+'\')">Enable</button>';
-          }
-          html+='</div>';
-          // PIN result box (hidden until reset done)
-          html+='<div id="wu-pin-result-'+u.id+'" style="display:none;margin-top:6px;padding:8px 12px;background:var(--bg3);border:1.5px solid var(--green);border-radius:8px;font-size:12px">';
-          html+='<span style="color:var(--text3);font-size:10px">New PIN (share securely): </span>';
-          html+='<span id="wu-pin-show-'+u.id+'" style="font-family:var(--mono);font-size:18px;font-weight:700;letter-spacing:5px;color:var(--green)"></span>';
-          html+=' <button class="btn btn-xs btn-ghost" onclick="if(navigator.clipboard)navigator.clipboard.writeText(document.getElementById(\'wu-pin-show-'+u.id+'\').textContent).then(function(){toast(\'PIN copied\',\'success\');})">&#128203;</button>';
-          if(u.mobile){html+=' <a id="wu-wa-'+u.id+'" href="#" target="_blank" class="btn btn-xs btn-wa">&#128172; WhatsApp</a>';}
-          html+='</div>';
-          html+='</td></tr>';
-        });
-        html+='</tbody></table></div></div>';
-      });
-      html+='</div>';
-      var body=document.getElementById('adm-webusers-body');
-      if(body)body.innerHTML=html;
-    })
-    .catch(function(e){
-      var body=document.getElementById('adm-webusers-body');
-      if(body)body.innerHTML='<p style="color:var(--red);padding:20px">Connection error: '+esc(e.message)+'</p>';
-    });
-}
-function admResetWebPin(userId,userName,mobile){
-  var inp=document.getElementById('wu-pin-'+userId);
-  if(!inp){toast('Input not found','error');return;}
-  var newPin=inp.value.replace(/\D/g,'').trim();
-  if(newPin.length!==6){toast('Enter exactly 6 digits','error');inp.focus();return;}
-  inp.disabled=true;
-  fetch(SHOPERPRO_API_URL+'/api/admin/reset-user-pin',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','X-Admin-Key':ADMIN_PWD_HASH},
-    body:JSON.stringify({userId:userId,newPin:newPin})
-  }).then(function(r){return r.json();}).then(function(d){
-    inp.disabled=false;inp.value='';
-    if(d.error){toast('Error: '+d.error,'error');return;}
-    var resDiv=document.getElementById('wu-pin-result-'+userId);
-    var showEl=document.getElementById('wu-pin-show-'+userId);
-    if(resDiv&&showEl){showEl.textContent=newPin;resDiv.style.display='block';}
-    if(mobile){
-      var waLink=document.getElementById('wu-wa-'+userId);
-      if(waLink)waLink.href='https://wa.me/91'+mobile+'?text='+encodeURIComponent('Hello '+userName+'! Your ShopERP Pro login PIN has been reset by admin.\n\nYour new PIN: *'+newPin+'*\n\nPlease change it after logging in.');
-    }
-    toast('PIN reset for '+escHtml(userName),'success');
-  }).catch(function(){inp.disabled=false;toast('Connection error','error');});
-}
-function admToggleWebUser(userId,enable,userName){
-  fetch(SHOPERPRO_API_URL+'/api/admin/toggle-user',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','X-Admin-Key':ADMIN_PWD_HASH},
-    body:JSON.stringify({userId:userId,active:enable})
-  }).then(function(r){return r.json();}).then(function(d){
-    if(d.error){toast('Error: '+d.error,'error');return;}
-    var statusEl=document.getElementById('wu-status-'+userId);
-    if(statusEl){statusEl.style.color=enable?'var(--green)':'var(--red)';statusEl.innerHTML='&#9679; '+(enable?'Active':'Disabled');}
-    // Replace button in row
-    admLoadWebUsers();
-    toast(userName+' has been '+(enable?'enabled':'disabled'),'success');
-  }).catch(function(){toast('Connection error','error');});
-}
-
-// ════════════════════════════════════════════════════════════════
-// Admin: SaaS Licensing — Registrations (Phase 2) & Tenant Licenses (Phase 9)
-// ════════════════════════════════════════════════════════════════
-function admFetchJSON(path, opts){
-  opts=opts||{};
-  return fetch(SHOPERPRO_API_URL+path,{
-    method:opts.method||'GET',
-    headers:Object.assign({'X-Admin-Key':ADMIN_PWD_HASH},opts.body!==undefined?{'Content-Type':'application/json'}:{}),
-    body:opts.body!==undefined?JSON.stringify(opts.body):undefined,
-  }).then(function(r){return r.json();});
-}
-function admLoadTenantLicensesIfVisible(){
-  if(document.getElementById('adm-tenant-licenses-body')) admLoadTenantLicenses();
-}
-
-// ── Registrations queue ───────────────────────────────────────────────────
-function admPageRegistrations(){
-  return '<div class="card"><div class="card-header"><div class="card-title">📝 Pending Registrations</div><button class="btn btn-ghost btn-sm" onclick="admLoadRegistrations()">&#8635; Refresh</button></div><div id="adm-registrations-body"><div style="padding:32px;text-align:center;color:var(--text3)">Loading…</div></div></div>';
-}
-function admLoadRegistrations(){
-  if(!SHOPERPRO_API_URL){document.getElementById('adm-registrations-body').innerHTML='<p style="color:var(--text2);padding:20px">Registrations only available in hosted/web mode.</p>';return;}
-  admFetchJSON('/api/admin/registrations').then(function(d){
-    var body=document.getElementById('adm-registrations-body'); if(!body)return;
-    if(d.error){body.innerHTML='<p style="color:var(--red);padding:20px">Error: '+esc(d.error)+'</p>';return;}
-    var regs=d.registrations||[];
-    if(!regs.length){body.innerHTML='<p style="color:var(--text2);padding:20px">No pending registrations.</p>';return;}
-    var html='<div style="display:flex;flex-direction:column;gap:14px">';
-    regs.forEach(function(r){
-      var modules=(r.requestedModules||[]).map(function(m){return esc(m);}).join(', ')||'—';
-      var verifiedBadge=r.emailVerified
-        ?'<span style="font-size:10px;font-weight:700;color:var(--green)">&#9679; Email Verified</span>'
-        :'<span style="font-size:10px;font-weight:700;color:var(--orange)">&#9679; Email Not Verified</span>';
-      var regDate=r.registeredAt?new Date(r.registeredAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';
-      html+='<div style="border:1px solid var(--border2);border-radius:12px;padding:16px" id="reg-row-'+r.tenantId+'">';
-      html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">';
-      html+='<div><div style="font-size:14px;font-weight:700">'+esc(r.shopName)+'</div>';
-      html+='<div style="font-size:11px;color:var(--text2);margin-top:2px">'+esc(r.ownerName)+' &bull; '+esc(r.mobile)+' &bull; '+esc(r.email)+'</div>';
-      html+='<div style="font-size:10px;color:var(--text3);margin-top:4px">Registered '+regDate+' &bull; Requested: <strong>'+esc(r.requestedPlan||'—')+'</strong> &bull; Devices: '+esc(r.requestedDevicesBucket||'—')+' &bull; Modules: '+modules+'</div></div>';
-      html+='<div>'+verifiedBadge+'</div>';
-      html+='</div>';
-      html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">';
-      html+='<button class="btn btn-xs btn-primary" onclick="admApproveRegistration('+r.tenantId+')">✅ Approve</button>';
-      html+='<button class="btn btn-xs" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red)" onclick="admRejectRegistration('+r.tenantId+','+JSON.stringify(r.shopName)+')">✕ Reject</button>';
-      html+='<a href="https://wa.me/91'+esc((r.mobile||'').replace(/\D/g,''))+'" target="_blank" class="btn btn-xs btn-wa">&#128172; Call/WhatsApp</a>';
-      html+='<button class="btn btn-xs btn-ghost" onclick="admLogCallPrompt('+r.tenantId+')">📞 Log Call</button>';
-      html+='<button class="btn btn-xs btn-ghost" onclick="admAssignPlanPrompt('+r.tenantId+')">Assign Plan</button>';
-      html+='<button class="btn btn-xs btn-ghost" onclick="admStartTrialForTenant('+r.tenantId+')">Start Trial</button>';
-      html+='<button class="btn btn-xs btn-ghost" onclick="admGenerateLicenseForTenant('+r.tenantId+')">Generate Key</button>';
-      html+='<button class="btn btn-xs btn-ghost" onclick="admAddNotePrompt('+r.tenantId+')">Add Note</button>';
-      html+='</div></div>';
-    });
-    html+='</div>';
-    body.innerHTML=html;
-  }).catch(function(e){
-    var body=document.getElementById('adm-registrations-body');
-    if(body)body.innerHTML='<p style="color:var(--red);padding:20px">Connection error: '+esc(e.message)+'</p>';
-  });
-}
-function admApproveRegistration(tenantId){
-  admFetchJSON('/api/admin/registrations/'+tenantId+'/approve',{method:'POST',body:{}}).then(function(d){
-    if(d.error){toast('Error: '+d.error,'error');return;}
-    toast('Registration approved — tenant is now ACTIVE','success');
-    admLoadRegistrations();admLoadTenantLicensesIfVisible();
-  }).catch(function(){toast('Connection error','error');});
-}
-function admRejectRegistration(tenantId, shopName){
-  _glassModal({
-    icon:'✕',iconColor:'rgba(239,68,68,.4)',danger:true,
-    title:'Reject Registration',
-    subtitle:`<strong style="color:rgba(255,255,255,.8)">${esc(shopName)}</strong><br>The account is archived, never deleted.`,
-    fields:[{id:'_gm-reason',label:'Reason (internal note)',placeholder:'e.g. Duplicate signup'}],
-    actions:[
-      {label:'Cancel',style:'flex:1;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)',onClick:function(){document.getElementById('_glass-modal').remove();}},
-      {label:'✕ Reject',style:'flex:2;background:linear-gradient(135deg,#EF4444,#B91C1C);color:#fff',onClick:function(){
-        var reason=(document.getElementById('_gm-reason')||{}).value||'';
-        document.getElementById('_glass-modal').remove();
-        admFetchJSON('/api/admin/registrations/'+tenantId+'/reject',{method:'POST',body:{reason:reason}}).then(function(d){
-          if(d.error){toast('Error: '+d.error,'error');return;}
-          toast('Registration rejected','info');
-          admLoadRegistrations();admLoadTenantLicensesIfVisible();
-        }).catch(function(){toast('Connection error','error');});
-      }}
-    ]
-  });
-}
-function admAssignPlanPrompt(tenantId){
-  _glassModal({
-    icon:'📦',title:'Assign Plan',
-    subtitle:'Sets the plan, billing cycle, and device limit for this tenant.',
-    fields:[
-      {id:'_gm-plan',label:'Plan Code (TRIAL / BASIC / PREMIUM)',value:'BASIC'},
-      {id:'_gm-cycle',label:'Billing Cycle (trial/monthly/halfyearly/yearly/lifetime)',value:'monthly'},
-      {id:'_gm-devlimit',label:'Device Limit Override (optional)',placeholder:'leave blank to use plan default'},
-    ],
-    actions:[
-      {label:'Cancel',style:'flex:1;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)',onClick:function(){document.getElementById('_glass-modal').remove();}},
-      {label:'Assign',style:'flex:2;background:linear-gradient(135deg,#5B8EF9,#A78BFA);color:#fff',onClick:function(){
-        var plan=(document.getElementById('_gm-plan')||{}).value||'';
-        var cycle=(document.getElementById('_gm-cycle')||{}).value||'';
-        var devRaw=(document.getElementById('_gm-devlimit')||{}).value||'';
-        var body={planCode:plan.toUpperCase(),billingCycle:cycle.toLowerCase()};
-        if(devRaw&&!isNaN(parseInt(devRaw,10)))body.deviceLimitOverride=parseInt(devRaw,10);
-        document.getElementById('_glass-modal').remove();
-        admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/assign-plan',{method:'POST',body:body}).then(function(d){
-          if(d.error){toast('Error: '+d.error,'error');return;}
-          toast('Plan assigned: '+d.planCode+' ('+d.billingCycle+')','success');
-          admLoadRegistrations();admLoadTenantLicensesIfVisible();
-        }).catch(function(){toast('Connection error','error');});
-      }}
-    ]
-  });
-}
-function admStartTrialForTenant(tenantId){
-  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/start-trial',{method:'POST',body:{}}).then(function(d){
-    if(d.error){toast('Error: '+d.error,'error');return;}
-    toast('14-day trial started','success');
-    admLoadRegistrations();admLoadTenantLicensesIfVisible();
-  }).catch(function(){toast('Connection error','error');});
-}
-function admGenerateLicenseForTenant(tenantId, regenerate){
-  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/generate-license',{method:'POST',body:{regenerate:!!regenerate}}).then(function(d){
-    if(d.error){
-      if(d.licenseKey&&!regenerate){
-        if(confirm('A license key already exists: '+d.licenseKey+'\n\nGenerate a new one instead?')) admGenerateLicenseForTenant(tenantId,true);
-        return;
-      }
-      toast('Error: '+d.error,'error');return;
-    }
-    toast('License key: '+d.licenseKey,'success');
-    admLoadRegistrations();admLoadTenantLicensesIfVisible();
-  }).catch(function(){toast('Connection error','error');});
-}
-function admAddNotePrompt(tenantId){
-  _glassModal({
-    icon:'🗒',title:'Add Note',
-    fields:[{id:'_gm-note',label:'Note',placeholder:'Internal note about this tenant'}],
-    actions:[
-      {label:'Cancel',style:'flex:1;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)',onClick:function(){document.getElementById('_glass-modal').remove();}},
-      {label:'Save',style:'flex:2;background:linear-gradient(135deg,#5B8EF9,#A78BFA);color:#fff',onClick:function(){
-        var note=(document.getElementById('_gm-note')||{}).value||'';
-        document.getElementById('_glass-modal').remove();
-        if(!note.trim()){toast('Note cannot be empty','error');return;}
-        admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/notes',{method:'POST',body:{note:note}}).then(function(d){
-          if(d.error){toast('Error: '+d.error,'error');return;}
-          toast('Note added','success');
-        }).catch(function(){toast('Connection error','error');});
-      }}
-    ]
-  });
-}
-function admLogCallPrompt(tenantId){
-  _glassModal({
-    icon:'📞',title:'Log Call',
-    subtitle:'Recorded separately from a plain note, in the audit history.',
-    fields:[{id:'_gm-callnote',label:'Call Summary',placeholder:'e.g. Called, no answer'}],
-    actions:[
-      {label:'Cancel',style:'flex:1;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)',onClick:function(){document.getElementById('_glass-modal').remove();}},
-      {label:'Save',style:'flex:2;background:linear-gradient(135deg,#5B8EF9,#A78BFA);color:#fff',onClick:function(){
-        var note=(document.getElementById('_gm-callnote')||{}).value||'';
-        document.getElementById('_glass-modal').remove();
-        if(!note.trim()){toast('Call summary cannot be empty','error');return;}
-        admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/call-note',{method:'POST',body:{note:note}}).then(function(d){
-          if(d.error){toast('Error: '+d.error,'error');return;}
-          toast('Call logged','success');
-        }).catch(function(){toast('Connection error','error');});
-      }}
-    ]
-  });
-}
-
-// ── Tenant Licenses dashboard ─────────────────────────────────────────────
-function admPageTenantLicenses(){
-  return '<div class="card"><div class="card-header"><div class="card-title">📋 Tenant Licenses</div><button class="btn btn-ghost btn-sm" onclick="admLoadTenantLicenses()">&#8635; Refresh</button></div><div id="adm-tenant-licenses-body"><div style="padding:32px;text-align:center;color:var(--text3)">Loading…</div></div></div>';
-}
-function admLoadTenantLicenses(){
-  if(!SHOPERPRO_API_URL){document.getElementById('adm-tenant-licenses-body').innerHTML='<p style="color:var(--text2);padding:20px">Tenant Licenses only available in hosted/web mode.</p>';return;}
-  admFetchJSON('/api/admin/tenant-licenses').then(function(d){
-    var body=document.getElementById('adm-tenant-licenses-body'); if(!body)return;
-    if(d.error){body.innerHTML='<p style="color:var(--red);padding:20px">Error: '+esc(d.error)+'</p>';return;}
-    var tenants=d.tenants||[];
-    if(!tenants.length){body.innerHTML='<p style="color:var(--text2);padding:20px">No tenants yet.</p>';return;}
-    var statusColor={PENDING_APPROVAL:'var(--orange)',ACTIVE:'var(--green)',READ_ONLY:'var(--orange)',SUSPENDED:'var(--red)',ARCHIVED:'var(--text3)'};
-    var html='<div class="tbl-wrap"><table><thead><tr><th>Shop</th><th>Status</th><th class="col-secondary">Plan</th><th>Expiry</th><th class="col-secondary">Days Left</th><th>Devices</th><th class="col-secondary">Modules</th><th class="col-secondary">Last Login</th><th>Actions</th></tr></thead><tbody>';
-    tenants.forEach(function(t){
-      var expiry=t.expiresAt?new Date(t.expiresAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'Never';
-      var lastLogin=t.lastLogin?new Date(t.lastLogin).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'Never';
-      var modules=(t.requestedModules||[]).join(', ')||'—';
-      var days=(t.daysRemaining===null||t.daysRemaining===undefined)?'—':t.daysRemaining;
-      html+='<tr id="tl-row-'+t.tenantId+'">';
-      html+='<td><strong>'+esc(t.shopName)+'</strong><div style="font-size:10px;color:var(--text3)">'+(t.registeredAt?new Date(t.registeredAt).toLocaleDateString('en-IN'):'')+'</div></td>';
-      html+='<td><span style="font-size:10px;font-weight:700;color:'+(statusColor[t.status]||'var(--text2)')+'">&#9679; '+esc(t.status)+'</span></td>';
-      html+='<td class="col-secondary">'+esc(t.planCode||'—')+' <span style="color:var(--text3);font-size:10px">('+esc(t.billingCycle||'—')+')</span></td>';
-      html+='<td style="font-size:11px">'+expiry+'</td>';
-      html+='<td class="col-secondary">'+days+'</td>';
-      html+='<td>'+t.devicesUsed+' / '+t.deviceLimit+'</td>';
-      html+='<td class="col-secondary" style="font-size:10px;color:var(--text2)">'+esc(modules)+'</td>';
-      html+='<td class="col-secondary" style="font-size:10px;color:var(--text2)">'+lastLogin+'</td>';
-      html+='<td><div style="display:flex;gap:5px;flex-wrap:wrap">';
-      html+='<button class="btn btn-xs btn-ghost" onclick="admExtendLicensePrompt('+t.tenantId+','+JSON.stringify(t.shopName)+')">Extend</button>';
-      if(t.status==='SUSPENDED'||t.status==='READ_ONLY'||t.status==='ARCHIVED'){
-        html+='<button class="btn btn-xs" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--green)" onclick="admReactivateTenant('+t.tenantId+')">Reactivate</button>';
-      } else {
-        html+='<button class="btn btn-xs" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red)" onclick="admSuspendTenantPrompt('+t.tenantId+','+JSON.stringify(t.shopName)+')">Suspend</button>';
-      }
-      html+='<button class="btn btn-xs btn-ghost" onclick="admKillSessionsForTenant('+t.tenantId+')">Kill Sessions</button>';
-      html+='<button class="btn btn-xs btn-ghost" onclick="admShowDevicesModal('+t.tenantId+','+JSON.stringify(t.shopName)+')">Devices</button>';
-      html+='<button class="btn btn-xs btn-ghost" onclick="admShowHistoryModal('+t.tenantId+','+JSON.stringify(t.shopName)+')">History</button>';
-      html+='<button class="btn btn-xs btn-ghost" onclick="admAddNotePrompt('+t.tenantId+')">Note</button>';
-      html+='</div></td></tr>';
-    });
-    html+='</tbody></table></div>';
-    body.innerHTML=html;
-  }).catch(function(e){
-    var body=document.getElementById('adm-tenant-licenses-body');
-    if(body)body.innerHTML='<p style="color:var(--red);padding:20px">Connection error: '+esc(e.message)+'</p>';
-  });
-}
-function admExtendLicensePrompt(tenantId, shopName){
-  _glassModal({
-    icon:'⏱',title:'Extend Subscription',
-    subtitle:`<strong style="color:rgba(255,255,255,.8)">${esc(shopName)}</strong><br>Adds days to the current expiry (or from today if already expired).`,
-    fields:[{id:'_gm-days',label:'Days to Add',type:'number',value:'30'}],
-    actions:[
-      {label:'Cancel',style:'flex:1;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)',onClick:function(){document.getElementById('_glass-modal').remove();}},
-      {label:'Extend',style:'flex:2;background:linear-gradient(135deg,#10B981,#059669);color:#fff',onClick:function(){
-        var days=parseInt((document.getElementById('_gm-days')||{}).value||'0',10);
-        document.getElementById('_glass-modal').remove();
-        if(!days||days<=0){toast('Enter a positive number of days','error');return;}
-        admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/extend',{method:'POST',body:{days:days}}).then(function(d){
-          if(d.error){toast('Error: '+d.error,'error');return;}
-          toast('Subscription extended to '+new Date(d.expiresAt).toLocaleDateString('en-IN'),'success');
-          admLoadTenantLicenses();
-        }).catch(function(){toast('Connection error','error');});
-      }}
-    ]
-  });
-}
-function admSuspendTenantPrompt(tenantId, shopName){
-  _glassModal({
-    icon:'⏸',iconColor:'rgba(239,68,68,.4)',danger:true,
-    title:'Suspend Tenant',
-    subtitle:`<strong style="color:rgba(255,255,255,.8)">${esc(shopName)}</strong><br>Kills all active sessions immediately. Data is never deleted.`,
-    fields:[{id:'_gm-reason',label:'Reason',placeholder:'e.g. Payment overdue'}],
-    actions:[
-      {label:'Cancel',style:'flex:1;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)',onClick:function(){document.getElementById('_glass-modal').remove();}},
-      {label:'⏸ Suspend',style:'flex:2;background:linear-gradient(135deg,#EF4444,#B91C1C);color:#fff',onClick:function(){
-        var reason=(document.getElementById('_gm-reason')||{}).value||'';
-        document.getElementById('_glass-modal').remove();
-        admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/suspend',{method:'POST',body:{reason:reason}}).then(function(d){
-          if(d.error){toast('Error: '+d.error,'error');return;}
-          toast('Tenant suspended','info');
-          admLoadTenantLicenses();
-        }).catch(function(){toast('Connection error','error');});
-      }}
-    ]
-  });
-}
-function admReactivateTenant(tenantId){
-  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/reactivate',{method:'POST',body:{}}).then(function(d){
-    if(d.error){toast('Error: '+d.error,'error');return;}
-    toast('Tenant reactivated','success');
-    admLoadTenantLicenses();
-  }).catch(function(){toast('Connection error','error');});
-}
-function admKillSessionsForTenant(tenantId){
-  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/kill-sessions',{method:'POST',body:{}}).then(function(d){
-    if(d.error){toast('Error: '+d.error,'error');return;}
-    toast(d.revoked+' session(s) killed','success');
-  }).catch(function(){toast('Connection error','error');});
-}
-
-// ── Shared lightweight modal shell for variable-length content (devices/history) ─
-// Same overlay id/click-outside-to-close convention as _glassModal() above,
-// but with freeform HTML content instead of a fixed fields/actions shape.
-function _customModalShell(title, bodyHtml){
-  var ex=document.getElementById('_glass-modal');if(ex)ex.remove();
-  var ov=document.createElement('div');
-  ov.id='_glass-modal';
-  ov.style.cssText='position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)';
-  ov.innerHTML='<div style="position:relative;background:linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:26px 24px;max-width:520px;width:94%;max-height:80vh;overflow:auto;box-shadow:0 40px 100px rgba(0,0,0,.55)">'+
-    '<button onclick="document.getElementById(\'_glass-modal\').remove()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);border-radius:6px;width:26px;height:26px;cursor:pointer">✕</button>'+
-    '<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:14px">'+title+'</div>'+
-    '<div id="_glass-modal-body">'+bodyHtml+'</div></div>';
-  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
-  document.body.appendChild(ov);
-}
-function admShowDevicesModal(tenantId, shopName){
-  _customModalShell('📱 Devices — '+esc(shopName), '<div style="text-align:center;color:rgba(255,255,255,.4);padding:20px">Loading…</div>');
-  admRefreshDevicesModal(tenantId, shopName);
-}
-function admRefreshDevicesModal(tenantId, shopName){
-  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/devices').then(function(d){
-    var mb=document.getElementById('_glass-modal-body'); if(!mb)return;
-    var devices=d.devices||[];
-    var html='<div style="display:flex;gap:8px;margin-bottom:14px">'+
-      '<input id="_gm-devlimit-inline" type="number" placeholder="New device limit" style="flex:1;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-size:12px">'+
-      '<button class="btn btn-xs btn-primary" onclick="admSetDeviceLimit('+tenantId+')">Set Limit</button>'+
-      '<button class="btn btn-xs" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#F87171" onclick="admResetAllDevices('+tenantId+','+JSON.stringify(shopName)+')">Reset All</button>'+
-      '</div>';
-    if(!devices.length){
-      html+='<div style="color:rgba(255,255,255,.4);font-size:12px;padding:10px 0">No trusted devices yet.</div>';
-    } else {
-      html+='<div style="display:flex;flex-direction:column;gap:8px">';
-      devices.forEach(function(dv){
-        html+='<div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px">'+
-          '<div><div style="font-size:12px;font-weight:700;color:#fff">'+esc(dv.display_name||dv.mobile||'—')+' &bull; '+esc(dv.browser||'Unknown')+' / '+esc(dv.os||'Unknown')+'</div>'+
-          '<div style="font-size:10px;color:rgba(255,255,255,.4)">Last login: '+(dv.last_login_at?new Date(dv.last_login_at).toLocaleDateString('en-IN'):'—')+(dv.is_active?'':' &bull; removed')+'</div></div>'+
-          (dv.is_active?'<button class="btn btn-xs" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#F87171" onclick="admRemoveDevice('+tenantId+','+dv.id+','+JSON.stringify(shopName)+')">Remove</button>':'')+
-          '</div>';
-      });
-      html+='</div>';
-    }
-    mb.innerHTML=html;
-  }).catch(function(){
-    var mb=document.getElementById('_glass-modal-body'); if(mb)mb.innerHTML='<div style="color:#F87171">Connection error</div>';
-  });
-}
-function admRemoveDevice(tenantId, rowId, shopName){
-  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/devices/'+rowId+'/remove',{method:'POST',body:{}}).then(function(d){
-    if(d.error){toast('Error: '+d.error,'error');return;}
-    toast('Device removed','success');
-    admRefreshDevicesModal(tenantId, shopName);
-    admLoadTenantLicensesIfVisible();
-  }).catch(function(){toast('Connection error','error');});
-}
-function admResetAllDevices(tenantId, shopName){
-  if(!confirm('Reset ALL devices for '+shopName+'? Every device will need to re-trust on next login.'))return;
-  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/devices/reset-all',{method:'POST',body:{}}).then(function(d){
-    if(d.error){toast('Error: '+d.error,'error');return;}
-    toast(d.reset+' device(s) reset','success');
-    admRefreshDevicesModal(tenantId, shopName);
-    admLoadTenantLicensesIfVisible();
-  }).catch(function(){toast('Connection error','error');});
-}
-function admSetDeviceLimit(tenantId){
-  var inp=document.getElementById('_gm-devlimit-inline');
-  var limit=parseInt((inp||{}).value||'0',10);
-  if(!limit||limit<1){toast('Enter a positive device limit','error');return;}
-  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/devices/limit',{method:'POST',body:{deviceLimit:limit}}).then(function(d){
-    if(d.error){toast('Error: '+d.error,'error');return;}
-    toast('Device limit set to '+d.deviceLimit,'success');
-    admLoadTenantLicensesIfVisible();
-  }).catch(function(){toast('Connection error','error');});
-}
-function admShowHistoryModal(tenantId, shopName){
-  _customModalShell('🕐 Audit History — '+esc(shopName), '<div style="text-align:center;color:rgba(255,255,255,.4);padding:20px">Loading…</div>');
-  admFetchJSON('/api/admin/tenant-licenses/'+tenantId+'/history').then(function(d){
-    var mb=document.getElementById('_glass-modal-body'); if(!mb)return;
-    var rows=d.history||[];
-    if(!rows.length){mb.innerHTML='<div style="color:rgba(255,255,255,.4);font-size:12px">No history yet.</div>';return;}
-    var html='<div style="display:flex;flex-direction:column;gap:6px">';
-    rows.forEach(function(h){
-      var when=h.created_at?new Date(h.created_at).toLocaleString('en-IN'):'';
-      var transition=(h.from_status||h.to_status)?(' <span style="color:rgba(255,255,255,.35)">'+esc(h.from_status||'')+(h.from_status&&h.to_status?' → ':'')+esc(h.to_status||'')+'</span>'):'';
-      html+='<div style="font-size:11.5px;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:8px">'+
-        '<strong style="color:#fff">'+esc(h.event_type)+'</strong>'+transition+
-        (h.detail?'<div style="color:rgba(255,255,255,.5);margin-top:2px">'+esc(h.detail)+'</div>':'')+
-        '<div style="color:rgba(255,255,255,.3);font-size:10px;margin-top:2px">'+when+' &bull; '+esc(h.actor)+'</div></div>';
-    });
-    html+='</div>';
-    mb.innerHTML=html;
-  }).catch(function(){
-    var mb=document.getElementById('_glass-modal-body'); if(mb)mb.innerHTML='<div style="color:#F87171">Connection error</div>';
-  });
-}
-
-// ── Settings Page ──
-function admPageSettings(){
-  var s=ADMIN_DB.settings; var cur=s.currency||'₹';
-  return`<div style="max-width:700px"><div class="card" style="margin-bottom:16px">
-    <div class="card-title">Developer Info</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="form-group"><label class="form-label">Your Name</label><input class="form-control" id="as-devname" value="${esc(s.devName||'')}"></div>
-      <div class="form-group"><label class="form-label">Support Phone (WhatsApp)</label><input class="form-control" id="as-phone" value="${esc(s.devPhone||'')}"></div>
-    </div>
-    <div class="form-group"><label class="form-label">Support Email</label><input class="form-control" id="as-email" value="${esc(s.devEmail||'')}"></div>
-  </div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-title">📥 Desktop App Download Links</div>
-    <div class="alert alert-info" style="margin-bottom:12px;font-size:11px">These links appear on the login page so customers can download the desktop version.</div>
-    <div class="form-group"><label class="form-label">Windows Download URL (.exe)</label><input class="form-control" id="as-dl-win" placeholder="https://yoursite.com/ShopERP-Pro-Setup.exe" value="${esc(s.downloadWin||'')}"></div>
-    <div class="form-group"><label class="form-label">Mac Download URL (.dmg)</label><input class="form-control" id="as-dl-mac" placeholder="https://yoursite.com/ShopERP-Pro.dmg" value="${esc(s.downloadMac||'')}"></div>
-  </div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-title">Plan Prices (${cur})</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      ${Object.entries(PLANS).map(function([id,p]){var isTest=!!p.testOnly;return`<div class="form-group"><label class="form-label">${p.label} (${p.days===36500?'Lifetime':p.days+'d'})${isTest?' <span style="font-size:9px;background:var(--orange);color:#fff;border-radius:3px;padding:1px 4px">TEST</span>':''}</label><input class="form-control" id="as-price-${id}" type="number" value="${s.plans[id]!==undefined?s.plans[id]:p.price}" ${isTest?'placeholder="0 - testing only"':''}></div>`;}).join('')}
-    </div>
-  </div>
-  <button class="btn btn-primary" onclick="admSaveSettings()">💾 Save Settings</button></div>`;
-}
-function admSaveSettings(){
-  var s=ADMIN_DB.settings;
-  s.devName=(document.getElementById('as-devname')||{value:''}).value.trim();
-  s.devPhone=(document.getElementById('as-phone')||{value:''}).value.trim();
-  s.devEmail=(document.getElementById('as-email')||{value:''}).value.trim();
-  s.downloadWin=(document.getElementById('as-dl-win')||{value:''}).value.trim();
-  s.downloadMac=(document.getElementById('as-dl-mac')||{value:''}).value.trim();
-  Object.keys(PLANS).forEach(function(id){ var el=document.getElementById('as-price-'+id); if(el)s.plans[id]=parseFloat(el.value)||PLANS[id].price; });
-  saveAdminDB(); toast('Settings saved','success');
-}
-function admExportCSV(){
-  var lines=['ID,Shop Name,Owner,Phone,City,Plan,Issued,Expiry,Status,Revenue'];
-  ADMIN_DB.customers.forEach(function(c){ lines.push([c.id,c.shopName,c.ownerName,c.phone||'',c.city||'',c.plan,c.issuedDate,c.expiryDate,c.status||'active',c.revenue||0].map(function(v){return'"'+String(v||'').replace(/"/g,'""')+'"';}).join(',')); });
-  var blob=new Blob([lines.join('\n')],{type:'text/csv'}); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='shoperpro_customers.csv'; a.click(); toast('CSV downloaded','success');
+  // 'user' portal: web mode → web login, local/Electron mode → boot flow
+  if(SHOPERPRO_API_URL){ showWebLoginScreen(); }
+  else { continueBootApp(); }
 }
 
 // ── Suspended Screen (shown to terminated/paused users) ──
@@ -6691,14 +5370,13 @@ function pssOpenPanel(type){
   if(form){ form.style.display='flex'; }
   var err=document.getElementById('pss-inline-err');
   if(err){ err.style.display='none'; err.textContent=''; }
-  ['login','register','admin','license'].forEach(function(t){
+  ['login','register','license'].forEach(function(t){
     var el=document.getElementById('pss-panel-'+t);
     if(el) el.style.display=(t===type?'block':'none');
   });
-  if(type==='admin'){var p=document.getElementById('pss-adm-pass');if(p){p.value='';}}
   if(type==='license'){pssLicStep(1);var k=document.getElementById('pss-lic-key');if(k)k.value='';}
   if(type==='register'){pssRegStep(1);}
-  var focusMap={login:'pss-mobile',register:'pss-reg-shop',admin:'pss-adm-pass',license:'pss-lic-key'};
+  var focusMap={login:'pss-mobile',register:'pss-reg-shop',license:'pss-lic-key'};
   setTimeout(function(){ var el=document.getElementById(focusMap[type]); if(el)el.focus(); },60);
 }
 function pssClosePanel(){
@@ -6832,31 +5510,6 @@ function pssResendVerification(){
     toast(res.message||'If pending, a new email has been sent.','success');
   }).catch(function(){ btn.disabled=false; btn.textContent='Resend Verification Email'; toast('Connection error.','error'); });
 }
-async function pssAdminLogin(){
-  var pass=document.getElementById('pss-adm-pass').value;
-  if(!pass){pssShowErr('Password required.');return;}
-  if(!_adminLockCheck(pssShowErr))return;
-  if(SHOPERPRO_API_URL){
-    var res=await fetch(SHOPERPRO_API_URL+'/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pass})}).then(function(r){return r.json();}).catch(function(){return {error:'Connection error. Check your network.'};});
-    document.getElementById('pss-adm-pass').value='';
-    if(!res.adminToken){_adminFailure(pssShowErr);return;}
-    ADMIN_PWD_HASH=res.adminToken;
-  } else {
-    var hash=await _adminHash(pass);
-    document.getElementById('pss-adm-pass').value='';
-    if(hash!==_LOCAL_ADMIN_PWD_HASH){_adminFailure(pssShowErr);return;}
-  }
-  _adminSuccess();
-  document.getElementById('pss-inline-err').style.display='none';
-  document.getElementById('portal-select-screen').style.display='none';
-  loadAdminDB();
-  document.getElementById('admin-panel').style.display='block';
-  document.getElementById('adm-topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
-  var wuNav=document.getElementById('adm-nav-webusers');if(wuNav)wuNav.style.display=SHOPERPRO_API_URL?'block':'none';
-  var licNav=document.getElementById('adm-nav-licensing');if(licNav)licNav.style.display=SHOPERPRO_API_URL?'block':'none';
-  showAdminPage('adm-dashboard');
-}
-
 function pssLicStep(n){
   [1,2,3].forEach(function(i){var el=document.getElementById('pss-lic-step'+i);if(el)el.style.display=(i===n?'block':'none');});
   if(n===1){var k=document.getElementById('pss-lic-key');if(k)setTimeout(function(){k.focus();},60);}
@@ -7407,21 +6060,6 @@ document.addEventListener('wheel', function(e){
 })();
 
 bootApp();
-
-// Ctrl+Shift+A anywhere opens admin portal (works in both local and web mode)
-document.addEventListener('keydown',function(e){
-  if(e.ctrlKey&&e.shiftKey&&e.key==='A'){
-    e.preventDefault();
-    showPortalSelect();
-    // Pre-select admin login directly
-    var ps=document.getElementById('portal-select-screen');
-    if(ps)ps.style.display='none';
-    var al=document.getElementById('admin-login-screen');
-    if(al){al.style.display='flex';var _kp=document.getElementById('adm-pass');if(_kp)_kp.value='';
-    var _ke=document.getElementById('admin-login-error');if(_ke){_ke.style.display='none';_ke.textContent='';}
-    setTimeout(function(){var p=document.getElementById('adm-pass');if(p)p.focus();},50);}
-  }
-});
 
 // Force Machine ID into the activation screen immediately after bootApp
 // (bootApp may navigate away before initMachineId updates the DOM element)

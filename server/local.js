@@ -301,12 +301,30 @@ db.exec(`
     algo          TEXT NOT NULL DEFAULT 'sha256',
     updated_at    TEXT DEFAULT (datetime('now'))
   );
+
+  -- Super Admin Portal (v1.0) — failed tenant-user login attempts, so the
+  -- portal can show "Failed Login Attempts" and a Super Admin can "Unlock
+  -- Account". Nothing tracked this before (only the generic IP+path rate
+  -- limiter existed, no per-account concept). tenant_id is nullable because
+  -- a failed login with an unrecognized mobile number has no tenant to
+  -- attach to — still worth recording for the account-lockout check.
+  CREATE TABLE IF NOT EXISTS login_failures (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id  INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
+    mobile     TEXT NOT NULL,
+    ip         TEXT NOT NULL DEFAULT '',
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_login_failures_mobile ON login_failures(mobile, created_at);
+  CREATE INDEX IF NOT EXISTS idx_login_failures_tenant ON login_failures(tenant_id, created_at);
 `);
 runMigration("ALTER TABLE tenants ADD COLUMN address TEXT NOT NULL DEFAULT ''", 'tenants.address');
 runMigration("ALTER TABLE tenants ADD COLUMN gst_number TEXT NOT NULL DEFAULT ''", 'tenants.gst_number');
 runMigration('ALTER TABLE users ADD COLUMN email_verify_token_hash TEXT', 'users.email_verify_token_hash');
 runMigration('ALTER TABLE users ADD COLUMN email_verify_expires TEXT', 'users.email_verify_expires');
 runMigration('ALTER TABLE users ADD COLUMN email_verified_at TEXT', 'users.email_verified_at');
+// Super Admin Portal (v1.0) — account-lockout support. NULL = not locked.
+runMigration('ALTER TABLE users ADD COLUMN locked_until TEXT', 'users.locked_until');
 
 // Seed the 3 plan tiers — idempotent, safe to run every boot.
 db.prepare(`INSERT OR IGNORE INTO subscription_plans (code,label,device_limit,trial_days,sort_order) VALUES ('TRIAL','Trial',2,14,0)`).run();
@@ -338,6 +356,38 @@ function addLicenseHistory(tenantId, eventType, { fromStatus, toStatus, detail, 
   db.prepare(
     `INSERT INTO license_history (tenant_id, event_type, from_status, to_status, detail, actor) VALUES (?,?,?,?,?,?)`
   ).run(tenantId, eventType, fromStatus || null, toStatus || null, detail || '', actor || 'system');
+}
+
+// ── Super Admin Portal (v1.0): account-lockout ───────────────────────────────
+// 5 failed PIN attempts within 15 minutes locks the account for 30 minutes,
+// or until a Super Admin explicitly unlocks it. Purely additive to the
+// existing /api/auth/login flow — no existing success/failure response
+// shape changes, this only adds a new pre-check and a new side-effect on
+// the two existing failure branches.
+const LOGIN_LOCKOUT_THRESHOLD = 5;
+const LOGIN_LOCKOUT_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_LOCKOUT_DURATION_MS = 30 * 60 * 1000;
+
+function recordLoginFailure(tenantId, mobile, ip) {
+  db.prepare('INSERT INTO login_failures (tenant_id, mobile, ip) VALUES (?,?,?)').run(tenantId || null, mobile, ip || '');
+  if (!tenantId) return; // unrecognized mobile — nothing to lock
+  // Compares against SQLite's OWN datetime('now') arithmetic rather than a
+  // JS-computed ISO string — created_at is stored as datetime('now')'s
+  // "YYYY-MM-DD HH:MM:SS" format, which does not sort/compare correctly
+  // against a "YYYY-MM-DDTHH:MM:SS.sssZ" ISO string (the 'T' vs ' '
+  // separator alone breaks a lexicographic >= comparison). Keeping both
+  // sides in SQLite's own format avoids the mismatch entirely.
+  const recent = db.prepare(
+    "SELECT COUNT(*) AS c FROM login_failures WHERE tenant_id = ? AND created_at >= datetime('now', ?)"
+  ).get(tenantId, `-${LOGIN_LOCKOUT_WINDOW_MS / 60000} minutes`);
+  if (recent.c >= LOGIN_LOCKOUT_THRESHOLD) {
+    const lockedUntil = new Date(Date.now() + LOGIN_LOCKOUT_DURATION_MS).toISOString();
+    db.prepare('UPDATE users SET locked_until = ? WHERE tenant_id = ?').run(lockedUntil, tenantId);
+    addLicenseHistory(tenantId, 'ACCOUNT_LOCKED', { detail: `${recent.c} failed login attempts in ${LOGIN_LOCKOUT_WINDOW_MS / 60000} minutes`, actor: 'system' });
+  }
+}
+function isAccountLocked(user) {
+  return !!(user.locked_until && new Date(user.locked_until).getTime() > Date.now());
 }
 
 // billing_cycle -> duration in days; 'lifetime' never expires (expires_at = NULL).
@@ -980,10 +1030,22 @@ app.post('/api/auth/login', rateLimit(10, 5 * 60 * 1000), (req, res) => {
     // The real reason is still logged, server-side only, for diagnostics.
     if (!row) {
       logger.warn('[Auth] Login failed', { reason: 'mobile not registered' });
+      recordLoginFailure(null, mob, req.ip);
       return res.status(401).json({ error: 'Invalid mobile number or PIN.' });
+    }
+    // Super Admin Portal (v1.0): account lockout — checked before the PIN
+    // comparison so a locked account can't be brute-forced further while
+    // locked. A distinct message/status from the generic invalid-credentials
+    // case is intentional here (unlike login enumeration, "this account is
+    // temporarily locked" doesn't reveal anything an attacker couldn't
+    // already infer from having the correct mobile number and 5 wrong PINs).
+    if (isAccountLocked(row)) {
+      logger.warn('[Auth] Login blocked — account locked', { tenantId: row.tid, userId: row.id });
+      return res.status(423).json({ error: 'This account is temporarily locked due to repeated failed login attempts. Try again later or contact your administrator.', code: 'ACCOUNT_LOCKED' });
     }
     if (!bcrypt.compareSync(pin, row.password_hash)) {
       logger.warn('[Auth] Login failed', { reason: 'incorrect PIN', tenantId: row.tid, userId: row.id });
+      recordLoginFailure(row.tid, mob, req.ip);
       return res.status(401).json({ error: 'Invalid mobile number or PIN.' });
     }
     // Device-limit enforcement (Phase 8) — only when a deviceId is sent (new
@@ -1340,6 +1402,7 @@ app.post('/api/admin/reset-user-pin', requireAdminKey, rateLimit(30, 60 * 1000),
     const hash = bcrypt.hashSync(newPin, 10);
     db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, userId);
     console.log(`[Admin] PIN reset for user ${userId} (${user.display_name || user.mobile})`);
+    addLicenseHistory(user.tenant_id, 'PASSWORD_RESET', { detail: `PIN reset for ${user.display_name || user.mobile}`, actor: 'admin' });
     res.json({ ok: true, userId, name: user.display_name || user.mobile, mobile: user.mobile });
   } catch (e) {
     console.error('reset-pin error:', e);
@@ -1352,7 +1415,7 @@ app.post('/api/admin/toggle-user', requireAdminKey, rateLimit(30, 60 * 1000), (r
   const { userId, active } = req.body;
   if (userId === undefined || active === undefined) return res.status(400).json({ error: 'userId and active required' });
   try {
-    const user = db.prepare('SELECT id, display_name, mobile, role FROM users WHERE id = ?').get(userId);
+    const user = db.prepare('SELECT id, display_name, mobile, role, tenant_id FROM users WHERE id = ?').get(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role === 'owner' && !active) {
       // make sure shop has at least one active owner before blocking
@@ -1362,6 +1425,7 @@ app.post('/api/admin/toggle-user', requireAdminKey, rateLimit(30, 60 * 1000), (r
     db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(active ? 1 : 0, userId);
     const status = active ? 'enabled' : 'disabled';
     console.log(`[Admin] User ${userId} (${user.display_name || user.mobile}) ${status}`);
+    addLicenseHistory(user.tenant_id, 'STATUS_CHANGED', { detail: `user ${user.display_name || user.mobile} ${status}`, actor: 'admin' });
     res.json({ ok: true, userId, name: user.display_name || user.mobile, isActive: active });
   } catch (e) {
     console.error('toggle-user error:', e);
@@ -1650,6 +1714,395 @@ app.post('/api/admin/tenant-licenses/:tenantId/devices/limit', requireAdminKey, 
   db.prepare(`UPDATE tenant_licenses SET device_limit = ?, updated_at = datetime('now') WHERE tenant_id = ?`).run(deviceLimit, tenantId);
   addLicenseHistory(tenantId, 'DEVICE_LIMIT_CHANGED', { detail: `${lic.device_limit} -> ${deviceLimit}`, actor: 'admin' });
   res.json({ ok: true, deviceLimit });
+});
+
+// ═════════════════════════════════════════════════════════════════════════
+// Super Admin Portal (v1.0) — Customer & License Management
+// Everything below is net-new: a KPI dashboard, a full searchable/sortable/
+// filterable/paginated customer list, a per-customer detail profile, account
+// security actions (unlock/force-reset), device rename, admin-triggered
+// email actions, a global audit-log view, and cross-field search. All
+// requireAdminKey-gated, same as every other /api/admin/* route. Nothing
+// above this line was modified except two additive addLicenseHistory() log
+// calls (reset-user-pin, toggle-user) so those existing actions also show
+// up in the audit trail this portal reads.
+// ═════════════════════════════════════════════════════════════════════════
+
+// ── GET /api/admin/dashboard-stats ───────────────────────────────────────────
+// "Expired Licenses" maps to the READ_ONLY status — the 5-status enum's
+// "expired but still viewable" state (docs/architecture-review/
+// LicenseArchitecture.md) — ARCHIVED (rejected/terminated) is intentionally
+// excluded from both Active and Expired, since it's a closed account, not
+// an expired subscription.
+app.get('/api/admin/dashboard-stats', requireAdminKey, (req, res) => {
+  try {
+    const totalShops = db.prepare('SELECT COUNT(*) c FROM tenants').get().c;
+    const pending = db.prepare("SELECT COUNT(*) c FROM tenant_licenses WHERE status='PENDING_APPROVAL'").get().c;
+    const active = db.prepare("SELECT COUNT(*) c FROM tenant_licenses WHERE status='ACTIVE'").get().c;
+    const expired = db.prepare("SELECT COUNT(*) c FROM tenant_licenses WHERE status='READ_ONLY'").get().c;
+    const suspended = db.prepare("SELECT COUNT(*) c FROM tenant_licenses WHERE status='SUSPENDED'").get().c;
+    const expiringSoon = db.prepare(
+      "SELECT COUNT(*) c FROM tenant_licenses WHERE status='ACTIVE' AND expires_at IS NOT NULL AND expires_at <= datetime('now','+30 days')"
+    ).get().c;
+    const totalDevices = db.prepare('SELECT COUNT(*) c FROM trusted_devices WHERE is_active=1').get().c;
+    const onlineToday = db.prepare(
+      "SELECT COUNT(DISTINCT tenant_id) c FROM users WHERE last_login >= datetime('now','start of day')"
+    ).get().c;
+    const recent = db.prepare(`
+      SELECT t.id AS tenant_id, t.shop_name, t.created_at, u.display_name AS owner_name, u.mobile, u.email
+      FROM tenants t LEFT JOIN users u ON u.tenant_id=t.id AND u.role='owner'
+      ORDER BY t.created_at DESC LIMIT 10
+    `).all();
+    res.json({
+      totalShops, pendingRegistrations: pending, activeLicenses: active, expiredLicenses: expired,
+      suspendedLicenses: suspended, expiringWithin30Days: expiringSoon, totalDevices, onlineShopsToday: onlineToday,
+      recentRegistrations: recent.map(r => ({
+        tenantId: r.tenant_id, shopName: r.shop_name, createdAt: r.created_at,
+        ownerName: r.owner_name, mobile: r.mobile, email: r.email,
+      })),
+    });
+  } catch (e) {
+    console.error('dashboard-stats error:', e);
+    res.status(500).json({ error: 'Failed to fetch dashboard stats' });
+  }
+});
+
+// ── GET /api/admin/customers — searchable/sortable/filterable/paginated ─────
+// Column names for ORDER BY come ONLY from this whitelist map, never from
+// req.query directly — SQLite can't parameterize a column name with `?`,
+// so a whitelist lookup is the safe pattern (matches every other dynamic
+// query in this file, which are all fully parameterized).
+const CUSTOMER_SORT_COLUMNS = {
+  shopName: 't.shop_name', ownerName: 'u.display_name', createdAt: 't.created_at',
+  expiresAt: 'tl.expires_at', status: 'tl.status', plan: 'tl.plan_code', lastLogin: 'u.last_login',
+};
+app.get('/api/admin/customers', requireAdminKey, (req, res) => {
+  try {
+    const { q, status, plan, page, pageSize, sort, dir } = req.query;
+    const where = [];
+    const params = [];
+    if (q) {
+      where.push('(t.shop_name LIKE ? OR u.display_name LIKE ? OR u.email LIKE ? OR u.mobile LIKE ? OR tl.license_key LIKE ? OR t.gst_number LIKE ?)');
+      const like = '%' + String(q).replace(/[%_]/g, '\\$&') + '%';
+      params.push(like, like, like, like, like, like);
+    }
+    if (status === 'expiring_soon') {
+      where.push("tl.status='ACTIVE' AND tl.expires_at IS NOT NULL AND tl.expires_at <= datetime('now','+30 days')");
+    } else if (status) {
+      where.push('tl.status = ?'); params.push(String(status));
+    }
+    if (plan) { where.push('tl.plan_code = ?'); params.push(String(plan)); }
+    const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const sortCol = CUSTOMER_SORT_COLUMNS[sort] || 't.created_at';
+    const sortDir = dir === 'asc' ? 'ASC' : 'DESC';
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const size = Math.min(100, Math.max(1, parseInt(pageSize, 10) || 25));
+    const offset = (pageNum - 1) * size;
+
+    const fromSql = `
+      FROM tenant_licenses tl
+      JOIN tenants t ON t.id = tl.tenant_id
+      LEFT JOIN users u ON u.tenant_id = t.id AND u.role='owner'
+      ${whereSql}
+    `;
+    const total = db.prepare(`SELECT COUNT(*) c ${fromSql}`).get(...params).c;
+    const rows = db.prepare(`
+      SELECT t.id AS tenant_id, t.shop_name, t.gst_number, t.created_at AS registered_at,
+             u.display_name AS owner_name, u.email, u.mobile, u.last_login,
+             tl.license_key, tl.plan_code, tl.status, tl.expires_at, tl.device_limit,
+             (SELECT COUNT(*) FROM trusted_devices WHERE tenant_id=t.id AND is_active=1) AS devices_used
+      ${fromSql}
+      ORDER BY ${sortCol} ${sortDir}
+      LIMIT ? OFFSET ?
+    `).all(...params, size, offset);
+
+    res.json({
+      customers: rows.map(r => ({
+        tenantId: r.tenant_id, shopName: r.shop_name, ownerName: r.owner_name, email: r.email, mobile: r.mobile,
+        licenseKey: r.license_key, planCode: r.plan_code, status: r.status, gstNumber: r.gst_number,
+        createdAt: r.registered_at, expiresAt: r.expires_at, lastLogin: r.last_login,
+        devicesUsed: r.devices_used, deviceLimit: r.device_limit,
+      })),
+      total, page: pageNum, pageSize: size,
+    });
+  } catch (e) {
+    console.error('customers list error:', e);
+    res.status(500).json({ error: 'Failed to fetch customers' });
+  }
+});
+
+// ── GET /api/admin/customers/:tenantId — full profile ────────────────────────
+app.get('/api/admin/customers/:tenantId', requireAdminKey, (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  try {
+    const tenant = db.prepare('SELECT * FROM tenants WHERE id = ?').get(tenantId);
+    if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+    const lic = db.prepare('SELECT * FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+    const owner = db.prepare("SELECT * FROM users WHERE tenant_id = ? AND role='owner'").get(tenantId);
+    const devices = db.prepare(
+      'SELECT id, device_id, device_name, browser, os, first_login_at, last_login_at, is_active FROM trusted_devices WHERE tenant_id=? ORDER BY last_login_at DESC'
+    ).all(tenantId);
+    const users = db.prepare('SELECT id, display_name, mobile, role, is_active, last_login FROM users WHERE tenant_id=?').all(tenantId);
+    const tenantData = db.prepare('SELECT LENGTH(data) AS size, updated_at FROM tenant_data WHERE tenant_id=?').get(tenantId);
+    // cloud_backups is keyed by the OFFLINE DESKTOP license-key hash
+    // (ADR-0003) — unrelated to this hosted tenant's mobile+PIN login. Most
+    // hosted-only tenants have no license_key_hash at all, so this is null
+    // for them; reported honestly as "no backup on file" rather than guessed.
+    const backup = tenant.license_key_hash
+      ? db.prepare('SELECT backed_up_at FROM cloud_backups WHERE key_hash=?').get(tenant.license_key_hash)
+      : null;
+    const history = db.prepare('SELECT * FROM license_history WHERE tenant_id=? ORDER BY created_at DESC LIMIT 50').all(tenantId);
+    res.json({
+      business: {
+        shopName: tenant.shop_name, ownerName: owner ? owner.display_name : null,
+        email: owner ? owner.email : null, phone: owner ? owner.mobile : null,
+        address: tenant.address, gstNumber: tenant.gst_number, createdAt: tenant.created_at,
+      },
+      license: lic ? {
+        licenseKey: lic.license_key, planCode: lic.plan_code, billingCycle: lic.billing_cycle, status: lic.status,
+        activatedAt: lic.starts_at, expiresAt: lic.expires_at,
+        daysRemaining: lic.expires_at ? Math.ceil((new Date(lic.expires_at).getTime() - Date.now()) / 86400000) : null,
+      } : null,
+      devices: devices.map(d => ({
+        id: d.id, deviceId: d.device_id, deviceName: d.device_name, browser: d.browser, os: d.os,
+        firstSeen: d.first_login_at, lastSeen: d.last_login_at, isActive: !!d.is_active,
+      })),
+      activity: {
+        lastLogin: owner ? owner.last_login : null,
+        lastDataSaveAt: tenantData ? tenantData.updated_at : null,
+        lastBackupAt: backup ? backup.backed_up_at : null,
+        dataSizeBytes: tenantData ? tenantData.size : 0,
+        softwareVersion: require('./package.json').version,
+        users: users.map(u => ({ id: u.id, name: u.display_name, mobile: u.mobile, role: u.role, isActive: !!u.is_active, lastLogin: u.last_login })),
+        accountLocked: isAccountLocked(owner || {}),
+      },
+      history,
+    });
+  } catch (e) {
+    console.error('customer detail error:', e);
+    res.status(500).json({ error: 'Failed to fetch customer detail' });
+  }
+});
+
+// ── POST /api/admin/customers/:tenantId/unlock — clear a login lockout ──────
+app.post('/api/admin/customers/:tenantId/unlock', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const owner = db.prepare("SELECT id FROM users WHERE tenant_id = ? AND role='owner'").get(tenantId);
+  if (!owner) return res.status(404).json({ error: 'Tenant not found' });
+  db.prepare('UPDATE users SET locked_until = NULL WHERE tenant_id = ?').run(tenantId);
+  addLicenseHistory(tenantId, 'ACCOUNT_UNLOCKED', { detail: 'manual admin unlock', actor: 'admin' });
+  res.json({ ok: true });
+});
+
+// ── POST /api/admin/customers/:tenantId/force-password-reset ────────────────
+// Same effect as reset-user-pin, but Super-Admin-initiated with a
+// server-generated random PIN rather than an admin-typed one — for "I need
+// to reset this shop's access right now" without knowing what to type in.
+app.post('/api/admin/customers/:tenantId/force-password-reset', requireAdminKey, rateLimit(30, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const owner = db.prepare("SELECT id, display_name, mobile FROM users WHERE tenant_id = ? AND role='owner'").get(tenantId);
+  if (!owner) return res.status(404).json({ error: 'Tenant not found' });
+  try {
+    const newPin = String(crypto.randomInt(100000, 999999));
+    const hash = bcrypt.hashSync(newPin, 10);
+    db.prepare('UPDATE users SET password_hash = ?, locked_until = NULL WHERE id = ?').run(hash, owner.id);
+    addLicenseHistory(tenantId, 'PASSWORD_RESET', { detail: `force password reset for ${owner.display_name || owner.mobile}`, actor: 'admin' });
+    res.json({ ok: true, userId: owner.id, newPin });
+  } catch (e) {
+    console.error('force-password-reset error:', e);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+// ── GET /api/admin/customers/:tenantId/login-history ─────────────────────────
+// Reuses user_sessions — every successful login already creates a session
+// row (server/sessions.js createSession()); no new table needed.
+app.get('/api/admin/customers/:tenantId/login-history', requireAdminKey, (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const rows = db.prepare(`
+    SELECT s.session_id, s.login_time, s.last_activity, s.status, s.ip_address, s.browser, s.os,
+           u.display_name, u.mobile
+    FROM user_sessions s JOIN users u ON u.id = s.user_id
+    WHERE s.tenant_id = ? ORDER BY s.login_time DESC LIMIT 100
+  `).all(tenantId);
+  res.json({
+    logins: rows.map(r => ({
+      sessionId: r.session_id, loginTime: r.login_time, lastActivity: r.last_activity, status: r.status,
+      ip: r.ip_address, browser: r.browser, os: r.os, userName: r.display_name || r.mobile,
+    })),
+  });
+});
+
+// ── GET /api/admin/customers/:tenantId/failed-logins ─────────────────────────
+app.get('/api/admin/customers/:tenantId/failed-logins', requireAdminKey, (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const rows = db.prepare('SELECT mobile, ip, created_at FROM login_failures WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 100').all(tenantId);
+  res.json({ failedLogins: rows });
+});
+
+// ── POST /api/admin/customers/:tenantId/devices/:rowId/rename ───────────────
+app.post('/api/admin/customers/:tenantId/devices/:rowId/rename', requireAdminKey, rateLimit(60, 60 * 1000), (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const rowId = Number(req.params.rowId);
+  const { deviceName } = req.body;
+  if (!deviceName || !String(deviceName).trim()) return res.status(400).json({ error: 'deviceName required' });
+  const row = db.prepare('SELECT id FROM trusted_devices WHERE id = ? AND tenant_id = ?').get(rowId, tenantId);
+  if (!row) return res.status(404).json({ error: 'Device not found' });
+  const name = String(deviceName).trim().slice(0, 100);
+  db.prepare('UPDATE trusted_devices SET device_name = ? WHERE id = ?').run(name, rowId);
+  addLicenseHistory(tenantId, 'DEVICE_RENAMED', { detail: `device row ${rowId} -> "${name}"`, actor: 'admin' });
+  res.json({ ok: true, deviceName: name });
+});
+
+// ── Email actions (Super Admin Portal) ───────────────────────────────────────
+// All reuse mailer.js's transporter; no new email infrastructure. Every
+// send is best-effort — an SMTP hiccup is logged, never crashes the request
+// or leaves an inconsistent audit trail (the history row is written either
+// way, since the ATTEMPT is the auditable action).
+app.post('/api/admin/customers/:tenantId/email/welcome', requireAdminKey, rateLimit(30, 60 * 1000), async (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const owner = db.prepare("SELECT email FROM users WHERE tenant_id = ? AND role='owner'").get(tenantId);
+  const tenant = db.prepare('SELECT shop_name FROM tenants WHERE id = ?').get(tenantId);
+  const lic = db.prepare('SELECT plan_code FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+  if (!owner || !tenant) return res.status(404).json({ error: 'Tenant not found' });
+  if (!owner.email) return res.status(400).json({ error: 'This shop has no owner email on file' });
+  try {
+    await mailer.sendWelcomeEmail(owner.email, { shopName: tenant.shop_name, planLabel: lic ? lic.plan_code : null });
+    addLicenseHistory(tenantId, 'EMAIL_SENT', { detail: `welcome email to ${owner.email}`, actor: 'admin' });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[Admin] Welcome email failed:', e.message);
+    res.status(502).json({ error: 'Failed to send email' });
+  }
+});
+app.post('/api/admin/customers/:tenantId/email/renewal-reminder', requireAdminKey, rateLimit(30, 60 * 1000), async (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const owner = db.prepare("SELECT email FROM users WHERE tenant_id = ? AND role='owner'").get(tenantId);
+  const tenant = db.prepare('SELECT shop_name FROM tenants WHERE id = ?').get(tenantId);
+  const lic = db.prepare('SELECT expires_at FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+  if (!owner || !tenant) return res.status(404).json({ error: 'Tenant not found' });
+  if (!owner.email) return res.status(400).json({ error: 'This shop has no owner email on file' });
+  if (!lic || !lic.expires_at) return res.status(400).json({ error: 'This shop has no expiry date on file' });
+  const daysRemaining = Math.max(0, Math.ceil((new Date(lic.expires_at).getTime() - Date.now()) / 86400000));
+  try {
+    await mailer.sendRenewalReminder(owner.email, { shopName: tenant.shop_name, expiresAt: lic.expires_at, daysRemaining });
+    addLicenseHistory(tenantId, 'EMAIL_SENT', { detail: `renewal reminder to ${owner.email}`, actor: 'admin' });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[Admin] Renewal reminder failed:', e.message);
+    res.status(502).json({ error: 'Failed to send email' });
+  }
+});
+app.post('/api/admin/customers/:tenantId/email/expiry-notice', requireAdminKey, rateLimit(30, 60 * 1000), async (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const owner = db.prepare("SELECT email FROM users WHERE tenant_id = ? AND role='owner'").get(tenantId);
+  const tenant = db.prepare('SELECT shop_name FROM tenants WHERE id = ?').get(tenantId);
+  const lic = db.prepare('SELECT expires_at FROM tenant_licenses WHERE tenant_id = ?').get(tenantId);
+  if (!owner || !tenant) return res.status(404).json({ error: 'Tenant not found' });
+  if (!owner.email) return res.status(400).json({ error: 'This shop has no owner email on file' });
+  try {
+    await mailer.sendExpiryNotice(owner.email, { shopName: tenant.shop_name, expiresAt: lic ? lic.expires_at : null });
+    addLicenseHistory(tenantId, 'EMAIL_SENT', { detail: `expiry notice to ${owner.email}`, actor: 'admin' });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[Admin] Expiry notice failed:', e.message);
+    res.status(502).json({ error: 'Failed to send email' });
+  }
+});
+app.post('/api/admin/customers/:tenantId/email/resend-verification', requireAdminKey, rateLimit(30, 60 * 1000), async (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const owner = db.prepare("SELECT id, email, email_verified_at, shop_name FROM users u JOIN tenants t ON t.id=u.tenant_id WHERE u.tenant_id = ? AND u.role='owner'").get(tenantId);
+  if (!owner) return res.status(404).json({ error: 'Tenant not found' });
+  if (owner.email_verified_at) return res.status(400).json({ error: 'This shop\'s email is already verified' });
+  try {
+    const verifyToken = crypto.randomBytes(32).toString('hex');
+    const verifyTokenHash = crypto.createHash('sha256').update(verifyToken).digest('hex');
+    const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    db.prepare('UPDATE users SET email_verify_token_hash = ?, email_verify_expires = ? WHERE id = ?').run(verifyTokenHash, verifyExpires, owner.id);
+    const verifyUrl = `${req.protocol}://${req.get('host')}/api/auth/verify-email?token=${verifyToken}`;
+    await mailer.sendVerificationEmail(owner.email, { shopName: owner.shop_name, verifyUrl });
+    addLicenseHistory(tenantId, 'EMAIL_SENT', { detail: `verification email resent to ${owner.email}`, actor: 'admin' });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[Admin] Resend verification failed:', e.message);
+    res.status(502).json({ error: 'Failed to send email' });
+  }
+});
+app.post('/api/admin/customers/:tenantId/email/custom', requireAdminKey, rateLimit(20, 60 * 1000), async (req, res) => {
+  const tenantId = Number(req.params.tenantId);
+  const { subject, body } = req.body;
+  if (!subject || !body) return res.status(400).json({ error: 'subject and body required' });
+  const owner = db.prepare("SELECT email FROM users WHERE tenant_id = ? AND role='owner'").get(tenantId);
+  if (!owner) return res.status(404).json({ error: 'Tenant not found' });
+  if (!owner.email) return res.status(400).json({ error: 'This shop has no owner email on file' });
+  try {
+    await mailer.sendCustomEmail(owner.email, { subject: String(subject).slice(0, 200), body: String(body).slice(0, 5000) });
+    addLicenseHistory(tenantId, 'EMAIL_SENT', { detail: `custom email to ${owner.email}: "${String(subject).slice(0, 100)}"`, actor: 'admin' });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[Admin] Custom email failed:', e.message);
+    res.status(502).json({ error: 'Failed to send email' });
+  }
+});
+
+// ── GET /api/admin/audit-log — global, cross-tenant view of license_history ─
+app.get('/api/admin/audit-log', requireAdminKey, (req, res) => {
+  try {
+    const { tenantId, eventType, page, pageSize } = req.query;
+    const where = [];
+    const params = [];
+    if (tenantId) { where.push('h.tenant_id = ?'); params.push(Number(tenantId)); }
+    if (eventType) { where.push('h.event_type = ?'); params.push(String(eventType)); }
+    const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const size = Math.min(200, Math.max(1, parseInt(pageSize, 10) || 50));
+    const offset = (pageNum - 1) * size;
+    const total = db.prepare(`SELECT COUNT(*) c FROM license_history h ${whereSql}`).get(...params).c;
+    const rows = db.prepare(`
+      SELECT h.id, h.tenant_id, t.shop_name, h.event_type, h.from_status, h.to_status, h.detail, h.actor, h.created_at
+      FROM license_history h JOIN tenants t ON t.id = h.tenant_id
+      ${whereSql}
+      ORDER BY h.created_at DESC
+      LIMIT ? OFFSET ?
+    `).all(...params, size, offset);
+    res.json({
+      entries: rows.map(r => ({
+        id: r.id, tenantId: r.tenant_id, shopName: r.shop_name, eventType: r.event_type,
+        oldValue: r.from_status, newValue: r.to_status, detail: r.detail, admin: r.actor, timestamp: r.created_at,
+      })),
+      total, page: pageNum, pageSize: size,
+    });
+  } catch (e) {
+    console.error('audit-log error:', e);
+    res.status(500).json({ error: 'Failed to fetch audit log' });
+  }
+});
+
+// ── GET /api/admin/search — global search across shop/owner/email/mobile/license/GST ─
+app.get('/api/admin/search', requireAdminKey, (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (!q) return res.json({ results: [] });
+  try {
+    const like = '%' + q.replace(/[%_]/g, '\\$&') + '%';
+    const rows = db.prepare(`
+      SELECT t.id AS tenant_id, t.shop_name, u.display_name AS owner_name, u.email, u.mobile,
+             tl.license_key, t.gst_number, tl.status
+      FROM tenants t
+      LEFT JOIN users u ON u.tenant_id = t.id AND u.role='owner'
+      LEFT JOIN tenant_licenses tl ON tl.tenant_id = t.id
+      WHERE t.shop_name LIKE ? OR u.display_name LIKE ? OR u.email LIKE ? OR u.mobile LIKE ? OR tl.license_key LIKE ? OR t.gst_number LIKE ?
+      LIMIT 25
+    `).all(like, like, like, like, like, like);
+    res.json({
+      results: rows.map(r => ({
+        tenantId: r.tenant_id, shopName: r.shop_name, ownerName: r.owner_name, email: r.email,
+        mobile: r.mobile, licenseKey: r.license_key, gstNumber: r.gst_number, status: r.status,
+      })),
+    });
+  } catch (e) {
+    console.error('search error:', e);
+    res.status(500).json({ error: 'Search failed' });
+  }
 });
 
 // ── GET /api/data ────────────────────────────────────────────────────────────

@@ -55,4 +55,51 @@ async function sendVerificationEmail(toEmail, { shopName, verifyUrl }) {
   });
 }
 
-module.exports = { sendVerificationEmail, transporter };
+// ── Super Admin Portal (v1.0) additions ──────────────────────────────────────
+// Every function below follows sendVerificationEmail's exact shape (same
+// transporter, same from address, same plain-HTML style) — no new email
+// infrastructure, just more templates on the one that already exists.
+
+async function sendWelcomeEmail(toEmail, { shopName, planLabel }) {
+  return transporter.sendMail({
+    from: process.env.SMTP_FROM,
+    to: toEmail,
+    subject: `Welcome to ShopERP Pro, ${shopName}!`,
+    html: `<p>Hi,</p>
+<p>Your shop <strong>${shopName}</strong> has been approved on ShopERP Pro${planLabel ? ` on the <strong>${planLabel}</strong> plan` : ''}.</p>
+<p>You can now log in and start using your account. If you have any questions, just reply to this email.</p>`,
+  });
+}
+
+async function sendRenewalReminder(toEmail, { shopName, expiresAt, daysRemaining }) {
+  return transporter.sendMail({
+    from: process.env.SMTP_FROM,
+    to: toEmail,
+    subject: `Your ShopERP Pro subscription expires in ${daysRemaining} day${daysRemaining === 1 ? '' : 's'}`,
+    html: `<p>Hi,</p>
+<p><strong>${shopName}</strong>'s ShopERP Pro subscription expires on <strong>${expiresAt}</strong> (${daysRemaining} day${daysRemaining === 1 ? '' : 's'} from today).</p>
+<p>Please contact us to renew before then to avoid any interruption to your account.</p>`,
+  });
+}
+
+async function sendExpiryNotice(toEmail, { shopName, expiresAt }) {
+  return transporter.sendMail({
+    from: process.env.SMTP_FROM,
+    to: toEmail,
+    subject: `Your ShopERP Pro subscription has expired`,
+    html: `<p>Hi,</p>
+<p><strong>${shopName}</strong>'s ShopERP Pro subscription expired on <strong>${expiresAt}</strong>. Your account is now read-only.</p>
+<p>Please contact us to renew and restore full access.</p>`,
+  });
+}
+
+async function sendCustomEmail(toEmail, { subject, body }) {
+  return transporter.sendMail({
+    from: process.env.SMTP_FROM,
+    to: toEmail,
+    subject,
+    html: `<p>${body}</p>`,
+  });
+}
+
+module.exports = { sendVerificationEmail, sendWelcomeEmail, sendRenewalReminder, sendExpiryNotice, sendCustomEmail, transporter };
