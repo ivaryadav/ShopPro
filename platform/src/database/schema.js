@@ -419,7 +419,110 @@ function migrate(db) {
       created_at TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_maint_history_window ON platform_maintenance_history(window_id, created_at);
+
+    -- Phase 5E: Business Operations — the Plan Catalog. plan_code strings
+    -- already in use on platform_licenses (and, independently, ShopERP's
+    -- own tenant_licenses) become catalog-backed here rather than free
+    -- text — real device/user/storage limits and features per plan.
+    -- Existing plan_codes (TRIAL/BASIC) are seeded below so no existing
+    -- license row becomes orphaned from the catalog.
+    CREATE TABLE IF NOT EXISTS platform_subscription_plans (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      code             TEXT NOT NULL UNIQUE,
+      name             TEXT NOT NULL,
+      billing_cycle    TEXT NOT NULL DEFAULT 'monthly' CHECK (billing_cycle IN ('trial','monthly','yearly','lifetime')),
+      device_limit     INTEGER NOT NULL DEFAULT 2,
+      user_limit       INTEGER NOT NULL DEFAULT 5,
+      storage_limit_mb INTEGER NOT NULL DEFAULT 1024,
+      price_amount     REAL NOT NULL DEFAULT 0,
+      price_currency   TEXT NOT NULL DEFAULT 'INR',
+      features         TEXT NOT NULL DEFAULT '[]',
+      is_active        INTEGER NOT NULL DEFAULT 1,
+      sort_order       INTEGER NOT NULL DEFAULT 0,
+      created_at       TEXT DEFAULT (datetime('now')),
+      updated_at       TEXT DEFAULT (datetime('now'))
+    );
+
+    -- One row per license lifecycle event, for BOTH local (platform_licenses)
+    -- and adapter-backed organizations — organization_id is TEXT for the
+    -- same reason organization_notes.organization_id is (a local integer id
+    -- or a "shoperp:7" synthetic ref). This is what makes "License Timeline"
+    -- and "Renewal History" first-class, dedicated views distinct from the
+    -- general platform_audit_logs (which stays untouched and keeps logging
+    -- these same actions too, for the platform-wide audit trail).
+    CREATE TABLE IF NOT EXISTS platform_license_history (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      organization_id TEXT NOT NULL,
+      product_id      INTEGER REFERENCES platform_products(id) ON DELETE SET NULL,
+      event_type      TEXT NOT NULL,
+      from_value      TEXT,
+      to_value        TEXT,
+      detail          TEXT NOT NULL DEFAULT '',
+      actor           TEXT NOT NULL DEFAULT 'system',
+      created_at      TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_license_history_org ON platform_license_history(organization_id, created_at);
+
+    -- Manual Billing Ledger — no payment gateway in this phase, every row
+    -- here is operator-entered. organization_id is TEXT (adapter-friendly)
+    -- so billing works identically for local and ShopERP-backed customers
+    -- without touching the adapter contract at all (billing is pure
+    -- platform business data, not product data).
+    CREATE TABLE IF NOT EXISTS platform_invoices (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      organization_id TEXT NOT NULL,
+      product_id      INTEGER REFERENCES platform_products(id) ON DELETE SET NULL,
+      invoice_number  TEXT NOT NULL UNIQUE,
+      description     TEXT NOT NULL DEFAULT '',
+      amount          REAL NOT NULL,
+      currency        TEXT NOT NULL DEFAULT 'INR',
+      status          TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','sent','paid','overdue','void')),
+      issued_at       TEXT DEFAULT (datetime('now')),
+      due_at          TEXT,
+      paid_at         TEXT,
+      created_by      INTEGER REFERENCES platform_users(id) ON DELETE SET NULL,
+      created_at      TEXT DEFAULT (datetime('now')),
+      updated_at      TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_invoices_org ON platform_invoices(organization_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_invoices_status ON platform_invoices(status);
+
+    CREATE TABLE IF NOT EXISTS platform_payments (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      organization_id TEXT NOT NULL,
+      invoice_id      INTEGER REFERENCES platform_invoices(id) ON DELETE SET NULL,
+      amount          REAL NOT NULL,
+      currency        TEXT NOT NULL DEFAULT 'INR',
+      method          TEXT NOT NULL DEFAULT 'manual',
+      reference       TEXT NOT NULL DEFAULT '',
+      note            TEXT NOT NULL DEFAULT '',
+      recorded_by     INTEGER REFERENCES platform_users(id) ON DELETE SET NULL,
+      created_at      TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_payments_org ON platform_payments(organization_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_payments_invoice ON platform_payments(invoice_id);
+
+    -- Credit Note (type='credit', reduces outstanding balance) and Debit
+    -- Adjustment (type='debit', increases it) share one table — same
+    -- reasoning as platform_maintenance_history covering every action with
+    -- one discriminator column rather than near-identical parallel tables.
+    CREATE TABLE IF NOT EXISTS platform_billing_adjustments (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      organization_id TEXT NOT NULL,
+      invoice_id      INTEGER REFERENCES platform_invoices(id) ON DELETE SET NULL,
+      type            TEXT NOT NULL CHECK (type IN ('credit','debit')),
+      amount          REAL NOT NULL,
+      currency        TEXT NOT NULL DEFAULT 'INR',
+      reason          TEXT NOT NULL DEFAULT '',
+      created_by      INTEGER REFERENCES platform_users(id) ON DELETE SET NULL,
+      created_at      TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_billing_adj_org ON platform_billing_adjustments(organization_id, created_at);
   `);
+
+  runMigration(db, 'ALTER TABLE platform_licenses ADD COLUMN license_key TEXT', 'platform_licenses.license_key');
+  runMigration(db, 'ALTER TABLE platform_licenses ADD COLUMN grace_started_at TEXT', 'platform_licenses.grace_started_at');
+  runMigration(db, 'ALTER TABLE platform_licenses ADD COLUMN cancelled_at TEXT', 'platform_licenses.cancelled_at');
 
   runMigration(db, 'ALTER TABLE platform_users ADD COLUMN locked_until TEXT', 'platform_users.locked_until');
   runMigration(db, 'ALTER TABLE platform_users ADD COLUMN totp_secret TEXT', 'platform_users.totp_secret');
@@ -496,6 +599,25 @@ function seed(db) {
   insertProduct.run('ZClinic', 'zclinic', 'Clinic/OPD management (planned).', '0.0.0', 'planned', 'subscription', '[]');
 
   db.prepare('INSERT OR IGNORE INTO platform_settings (id, platform_name) VALUES (1, ?)').run('Z-SUPERADMIN');
+
+  // Phase 5E: Plan Catalog seed. TRIAL/BASIC/PREMIUM device_limit values
+  // exactly mirror ShopERP's own real subscription_plans seed
+  // (server/local.js) — TRIAL=2, BASIC=2, PREMIUM=5 — so the two catalogs
+  // describe the same real-world tiers rather than inventing conflicting
+  // names; this also matches plan_code strings already in use on existing
+  // platform_licenses rows and pre-existing test fixtures. ENTERPRISE/
+  // LIFETIME are genuine additional tiers above what ShopERP currently
+  // sells, not a conflict with anything.
+  const insertPlan = db.prepare(`
+    INSERT OR IGNORE INTO platform_subscription_plans
+      (code, name, billing_cycle, device_limit, user_limit, storage_limit_mb, price_amount, price_currency, features, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  insertPlan.run('TRIAL', 'Trial', 'trial', 2, 3, 512, 0, 'INR', '["core-features"]', 0);
+  insertPlan.run('BASIC', 'Basic', 'monthly', 2, 5, 1024, 999, 'INR', '["core-features","email-support"]', 1);
+  insertPlan.run('PREMIUM', 'Premium', 'monthly', 5, 15, 5120, 2499, 'INR', '["core-features","priority-support","multi-device","reports"]', 2);
+  insertPlan.run('ENTERPRISE', 'Enterprise', 'yearly', 20, 50, 20480, 24999, 'INR', '["core-features","priority-support","multi-device","reports","dedicated-account-manager"]', 3);
+  insertPlan.run('LIFETIME', 'Lifetime', 'lifetime', 10, 25, 10240, 49999, 'INR', '["core-features","priority-support","multi-device","reports"]', 4);
 
   // Phase 5B: the two highest-privilege roles require MFA before they can
   // use the platform for anything beyond enrolling it (enforced by

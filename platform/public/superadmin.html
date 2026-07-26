@@ -168,6 +168,13 @@ td{padding:8px 10px;border-bottom:1px solid var(--border)}
       <div class="nav-item" data-page="audit" onclick="nav('audit')">🧾 Audit Log</div>
     </div>
     <div class="nav-group">
+      <div class="nav-group-label" onclick="toggleNavGroup(this)"><span>Business</span><span class="chev">▾</span></div>
+      <div class="nav-item" data-page="business-dashboard" onclick="nav('business-dashboard')">💼 Business Dashboard</div>
+      <div class="nav-item" data-page="business-renewals" onclick="nav('business-renewals')">🔁 Renewals</div>
+      <div class="nav-item" data-page="business-billing" onclick="nav('business-billing')">🧮 Billing</div>
+      <div class="nav-item" data-page="subscription-plans" onclick="nav('subscription-plans')">📦 Subscription Plans</div>
+    </div>
+    <div class="nav-group">
       <div class="nav-group-label" onclick="toggleNavGroup(this)"><span>Settings</span><span class="chev">▾</span></div>
       <div class="nav-item" data-page="platform-users" onclick="nav('platform-users')">👤 Platform Users</div>
     </div>
@@ -308,6 +315,8 @@ const PAGE_LABELS = {
   audit: 'Operations / Audit Log', 'platform-users': 'Settings / Platform Users',
   'security-center': 'Security / Security Center', 'security-settings': 'Security / Security Settings',
   jobs: 'Operations / Scheduled Jobs', maintenance: 'Operations / Maintenance Center',
+  'business-dashboard': 'Business / Dashboard', 'business-renewals': 'Business / Renewals',
+  'business-billing': 'Business / Billing', 'subscription-plans': 'Business / Subscription Plans',
 };
 function breadcrumb(){ return '<div class="breadcrumb">' + esc(PAGE_LABELS[CURRENT_PAGE] || CURRENT_PAGE) + '</div>'; }
 function nav(page){
@@ -318,6 +327,8 @@ function nav(page){
     'platform-users': renderPlatformUsers, health: renderHealth, alerts: renderAlertsPage, reports: renderReports,
     'security-center': renderSecurityCenter, 'security-settings': renderSecuritySettings,
     jobs: renderJobsPage, maintenance: renderMaintenanceCenter,
+    'business-dashboard': renderBusinessDashboard, 'business-renewals': renderRenewalCenter,
+    'business-billing': renderBillingDashboard, 'subscription-plans': renderSubscriptionPlans,
   };
   (renderers[page] || renderDashboard)();
 }
@@ -414,12 +425,14 @@ async function showOrgDetail(id){
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
   try {
-    const [d, renewalsData, securityData, notesData, activityData] = await Promise.all([
+    const [d, renewalsData, securityData, notesData, activityData, usageData, billingData] = await Promise.all([
       api('/organizations/' + id),
       api('/organizations/' + id + '/renewals').catch(() => ({ licenses: [] })),
       api('/organizations/' + id + '/security').catch(() => ({ loginHistory: [], failedLogins: [], securityEvents: [] })),
       api('/organizations/' + id + '/notes').catch(() => ({ notes: [] })),
       api('/organizations/' + id + '/activity').catch(() => ({ timeline: [] })),
+      api('/organizations/' + id + '/usage').catch(() => null),
+      hasPermission('view_billing') ? api('/organizations/' + id + '/billing').catch(() => null) : Promise.resolve(null),
     ]);
     const b = d.business;
     function row(l, v) { return `<div class="row"><span>${esc(l)}</span><span>${v === null || v === undefined || v === '' ? '—' : esc(v)}</span></div>`; }
@@ -444,6 +457,7 @@ async function showOrgDetail(id){
           <button class="btn btn-xs btn-ghost" onclick="licenseAction(${esc(JSON.stringify(id))},${l.productId},'resume')">Resume</button>
           <button class="btn btn-xs btn-ghost" onclick="licenseRenewPrompt(${esc(JSON.stringify(id))},${l.productId})">Renew</button>
           <button class="btn btn-xs btn-ghost" onclick="licensePlanPrompt(${esc(JSON.stringify(id))},${l.productId})">Change Plan</button>
+          <button class="btn btn-xs btn-danger" onclick="licenseCancelPrompt(${esc(JSON.stringify(id))},${l.productId})">Cancel</button>
         </div>`;
       }
     });
@@ -454,6 +468,30 @@ async function showOrgDetail(id){
       const value = l.expiresAt ? new Date(l.expiresAt).toLocaleDateString() + (l.daysRemaining != null ? ' (' + l.daysRemaining + 'd)' : '') : 'never expires';
       html += `<div class="row"><span>${esc(label)}</span><span style="${l.urgent ? 'color:var(--orange);font-weight:700' : ''}">${esc(value)}</span></div>`;
     });
+
+    if (usageData) {
+      html += '<div class="section-title">Usage</div>';
+      const bar = (used, limit) => limit ? `${used} / ${limit}` : `${used} (no limit set)`;
+      html += row('Devices', bar(usageData.devicesUsed, usageData.deviceLimit));
+      html += row('Users', bar(usageData.usersActive, usageData.userLimit));
+      html += row('Storage', usageData.storageUsedMb == null ? 'not metered' : bar(usageData.storageUsedMb, usageData.storageLimitMb) + ' MB');
+    }
+
+    if (billingData) {
+      html += '<div class="section-title">Billing</div>';
+      html += row('Outstanding Balance', (billingData.balance.outstanding > 0 ? '⚠️ ' : '') + billingData.balance.outstanding + ' (invoiced ' + billingData.balance.invoiced + ', paid ' + billingData.balance.paid + ')');
+      if (!billingData.invoices.length) html += '<div style="color:var(--text3);font-size:12px">No invoices yet.</div>';
+      billingData.invoices.slice(0, 5).forEach(inv => {
+        const statusClass = { draft: 'badge-gray', sent: 'badge-orange', paid: 'badge-green', overdue: 'badge-red', void: 'badge-gray' }[inv.status] || 'badge-gray';
+        html += `<div class="row"><span>${esc(inv.invoice_number)} — ${esc(inv.amount)} ${esc(inv.currency)}</span><span><span class="badge ${statusClass}">${esc(inv.status)}</span></span></div>`;
+      });
+      if (hasPermission('manage_billing')) {
+        html += `<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+          <button class="btn btn-xs btn-primary" onclick="createInvoicePrompt(${esc(JSON.stringify(id))})">New Invoice</button>
+          <button class="btn btn-xs btn-ghost" onclick="recordPaymentPrompt(${esc(JSON.stringify(id))})">Record Payment</button>
+        </div>`;
+      }
+    }
 
     html += '<div class="section-title">Devices</div>';
     if (!d.devices.length) html += '<div style="color:var(--text3);font-size:12px">No devices on file.</div>';
@@ -552,6 +590,30 @@ function licensePlanPrompt(orgId, productId){
   if (!planCode) return;
   api('/organizations/' + orgId + '/licenses/' + productId + '/change-plan', { method: 'POST', body: { planCode, direction: 'upgrade' } })
     .then(() => { toast('Plan changed', 'success'); showOrgDetail(orgId); })
+    .catch(e => toast(e.message, 'error'));
+}
+function licenseCancelPrompt(orgId, productId){
+  const reason = prompt('Reason for cancelling this subscription:', 'Customer requested cancellation');
+  if (reason === null) return;
+  if (!confirm('Cancel this subscription? This is a terminal action.')) return;
+  api('/organizations/' + orgId + '/licenses/' + productId + '/cancel', { method: 'POST', body: { reason } })
+    .then(() => { toast('Subscription cancelled', 'success'); showOrgDetail(orgId); })
+    .catch(e => toast(e.message, 'error'));
+}
+function createInvoicePrompt(orgId){
+  const amount = parseFloat(prompt('Invoice amount:', '999'));
+  if (!amount) return;
+  const description = prompt('Description:', 'Subscription renewal') || '';
+  api('/billing/invoices', { method: 'POST', body: { organizationId: orgId, amount, description } })
+    .then(() => { toast('Invoice created', 'success'); showOrgDetail(orgId); })
+    .catch(e => toast(e.message, 'error'));
+}
+function recordPaymentPrompt(orgId){
+  const amount = parseFloat(prompt('Payment amount received:', '999'));
+  if (!amount) return;
+  const method = prompt('Payment method:', 'bank transfer') || 'manual';
+  api('/billing/payments', { method: 'POST', body: { organizationId: orgId, amount, method } })
+    .then(() => { toast('Payment recorded', 'success'); showOrgDetail(orgId); })
     .catch(e => toast(e.message, 'error'));
 }
 function renameDevicePrompt(orgId, deviceId){
@@ -795,6 +857,8 @@ const NAV_ITEMS_FOR_CMDK = [
   { label: 'Organizations', page: 'organizations' }, { label: 'Product Registry', page: 'products' },
   { label: 'System Health', page: 'health' }, { label: 'Alerts', page: 'alerts' },
   { label: 'Audit Log', page: 'audit' }, { label: 'Platform Users', page: 'platform-users' },
+  { label: 'Business Dashboard', page: 'business-dashboard' }, { label: 'Renewals', page: 'business-renewals' },
+  { label: 'Billing', page: 'business-billing' }, { label: 'Subscription Plans', page: 'subscription-plans' },
 ];
 let CMDK_RESULTS = [];
 let CMDK_SEL = 0;
@@ -1320,6 +1384,112 @@ async function renderMaintTabHistory(){
     html += '</tbody></table></div>';
     body.innerHTML = d.entries.length ? html : '<div style="color:var(--text3);font-size:12px">No maintenance history yet.</div>';
   } catch (e) { body.innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+
+// ── Business Dashboard (Phase 5E) ──
+async function renderBusinessDashboard(){
+  const main = document.getElementById('main');
+  main.innerHTML = breadcrumb() + '<h2 style="margin-top:0">Business Dashboard</h2><div class="glass-card" id="biz-dash-body">Loading…</div>';
+  try {
+    const d = await api('/business/dashboard');
+    let html = '<div class="kpi-grid">';
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Monthly Revenue</div><div class="kpi-value">₹${esc(d.monthlyRevenue)}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Active Customers</div><div class="kpi-value">${d.activeCustomers}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Trial Customers</div><div class="kpi-value">${d.trialCustomers}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Expiring Licenses</div><div class="kpi-value" style="color:${d.expiringLicenses?'var(--orange)':'var(--green)'}">${d.expiringLicenses}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Renewals Due (7d)</div><div class="kpi-value">${d.renewalsDue}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">In Grace Period</div><div class="kpi-value">${d.inGrace}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Outstanding Payments</div><div class="kpi-value" style="color:${d.outstandingPayments>0?'var(--red)':'var(--green)'}">₹${esc(d.outstandingPayments)}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Active Products</div><div class="kpi-value">${d.activeProducts}</div></div>`;
+    html += '</div>';
+    html += '<div class="section-title">Growth (Cumulative Organizations)</div>';
+    html += d.growthMetrics.length ? d.growthMetrics.map(g => `<div class="row"><span>${esc(g.month)}</span><span>${g.total}</span></div>`).join('') : '<div style="color:var(--text3);font-size:12px">Not enough data yet.</div>';
+    document.getElementById('biz-dash-body').innerHTML = html;
+  } catch (e) { document.getElementById('biz-dash-body').innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+
+// ── Renewal Center (Phase 5E) ──
+async function renderRenewalCenter(){
+  const main = document.getElementById('main');
+  main.innerHTML = breadcrumb() + '<h2 style="margin-top:0">Renewal Center</h2><div class="glass-card" id="renewal-body">Loading…</div>';
+  try {
+    const d = await api('/business/renewals');
+    const section = (title, rows, color) => {
+      let h = `<div class="section-title">${esc(title)} (${rows.length})</div>`;
+      if (!rows.length) return h + '<div style="color:var(--text3);font-size:12px">Nothing here.</div>';
+      rows.forEach(r => {
+        const label = esc(r.businessName) + ' — ' + esc(r.productName) + ' (' + esc(r.planCode || '—') + ')';
+        const value = r.graceDaysRemaining != null ? r.graceDaysRemaining + 'd grace left' : (r.daysRemaining != null ? r.daysRemaining + 'd' : r.status);
+        h += `<div class="row"><span onclick="nav('organizations');showOrgDetail(${esc(JSON.stringify(r.organizationId))})" style="cursor:pointer">${label}</span><span style="color:var(--${color})">${esc(value)}</span></div>`;
+      });
+      return h;
+    };
+    let html = section('Due Today', d.dueToday, 'red');
+    html += section('Due This Week', d.dueThisWeek, 'orange');
+    html += section('Due This Month', d.dueThisMonth, 'text2');
+    html += section('In Grace Period', d.grace, 'orange');
+    html += section('Expired', d.expired, 'red');
+    html += '<div class="section-title">Renewal History</div>';
+    html += d.renewalHistory.length
+      ? d.renewalHistory.map(h => `<div class="row"><span>${esc(h.organization_id)}</span><span>${h.created_at ? new Date(h.created_at).toLocaleString() : ''} — ${esc(h.to_value || '')}</span></div>`).join('')
+      : '<div style="color:var(--text3);font-size:12px">No renewals recorded yet.</div>';
+    document.getElementById('renewal-body').innerHTML = html;
+  } catch (e) { document.getElementById('renewal-body').innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+
+// ── Billing Dashboard (Phase 5E) ──
+async function renderBillingDashboard(){
+  const main = document.getElementById('main');
+  main.innerHTML = breadcrumb() + '<h2 style="margin-top:0">Billing</h2><div class="glass-card" id="billing-body">Loading…</div>';
+  try {
+    const d = await api('/billing/dashboard');
+    let html = '<div class="kpi-grid">';
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Revenue Collected</div><div class="kpi-value">₹${esc(d.revenue)}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Outstanding</div><div class="kpi-value" style="color:${d.outstanding>0?'var(--red)':'var(--green)'}">₹${esc(d.outstanding)}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Paid</div><div class="kpi-value">₹${esc(d.paid)}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Overdue</div><div class="kpi-value" style="color:${d.overdue>0?'var(--red)':'var(--green)'}">₹${esc(d.overdue)}</div></div>`;
+    html += '</div>';
+    html += '<div class="section-title">Recent Invoices</div>';
+    html += '<div class="table-scroll"><table><thead><tr><th>Invoice #</th><th>Org</th><th>Amount</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>';
+    d.recentInvoices.forEach(inv => {
+      const statusClass = { draft: 'badge-gray', sent: 'badge-orange', paid: 'badge-green', overdue: 'badge-red', void: 'badge-gray' }[inv.status] || 'badge-gray';
+      html += `<tr><td>${esc(inv.invoice_number)}</td><td>${esc(inv.organization_id)}</td><td>${esc(inv.amount)} ${esc(inv.currency)}</td><td><span class="badge ${statusClass}">${esc(inv.status)}</span></td><td>${inv.created_at ? new Date(inv.created_at).toLocaleDateString() : ''}</td><td><button class="btn btn-xs btn-ghost" onclick="showInvoiceTimeline(${inv.id})">Timeline</button></td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    html += '<div class="section-title">Recent Payments</div>';
+    html += d.recentPayments.length
+      ? d.recentPayments.map(p => `<div class="row"><span>${esc(p.organization_id)} — ${esc(p.method)}</span><span>${esc(p.amount)} ${esc(p.currency)} (${p.created_at ? new Date(p.created_at).toLocaleDateString() : ''})</span></div>`).join('')
+      : '<div style="color:var(--text3);font-size:12px">No payments recorded yet.</div>';
+    document.getElementById('billing-body').innerHTML = html;
+  } catch (e) { document.getElementById('billing-body').innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+async function showInvoiceTimeline(invoiceId){
+  try {
+    const d = await api('/billing/invoices/' + invoiceId + '/timeline');
+    let html = `<h4>Invoice ${esc(d.invoice.invoice_number)}</h4>`;
+    html += d.timeline.map(e => `<div class="row"><span>${esc(e.type)}</span><span>${e.timestamp ? new Date(e.timestamp).toLocaleString() : ''} — ${esc(e.detail)}</span></div>`).join('');
+    html += '<button class="btn btn-xs btn-ghost" style="margin-top:8px" onclick="this.closest(\'.modal-overlay\').remove()">Close</button>';
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = '<div class="modal-box">' + html + '</div>';
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ── Subscription Plans (Phase 5E) ──
+async function renderSubscriptionPlans(){
+  const main = document.getElementById('main');
+  main.innerHTML = breadcrumb() + '<h2 style="margin-top:0">Subscription Plans</h2><div class="glass-card" id="plans-body">Loading…</div>';
+  try {
+    const d = await api('/subscription-plans?includeInactive=true');
+    let html = '<div class="table-scroll"><table><thead><tr><th>Code</th><th>Name</th><th>Cycle</th><th>Devices</th><th>Users</th><th>Storage (MB)</th><th>Price</th><th>Active</th></tr></thead><tbody>';
+    d.plans.forEach(p => {
+      html += `<tr><td>${esc(p.code)}</td><td>${esc(p.name)}</td><td>${esc(p.billing_cycle)}</td><td>${p.device_limit}</td><td>${p.user_limit}</td><td>${p.storage_limit_mb}</td><td>${p.price_amount} ${esc(p.price_currency)}</td><td>${p.is_active ? '✅' : '—'}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('plans-body').innerHTML = html;
+  } catch (e) { document.getElementById('plans-body').innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
 }
 
 // ── Boot ──

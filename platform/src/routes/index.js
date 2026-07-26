@@ -26,6 +26,9 @@ const securityController = require('../controllers/securityController');
 const apiKeyController = require('../controllers/apiKeyController');
 const jobController = require('../controllers/jobController');
 const maintenanceController = require('../controllers/maintenanceController');
+const subscriptionController = require('../controllers/subscriptionController');
+const billingController = require('../controllers/billingController');
+const businessController = require('../controllers/businessController');
 
 function createPlatformRouter({ jwtSecret }) {
   const router = express.Router();
@@ -78,11 +81,51 @@ function createPlatformRouter({ jwtSecret }) {
   router.get('/organizations/:id/security', auth, requirePermission('view_only'), organizationController.security);
   router.get('/organizations/:id/activity', auth, requirePermission('view_only'), organizationController.activity);
 
+  // ── Organization 360 Expansion (Phase 5E) ──────────────────────────────
+  router.get('/organizations/:id/subscription', auth, requirePermission('view_only'), organizationController.subscription);
+  router.get('/organizations/:id/usage', auth, requirePermission('view_only'), organizationController.usage);
+  router.get('/organizations/:id/billing', auth, requirePermission('view_billing'), organizationController.billing);
+  router.get('/organizations/:id/license-history', auth, requirePermission('view_only'), organizationController.licenseHistory);
+  router.get('/organizations/:id/renewal-history', auth, requirePermission('view_only'), organizationController.renewalHistory);
+
   router.post('/organizations/:orgId/licenses/:productId/activate', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), licenseController.activate);
+  router.post('/organizations/:orgId/licenses/:productId/assign', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), licenseController.assign);
   router.post('/organizations/:orgId/licenses/:productId/suspend', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), licenseController.suspend);
   router.post('/organizations/:orgId/licenses/:productId/resume', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), licenseController.resume);
   router.post('/organizations/:orgId/licenses/:productId/renew', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), licenseController.renew);
   router.post('/organizations/:orgId/licenses/:productId/change-plan', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), licenseController.changePlan);
+  router.post('/organizations/:orgId/licenses/:productId/cancel', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), licenseController.cancel);
+
+  // ── License Center extensions (Phase 5E) ───────────────────────────────
+  router.get('/licenses/expiration-dashboard', auth, requirePermission('view_only'), licenseController.expirationDashboard);
+  router.get('/subscription-plans', auth, requirePermission('view_only'), licenseController.listPlans);
+  router.post('/subscription-plans', auth, requirePermission('manage_licenses'), rateLimit(20, 60 * 1000), licenseController.createPlan);
+  router.put('/subscription-plans/:id', auth, requirePermission('manage_licenses'), rateLimit(20, 60 * 1000), licenseController.updatePlan);
+
+  // ── Subscription Center (Phase 5E) ─────────────────────────────────────
+  router.get('/subscriptions', auth, requirePermission('view_only'), subscriptionController.list);
+  router.get('/subscriptions/:orgId/:productId', auth, requirePermission('view_only'), subscriptionController.getOne);
+  router.post('/subscriptions/:orgId/:productId/upgrade', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), subscriptionController.upgrade);
+  router.post('/subscriptions/:orgId/:productId/downgrade', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), subscriptionController.downgrade);
+  router.post('/subscriptions/:orgId/:productId/renew', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), subscriptionController.renew);
+  router.post('/subscriptions/:orgId/:productId/suspend', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), subscriptionController.suspend);
+  router.post('/subscriptions/:orgId/:productId/resume', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), subscriptionController.resume);
+  router.post('/subscriptions/:orgId/:productId/cancel', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), subscriptionController.cancel);
+
+  // ── Billing Ledger (Phase 5E) ───────────────────────────────────────────
+  router.get('/billing/dashboard', auth, requirePermission('view_billing'), billingController.dashboard);
+  router.get('/billing/invoices', auth, requirePermission('view_billing'), billingController.listInvoices);
+  router.get('/billing/invoices/:id/timeline', auth, requirePermission('view_billing'), billingController.invoiceTimeline);
+  router.post('/billing/invoices', auth, requirePermission('manage_billing'), rateLimit(30, 60 * 1000), billingController.createInvoice);
+  router.post('/billing/invoices/:id/send', auth, requirePermission('manage_billing'), rateLimit(30, 60 * 1000), billingController.sendInvoice);
+  router.post('/billing/invoices/:id/void', auth, requirePermission('manage_billing'), rateLimit(30, 60 * 1000), billingController.voidInvoice);
+  router.post('/billing/payments', auth, requirePermission('manage_billing'), rateLimit(30, 60 * 1000), billingController.recordPayment);
+  router.post('/billing/adjustments', auth, requirePermission('manage_billing'), rateLimit(30, 60 * 1000), billingController.recordAdjustment);
+
+  // ── Business Dashboard, Renewal Center, Business Reports (Phase 5E) ────
+  router.get('/business/dashboard', auth, requirePermission('view_only'), businessController.dashboard);
+  router.get('/business/renewals', auth, requirePermission('view_only'), businessController.renewalCenter);
+  router.get('/business/reports', auth, requirePermission('view_only'), businessController.reports);
 
   router.get('/customers/search', auth, requirePermission('view_only'), customerController.search);
 

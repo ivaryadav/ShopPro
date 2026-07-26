@@ -33,8 +33,16 @@ async function renewals(req, res, next) { try { res.json(await organizationServi
 async function security(req, res, next) { try { res.json(await organizationService.getSecurity(req.params.id)); } catch (e) { next(e); } }
 async function activity(req, res, next) { try { res.json(await organizationService.getActivityTimeline(req.params.id)); } catch (e) { next(e); } }
 
+// ── Organization 360 Expansion (Phase 5E) ────────────────────────────────
+async function subscription(req, res, next) { try { res.json(await organizationService.getSubscription(req.params.id, req.query.productId ? Number(req.query.productId) : undefined)); } catch (e) { next(e); } }
+async function usage(req, res, next) { try { res.json(await organizationService.getUsage(req.params.id)); } catch (e) { next(e); } }
+async function billing(req, res, next) { try { res.json(organizationService.getBilling(req.params.id)); } catch (e) { next(e); } }
+async function licenseHistory(req, res, next) { try { res.json({ history: await organizationService.getLicenseHistory(req.params.id) }); } catch (e) { next(e); } }
+async function renewalHistory(req, res, next) { try { res.json({ history: await organizationService.getRenewalHistory(req.params.id) }); } catch (e) { next(e); } }
+
 module.exports = {
   list, create, getOne, attachProduct, approve, suspend, deviceList, deviceRevoke, deviceRename, sendEmail,
   unlockAccount, forcePasswordReset, killSessions, loginHistory, failedLogins,
   notesList, notesAdd, renewals, security, activity,
+  subscription, usage, billing, licenseHistory, renewalHistory,
 };

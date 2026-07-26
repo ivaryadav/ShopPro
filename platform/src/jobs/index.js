@@ -14,6 +14,9 @@ const loginFailureRetentionJob = require('./loginFailureRetentionJob');
 const maintenancePublishJob = require('./maintenancePublishJob');
 const maintenanceExpiryJob = require('./maintenanceExpiryJob');
 const maintenanceSyncMonitorJob = require('./maintenanceSyncMonitorJob');
+const licenseExpiryJob = require('./licenseExpiryJob');
+const gracePeriodJob = require('./gracePeriodJob');
+const renewalReminderJob = require('./renewalReminderJob');
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -29,6 +32,10 @@ function registerAllJobs() {
   // had a chance for any product to sync yet, so an immediate run would
   // report a false-negative failure before ShopERP's first poll can land.
   jobRunnerService.registerJob('maintenance-sync-monitor', 30 * MINUTE, maintenanceSyncMonitorJob.run);
+  // Phase 5E: Business Operations runtime jobs.
+  jobRunnerService.registerJob('license-expiry', 1 * HOUR, licenseExpiryJob.run);
+  jobRunnerService.registerJob('grace-period', 1 * HOUR, gracePeriodJob.run);
+  jobRunnerService.registerJob('renewal-reminder', 24 * HOUR, renewalReminderJob.run);
 }
 
 /** Runs every job once immediately (fire-and-forget) so a fresh boot doesn't wait a full interval for its first data point — then starts the normal recurring schedule. */
@@ -39,6 +46,8 @@ function bootAllJobs() {
   jobRunnerService.runNow('login-failure-retention').catch(() => {});
   jobRunnerService.runNow('maintenance-publish').catch(() => {});
   jobRunnerService.runNow('maintenance-expiry').catch(() => {});
+  jobRunnerService.runNow('license-expiry').catch(() => {});
+  jobRunnerService.runNow('grace-period').catch(() => {});
   jobRunnerService.startAll();
 }
 

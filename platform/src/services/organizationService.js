@@ -299,6 +299,37 @@ async function getActivityTimeline(rawId) {
   return { timeline };
 }
 
+// ── Organization 360 Expansion (Phase 5E) ────────────────────────────────
+/** Resolves the product to use for a single-product-scoped view when the caller doesn't specify one — the adapter's own product for adapter orgs, or the first attached product for local orgs. */
+function primaryProductId(rawId) {
+  const ref = orgRef.resolve(rawId);
+  if (ref.isAdapter) return null;
+  const products = organizationProductRepository.listForOrganization(ref.localId);
+  return products.length ? products[0].product_id : null;
+}
+
+async function getSubscription(rawId, productId) {
+  const subscriptionService = require('./subscriptionService');
+  const pid = productId || primaryProductId(rawId);
+  return subscriptionService.getSubscription(rawId, pid);
+}
+async function getUsage(rawId) {
+  const subscriptionService = require('./subscriptionService');
+  return subscriptionService.getUsage(rawId);
+}
+function getBilling(rawId) {
+  const billingService = require('./billingService');
+  return billingService.getOrganizationBilling(rawId);
+}
+async function getLicenseHistory(rawId) {
+  const licenseService = require('./licenseService');
+  return licenseService.getLicenseHistory(rawId);
+}
+async function getRenewalHistory(rawId) {
+  const history = await getLicenseHistory(rawId);
+  return history.filter((h) => h.eventType === 'RENEWED');
+}
+
 async function sendEmail(rawId, type, extra, actor) {
   const ref = orgRef.resolve(rawId);
   if (ref.isAdapter) {
@@ -350,4 +381,5 @@ module.exports = {
   listDevices, revokeDevice, renameDevice, unlockAccount, forcePasswordReset, killSessions, getLoginHistory, getFailedLogins,
   sendEmail, mapOrg, mapLicense, mapAudit,
   listNotes, addNote, getRenewals, getSecurity, getActivityTimeline,
+  getSubscription, getUsage, getBilling, getLicenseHistory, getRenewalHistory,
 };

@@ -19,6 +19,8 @@
 const { getDb } = require('../database/connection');
 const { listConfiguredAdapters } = require('../adapters');
 const metricSnapshotRepository = require('../repositories/platformMetricSnapshotRepository');
+const invoiceRepository = require('../repositories/platformInvoiceRepository');
+const licenseHistoryRepository = require('../repositories/platformLicenseHistoryRepository');
 
 function mergeMonthly(seriesArrays) {
   const map = new Map();
@@ -88,6 +90,71 @@ function activityMetrics() {
   `).all();
 }
 
+// ── Phase 5E: Business Reports ───────────────────────────────────────────
+/** Revenue Trends — monthly paid-invoice totals from the manual billing ledger. */
+function revenueTrends() {
+  return invoiceRepository.monthlyRevenue().map((r) => ({ month: r.month, total: r.total }));
+}
+
+/** Subscription Growth — new subscriptions (ASSIGNED/ACTIVATED events) per month from the license history. */
+function subscriptionGrowth() {
+  return groupByMonth(
+    getDb().prepare("SELECT created_at FROM platform_license_history WHERE event_type IN ('ASSIGNED','ACTIVATED')").all().map((r) => r.created_at)
+  );
+}
+
+/** Renewal Success Rate — RENEWED events vs (SUSPENDED+CANCELLED) events over the last 90 days, from the same license history table both feed. */
+function renewalSuccessRate(sinceDays) {
+  const counts = licenseHistoryRepository.countByEventType(sinceDays || 90);
+  const byType = {};
+  for (const c of counts) byType[c.event_type] = c.count;
+  const renewed = byType.RENEWED || 0;
+  const lost = (byType.SUSPENDED || 0) + (byType.CANCELLED || 0);
+  const total = renewed + lost;
+  return { renewed, lost, ratePercent: total ? Math.round((renewed / total) * 1000) / 10 : null };
+}
+
+/** Customer Lifetime — average age (days) of organizations that have reached a terminal state (ARCHIVED/CANCELLED), the only point a "lifetime" is actually known. */
+function customerLifetime() {
+  const row = getDb().prepare(`
+    SELECT AVG(julianday(updated_at) - julianday(created_at)) avgDays, COUNT(*) c
+    FROM platform_licenses WHERE status = 'ARCHIVED'
+  `).get();
+  return { averageDays: row.avgDays ? Math.round(row.avgDays) : null, sampleSize: row.c };
+}
+
+/** License Distribution — current plan_code breakdown, local + every configured adapter. */
+async function licenseDistribution() {
+  const local = getDb().prepare('SELECT plan_code, COUNT(*) count FROM platform_licenses GROUP BY plan_code').all();
+  const dist = {};
+  for (const r of local) dist[r.plan_code] = (dist[r.plan_code] || 0) + r.count;
+  for (const { adapter } of listConfiguredAdapters()) {
+    const result = await adapter.listOrganizations({ page: 1, pageSize: 500 });
+    for (const o of result.organizations || []) {
+      if (!o.license || !o.license.planCode) continue;
+      dist[o.license.planCode] = (dist[o.license.planCode] || 0) + 1;
+    }
+  }
+  return dist;
+}
+
+/** Outstanding Revenue — total unpaid across the manual billing ledger. Delegates to billingService so this figure and the Billing Dashboard's can never drift apart (both invoiced-minus-paid-minus-credits-plus-debits). */
+function outstandingRevenue() {
+  return require('./billingService').getTotalOutstanding();
+}
+
+async function getBusinessReports() {
+  const [distribution] = await Promise.all([licenseDistribution()]);
+  return {
+    revenueTrends: revenueTrends(),
+    subscriptionGrowth: subscriptionGrowth(),
+    renewalSuccessRate: renewalSuccessRate(),
+    customerLifetime: customerLifetime(),
+    licenseDistribution: distribution,
+    outstandingRevenue: outstandingRevenue(),
+  };
+}
+
 async function getTrends() {
   const snapshots = metricSnapshotRepository.listRecent(90);
   const [registrations, products] = await Promise.all([registrationTrends(), productUsage()]);
@@ -104,4 +171,7 @@ async function getTrends() {
   return { customerGrowth: growth, registrationTrends: registrations, licenseTrends: licenses, productUsage: products, activityMetrics: activityMetrics(), dataSource };
 }
 
-module.exports = { getTrends, customerGrowth, registrationTrends, licenseTrends, productUsage, activityMetrics };
+module.exports = {
+  getTrends, customerGrowth, registrationTrends, licenseTrends, productUsage, activityMetrics,
+  getBusinessReports, revenueTrends, subscriptionGrowth, renewalSuccessRate, customerLifetime, licenseDistribution, outstandingRevenue,
+};
