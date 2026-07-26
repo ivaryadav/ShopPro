@@ -13,6 +13,7 @@ const otplib = require('otplib');
 const QRCode = require('qrcode');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+const { getDb } = require('../database/connection');
 const userRepository = require('../repositories/platformUserRepository');
 const recoveryCodeRepository = require('../repositories/platformMfaRecoveryCodeRepository');
 const trustedDeviceRepository = require('../repositories/platformTrustedDeviceRepository');
@@ -47,9 +48,15 @@ async function confirmSetup(userId, code, actor) {
   if (!user || !user.totp_secret) throw new ValidationError('No pending MFA setup found for this account — start setup again.');
   const result = await otplib.verify({ token: String(code || ''), secret: user.totp_secret });
   if (!result || !result.valid) throw new ValidationError('Invalid authentication code.');
-  userRepository.enableTotp(userId);
   const codes = generateRecoveryCodes();
-  recoveryCodeRepository.replaceAllForUser(userId, codes.map((c) => bcrypt.hashSync(c, 10)));
+  // Atomic: a crash between enabling TOTP and writing recovery codes would
+  // otherwise leave an account with MFA on but zero recovery codes — no
+  // way back in if the device is ever lost. Found during the Phase 5B.1
+  // security audit's transaction review.
+  getDb().transaction(() => {
+    userRepository.enableTotp(userId);
+    recoveryCodeRepository.replaceAllForUser(userId, codes.map((c) => bcrypt.hashSync(c, 10)));
+  })();
   auditService.record({ platformUserId: userId, action: 'MFA_ENABLED', detail: user.email, ip: actor.ip });
   return { recoveryCodes: codes };
 }
@@ -59,9 +66,11 @@ function disable(userId, password, actor) {
   const user = userRepository.findById(userId);
   if (!user) throw new ValidationError('User not found');
   assertPassword(user, password);
-  userRepository.disableTotp(userId);
-  recoveryCodeRepository.deleteAllForUser(userId);
-  const revokedDevices = trustedDeviceRepository.revokeAllForUser(userId);
+  const revokedDevices = getDb().transaction(() => {
+    userRepository.disableTotp(userId);
+    recoveryCodeRepository.deleteAllForUser(userId);
+    return trustedDeviceRepository.revokeAllForUser(userId);
+  })();
   auditService.record({ platformUserId: userId, action: 'MFA_DISABLED', detail: `${user.email} — ${revokedDevices} trusted device(s) also revoked`, ip: actor.ip });
   return { ok: true };
 }

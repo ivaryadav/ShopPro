@@ -4,6 +4,7 @@ const securityService = require('../services/securityService');
 const sessionRepository = require('../repositories/platformSessionRepository');
 const trustedDeviceRepository = require('../repositories/platformTrustedDeviceRepository');
 const policyRepository = require('../repositories/platformPasswordPolicyRepository');
+const passwordService = require('../services/passwordService');
 const auditService = require('../services/auditService');
 const { NotFoundError, ValidationError } = require('../errors');
 
@@ -62,6 +63,7 @@ async function revokeMyTrustedDevice(req, res, next) {
 async function getPasswordPolicy(req, res, next) { try { res.json({ policy: policyRepository.get() }); } catch (e) { next(e); } }
 async function updatePasswordPolicy(req, res, next) {
   try {
+    passwordService.validatePolicyUpdate(req.body);
     const updated = policyRepository.update(req.body);
     auditService.record({ platformUserId: req.platformUser.userId, action: 'PASSWORD_POLICY_UPDATED', ip: req.ip });
     res.json({ policy: updated });

@@ -20,8 +20,5 @@ function markUsed(id) {
 function deleteAllForUser(userId) {
   getDb().prepare('DELETE FROM platform_mfa_recovery_codes WHERE user_id = ?').run(userId);
 }
-function countUnusedForUser(userId) {
-  return getDb().prepare('SELECT COUNT(*) c FROM platform_mfa_recovery_codes WHERE user_id = ? AND used_at IS NULL').get(userId).c;
-}
 
-module.exports = { replaceAllForUser, listUnusedForUser, markUsed, deleteAllForUser, countUnusedForUser };
+module.exports = { replaceAllForUser, listUnusedForUser, markUsed, deleteAllForUser };

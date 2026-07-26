@@ -38,6 +38,14 @@ const { AuthenticationError, LockedError, ValidationError } = require('../errors
 const ACCESS_TOKEN_TTL = '12h';
 const MFA_PENDING_TOKEN_TTL = '5m';
 const TRUSTED_DEVICE_DAYS = 30;
+// A fixed, valid-shaped bcrypt hash with no corresponding real password —
+// compared against on every "account doesn't exist" path so that branch
+// takes the same ~bcrypt-cost time as a real wrong-password check. Without
+// this, an unknown email returns in <1ms while a wrong password for a
+// real account takes ~15-20ms (bcrypt's cost factor), letting an attacker
+// enumerate valid platform-user emails purely by measuring response time —
+// confirmed empirically during the Phase 5B.1 security audit (a ~23x gap).
+const DUMMY_HASH_FOR_TIMING_EQUALIZATION = bcrypt.hashSync('not-a-real-password', 10);
 
 function isLocked(user) {
   return !!(user.locked_until && new Date(user.locked_until).getTime() > Date.now());
@@ -77,6 +85,7 @@ async function login({ email, password, ip, userAgent, trustedDeviceToken }, jwt
   if (!email || !password) throw new ValidationError('email and password are required');
   const user = userRepository.findByEmail(email);
   if (!user || !user.is_active) {
+    bcrypt.compareSync(password, DUMMY_HASH_FOR_TIMING_EQUALIZATION); // burn the same time a real bcrypt check would take — see constant's comment
     loginFailureRepository.record(user ? user.id : null, email, ip);
     throw new AuthenticationError('Invalid email or password.');
   }
@@ -120,6 +129,9 @@ async function challengeMfa({ mfaToken, code, recoveryCode, rememberDevice, ip, 
   if (payload.type !== 'mfa_pending') throw new AuthenticationError('Invalid MFA challenge.');
   const user = userRepository.findById(payload.userId);
   if (!user || !user.totp_enabled) throw new AuthenticationError('Invalid MFA challenge.');
+  // A 5-minute mfaToken can outlive an account becoming locked mid-flow
+  // (e.g. from repeated failed challenges below) — re-check on every use.
+  if (isLocked(user)) throw new LockedError('This account is temporarily locked due to repeated failed attempts. Try again later.');
 
   let usedRecoveryCode = false;
   let ok = false;
@@ -127,6 +139,19 @@ async function challengeMfa({ mfaToken, code, recoveryCode, rememberDevice, ip, 
   else if (code) { ok = await mfaService.verifyTotp(user.totp_secret, code); }
 
   if (!ok) {
+    // Reuses the exact same account-lockout primitive a failed PASSWORD
+    // attempt does — a stolen password alone (which is what a valid
+    // mfaToken implies) must not let an attacker brute-force the second
+    // factor indefinitely across repeated challenge calls within the
+    // token's 5-minute window.
+    const policy = policyRepository.get();
+    loginFailureRepository.record(user.id, user.email, ip);
+    const recentFailures = loginFailureRepository.countRecent(user.email, policy.lockout_window_minutes);
+    if (recentFailures >= policy.lockout_threshold) {
+      const lockedUntil = new Date(Date.now() + policy.lockout_duration_minutes * 60000).toISOString();
+      userRepository.setLockedUntil(user.email, lockedUntil);
+      auditService.record({ platformUserId: user.id, action: 'PLATFORM_ACCOUNT_LOCKED', detail: `${recentFailures} failed MFA/login attempts in ${policy.lockout_window_minutes}m`, ip });
+    }
     auditService.record({ platformUserId: user.id, action: 'MFA_CHALLENGE_FAILED', detail: user.email, ip });
     throw new AuthenticationError('Invalid authentication code.');
   }

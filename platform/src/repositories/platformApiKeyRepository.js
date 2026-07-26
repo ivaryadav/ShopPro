@@ -13,7 +13,6 @@ function create({ name, keyHash, keyPrefix, permissions, createdBy, expiresInDay
   return findById(Number(result.lastInsertRowid));
 }
 function findById(id) { return getDb().prepare('SELECT * FROM platform_api_keys WHERE id = ?').get(id); }
-function findByHash(keyHash) { return getDb().prepare('SELECT * FROM platform_api_keys WHERE key_hash = ?').get(keyHash); }
 /** The only check requirePlatformAuthOrApiKey should trust — revoked/expired entirely evaluated in SQLite, never in JS. */
 function findValidByHash(keyHash) {
   return getDb().prepare(`
@@ -38,4 +37,4 @@ function revoke(id) {
   return getDb().prepare("UPDATE platform_api_keys SET revoked_at = datetime('now') WHERE id = ? AND revoked_at IS NULL").run(id).changes > 0;
 }
 
-module.exports = { create, findById, findByHash, findValidByHash, listAll, touchUsage, rotate, revoke };
+module.exports = { create, findById, findValidByHash, listAll, touchUsage, rotate, revoke };

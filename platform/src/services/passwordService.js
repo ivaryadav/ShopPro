@@ -60,4 +60,29 @@ function adminResetPassword(targetUserId, newPassword, actor) {
   return { ok: true };
 }
 
-module.exports = { validateAgainstPolicy, checkHistory, setPassword, changeOwnPassword, adminResetPassword };
+/**
+ * Sanity-bounds the policy fields an admin can set. Found during the
+ * Phase 5B.1 security audit: PUT /security/password-policy accepted ANY
+ * value with no validation at all — an admin could set
+ * sessionIdleTimeoutMinutes:0 or a negative absolute timeout, which
+ * immediately expires EVERY session platform-wide (including their own)
+ * on the very next request, a self-inflicted platform-wide lockout from
+ * a single fat-fingered value. Bounds are generous, not opinionated —
+ * this rejects nonsensical input, not reasonable configuration choices.
+ */
+const POLICY_BOUNDS = {
+  minLength: [4, 128], maxAgeDays: [1, 3650], historyCount: [0, 24],
+  lockoutThreshold: [1, 20], lockoutWindowMinutes: [1, 1440], lockoutDurationMinutes: [1, 10080],
+  sessionIdleTimeoutMinutes: [1, 10080], sessionAbsoluteTimeoutHours: [1, 720],
+};
+function validatePolicyUpdate(fields) {
+  for (const [key, [min, max]] of Object.entries(POLICY_BOUNDS)) {
+    const v = fields[key];
+    if (v === undefined || v === null) continue; // maxAgeDays may be intentionally cleared to "never expires"
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < min || v > max) {
+      throw new ValidationError(`${key} must be a number between ${min} and ${max}`);
+    }
+  }
+}
+
+module.exports = { validateAgainstPolicy, checkHistory, setPassword, changeOwnPassword, adminResetPassword, validatePolicyUpdate };
