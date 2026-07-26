@@ -163,6 +163,7 @@ td{padding:8px 10px;border-bottom:1px solid var(--border)}
       <div class="nav-group-label" onclick="toggleNavGroup(this)"><span>Operations</span><span class="chev">▾</span></div>
       <div class="nav-item" data-page="health" onclick="nav('health')">💚 System Health</div>
       <div class="nav-item" data-page="jobs" onclick="nav('jobs')">🕐 Scheduled Jobs</div>
+      <div class="nav-item" data-page="maintenance" onclick="nav('maintenance')">🚧 Maintenance Center</div>
       <div class="nav-item" data-page="alerts" onclick="nav('alerts')">🔔 Alerts</div>
       <div class="nav-item" data-page="audit" onclick="nav('audit')">🧾 Audit Log</div>
     </div>
@@ -306,7 +307,7 @@ const PAGE_LABELS = {
   products: 'Products / Product Registry', health: 'Operations / System Health', alerts: 'Operations / Alerts',
   audit: 'Operations / Audit Log', 'platform-users': 'Settings / Platform Users',
   'security-center': 'Security / Security Center', 'security-settings': 'Security / Security Settings',
-  jobs: 'Operations / Scheduled Jobs',
+  jobs: 'Operations / Scheduled Jobs', maintenance: 'Operations / Maintenance Center',
 };
 function breadcrumb(){ return '<div class="breadcrumb">' + esc(PAGE_LABELS[CURRENT_PAGE] || CURRENT_PAGE) + '</div>'; }
 function nav(page){
@@ -316,7 +317,7 @@ function nav(page){
     dashboard: renderDashboard, organizations: renderOrganizations, products: renderProducts, audit: renderAudit,
     'platform-users': renderPlatformUsers, health: renderHealth, alerts: renderAlertsPage, reports: renderReports,
     'security-center': renderSecurityCenter, 'security-settings': renderSecuritySettings,
-    jobs: renderJobsPage,
+    jobs: renderJobsPage, maintenance: renderMaintenanceCenter,
   };
   (renderers[page] || renderDashboard)();
 }
@@ -1171,6 +1172,154 @@ function runJobNow(name){
   api('/jobs/' + encodeURIComponent(name) + '/run', { method: 'POST' })
     .then(() => { toast('Job run complete', 'success'); renderJobsPage(); })
     .catch(e => toast(e.message, 'error'));
+}
+
+// ── Maintenance Center (Phase 5D) ──
+let MAINT_TAB = 'overview';
+const MAINT_TABS = [['overview', 'Overview'], ['policies', 'Policies & Windows'], ['history', 'Timeline']];
+function renderMaintenanceCenter(){
+  const main = document.getElementById('main');
+  main.innerHTML = breadcrumb() + '<h2 style="margin-top:0">Maintenance Center</h2>' +
+    '<div class="sec-tabs">' + MAINT_TABS.map(([key, label]) => `<div class="sec-tab ${MAINT_TAB===key?'active':''}" onclick="switchMaintTab('${key}')">${esc(label)}</div>`).join('') + '</div>' +
+    '<div id="maint-tab-body" class="glass-card">Loading…</div>';
+  loadMaintTab(MAINT_TAB);
+}
+function switchMaintTab(key){ MAINT_TAB = key; renderMaintenanceCenter(); }
+function loadMaintTab(key){
+  const fns = { overview: renderMaintTabOverview, policies: renderMaintTabPolicies, history: renderMaintTabHistory };
+  (fns[key] || renderMaintTabOverview)();
+}
+
+async function renderMaintTabOverview(){
+  const body = document.getElementById('maint-tab-body');
+  try {
+    const [health, policies] = await Promise.all([api('/health'), api('/maintenance/policies?status=active')]);
+    const m = health.maintenance;
+    let html = '<div class="kpi-grid">';
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Active Policies</div><div class="kpi-value" style="color:${policies.policies.length?'var(--orange)':'var(--green)'}">${policies.policies.length}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Products Connected</div><div class="kpi-value">${m.productsConnected}/${m.productsTotal}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Sync Success Rate</div><div class="kpi-value">${m.syncSuccessRate==null?'—':m.syncSuccessRate+'%'}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Last Publish</div><div class="kpi-value" style="font-size:13px">${m.lastPublishAt?new Date(m.lastPublishAt).toLocaleString():'—'}</div></div>`;
+    html += '</div>';
+    html += '<div class="section-title" style="margin-top:0">Active Policies Right Now</div>';
+    html += policies.policies.length
+      ? policies.policies.map(p => `<div class="row"><span>${esc(scopeLabel(p))} — ${esc(p.mode)}/${esc(p.accessLevel)}</span><span>${esc(p.message||'—')}</span></div>`).join('')
+      : '<div style="color:var(--text3);font-size:12px">Nothing is currently in maintenance.</div>';
+    html += '<div class="section-title">Synchronization Status</div>';
+    html += m.products.length
+      ? m.products.map(p => `<div class="row"><span>${esc(p.slug)}</span><span style="color:${p.connected?'var(--green)':'var(--red)'}">${esc(p.cacheStatus)} ${p.lastSyncedAt?'— '+new Date(p.lastSyncedAt).toLocaleString():''}</span></div>`).join('')
+      : '<div style="color:var(--text3);font-size:12px">No products configured with a live adapter yet.</div>';
+    if (hasPermission('manage_products')) {
+      html += '<div class="section-title">Emergency Controls</div>';
+      html += `<div style="color:var(--text3);font-size:11px;margin-bottom:8px">Takes effect immediately, overrides any other active policy at any scope, and is published to products on their next sync.</div>`;
+      html += `<div style="display:flex;flex-direction:column;gap:8px;max-width:420px">
+        <select id="em-scope-type" onchange="emToggleScopeRef()"><option value="platform">Entire Platform</option><option value="product">Specific Product</option><option value="organization">Specific Organization</option></select>
+        <input id="em-scope-ref" class="hidden" placeholder="Product slug or organization id (e.g. shoperp:7)">
+        <select id="em-access-level"><option value="locked">Full Lock (block everything)</option><option value="read_only">Read Only (block writes only)</option></select>
+        <input id="em-message" placeholder="Message shown to users" value="Emergency maintenance in progress.">
+        <button class="btn btn-danger btn-xs" onclick="triggerEmergencyMaintenance()" style="align-self:flex-start">🚨 Activate Emergency Maintenance</button>
+      </div>`;
+    }
+    body.innerHTML = html;
+  } catch (e) { body.innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+function emToggleScopeRef(){
+  const scopeType = document.getElementById('em-scope-type').value;
+  document.getElementById('em-scope-ref').classList.toggle('hidden', scopeType === 'platform');
+}
+function triggerEmergencyMaintenance(){
+  const scopeType = document.getElementById('em-scope-type').value;
+  const scopeRef = document.getElementById('em-scope-ref').value.trim();
+  const accessLevel = document.getElementById('em-access-level').value;
+  const message = document.getElementById('em-message').value.trim();
+  if (!confirm('Activate EMERGENCY maintenance now? This takes effect immediately for ' + (scopeType === 'platform' ? 'the ENTIRE platform' : scopeType + ' "' + scopeRef + '"') + '.')) return;
+  api('/maintenance/policies', { method: 'POST', body: { scopeType, scopeRef: scopeType === 'platform' ? undefined : scopeRef, mode: 'emergency', accessLevel, message } })
+    .then(() => { toast('Emergency maintenance activated', 'success'); renderMaintTabOverview(); })
+    .catch(e => toast(e.message, 'error'));
+}
+
+function scopeLabel(p){ return p.scopeType === 'platform' ? 'Platform-wide' : (p.scopeType + ': ' + p.scopeRef); }
+
+async function renderMaintTabPolicies(){
+  const body = document.getElementById('maint-tab-body');
+  const statusFilter = document.getElementById('maint-status-filter') ? document.getElementById('maint-status-filter').value : '';
+  try {
+    const d = await api('/maintenance/policies' + (statusFilter ? '?status=' + statusFilter : ''));
+    let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
+    html += `<select id="maint-status-filter" onchange="renderMaintTabPolicies()"><option value="">All Statuses</option><option value="scheduled">Scheduled</option><option value="active">Active</option><option value="expired">Expired</option><option value="cancelled">Cancelled</option></select>`;
+    if (hasPermission('manage_products')) html += '<button class="btn btn-xs btn-primary" onclick="openMaintCreateForm()">+ New Maintenance Window</button>';
+    html += '</div>';
+    html += '<div class="table-scroll"><table><thead><tr><th>Scope</th><th>Mode</th><th>Access</th><th>Status</th><th>Starts</th><th>Ends</th><th>Message</th><th></th></tr></thead><tbody>';
+    d.policies.forEach(p => {
+      const statusClass = { active: 'badge-orange', scheduled: 'badge-gray', expired: 'badge-green', cancelled: 'badge-gray' }[p.status] || 'badge-gray';
+      html += `<tr><td>${esc(scopeLabel(p))}</td><td>${esc(p.mode)}</td><td>${esc(p.accessLevel)}</td><td><span class="badge ${statusClass}">${esc(p.status)}</span></td><td>${p.startsAt?new Date(p.startsAt.replace(' ','T')+'Z').toLocaleString():'—'}</td><td>${p.endsAt?new Date(p.endsAt.replace(' ','T')+'Z').toLocaleString():'—'}</td><td style="font-size:10px;color:var(--text3)">${esc(p.message||'—')}</td><td>`;
+      if (hasPermission('manage_products')) {
+        if (p.status === 'scheduled') html += `<button class="btn btn-xs btn-success" onclick="maintAction(${p.id},'activate')">Activate Now</button> <button class="btn btn-xs btn-ghost" onclick="maintAction(${p.id},'cancel')">Cancel</button>`;
+        else if (p.status === 'active') html += `<button class="btn btn-xs btn-danger" onclick="maintAction(${p.id},'deactivate')">End Now</button>`;
+      }
+      html += '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('maint-tab-body').innerHTML = html;
+  } catch (e) { body.innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+function maintAction(id, action){
+  api('/maintenance/policies/' + id + '/' + action, { method: 'POST' })
+    .then(() => { toast('Done', 'success'); renderMaintTabPolicies(); })
+    .catch(e => toast(e.message, 'error'));
+}
+function openMaintCreateForm(){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `<div class="modal-box">
+    <h3 style="margin-top:0">New Maintenance Window</h3>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <select id="mc-scope-type" onchange="document.getElementById('mc-scope-ref').classList.toggle('hidden', this.value==='platform')">
+        <option value="platform">Entire Platform</option><option value="product">Specific Product</option><option value="organization">Specific Organization</option>
+      </select>
+      <input id="mc-scope-ref" class="hidden" placeholder="Product slug (e.g. shoperp) or organization id (e.g. shoperp:7)">
+      <select id="mc-mode"><option value="scheduled">Scheduled</option><option value="immediate">Immediate</option><option value="emergency">Emergency</option></select>
+      <select id="mc-access-level"><option value="locked">Full Lock</option><option value="read_only">Read Only</option></select>
+      <label style="font-size:11px;color:var(--text3)">Start (UTC)</label><input id="mc-starts-at" type="datetime-local">
+      <label style="font-size:11px;color:var(--text3)">End (UTC, optional)</label><input id="mc-ends-at" type="datetime-local">
+      <input id="mc-message" placeholder="Message shown to users">
+      <input id="mc-eta" placeholder="Expected completion (human text, e.g. '30 minutes')">
+      <input id="mc-allowlist-users" placeholder="Allowlisted mobiles/emails, comma-separated">
+      <input id="mc-allowlist-orgs" placeholder="Allowlisted organization ids, comma-separated">
+      <div id="mc-error" style="color:var(--red);font-size:11px;min-height:14px"></div>
+      <div style="display:flex;gap:8px"><button class="btn btn-primary" onclick="submitMaintCreate()">Create</button><button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">Cancel</button></div>
+    </div>
+  </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+function submitMaintCreate(){
+  const scopeType = document.getElementById('mc-scope-type').value;
+  const scopeRef = document.getElementById('mc-scope-ref').value.trim();
+  const splitList = (v) => v.split(',').map(s => s.trim()).filter(Boolean);
+  const body = {
+    scopeType, scopeRef: scopeType === 'platform' ? undefined : scopeRef,
+    mode: document.getElementById('mc-mode').value, accessLevel: document.getElementById('mc-access-level').value,
+    startsAt: document.getElementById('mc-starts-at').value || undefined, endsAt: document.getElementById('mc-ends-at').value || undefined,
+    message: document.getElementById('mc-message').value.trim(), eta: document.getElementById('mc-eta').value.trim(),
+    allowlistUsers: splitList(document.getElementById('mc-allowlist-users').value), allowlistOrganizations: splitList(document.getElementById('mc-allowlist-orgs').value),
+  };
+  api('/maintenance/policies', { method: 'POST', body })
+    .then(() => { toast('Maintenance window created', 'success'); document.querySelector('.modal-overlay').remove(); renderMaintTabPolicies(); })
+    .catch(e => { document.getElementById('mc-error').textContent = e.message; });
+}
+
+async function renderMaintTabHistory(){
+  const body = document.getElementById('maint-tab-body');
+  try {
+    const d = await api('/maintenance/history?limit=100');
+    let html = '<div class="table-scroll"><table><thead><tr><th>Time</th><th>Scope</th><th>Action</th><th>Detail</th><th>Actor</th></tr></thead><tbody>';
+    d.entries.forEach(h => {
+      html += `<tr><td>${h.createdAt?new Date(h.createdAt).toLocaleString():''}</td><td>${esc(h.scopeType==='platform'?'Platform-wide':(h.scopeType+': '+h.scopeRef))}</td><td><span class="badge badge-gray">${esc(h.action)}</span></td><td style="font-size:10px;color:var(--text3)">${esc(h.detail||'—')}</td><td>${esc(h.actor)}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    body.innerHTML = d.entries.length ? html : '<div style="color:var(--text3);font-size:12px">No maintenance history yet.</div>';
+  } catch (e) { body.innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
 }
 
 // ── Boot ──

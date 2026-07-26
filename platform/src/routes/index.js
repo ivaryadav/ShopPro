@@ -25,6 +25,7 @@ const reportController = require('../controllers/reportController');
 const securityController = require('../controllers/securityController');
 const apiKeyController = require('../controllers/apiKeyController');
 const jobController = require('../controllers/jobController');
+const maintenanceController = require('../controllers/maintenanceController');
 
 function createPlatformRouter({ jwtSecret }) {
   const router = express.Router();
@@ -101,6 +102,21 @@ function createPlatformRouter({ jwtSecret }) {
   // ── Scheduled Jobs (Phase 5C) ────────────────────────────────────────────
   router.get('/jobs', auth, requirePermission('view_only'), jobController.list);
   router.post('/jobs/:name/run', auth, requirePermission('manage_platform_users'), rateLimit(10, 60 * 1000), jobController.runNow);
+
+  // ── Platform Maintenance & Business Continuity (Phase 5D) ───────────────
+  // Product-facing bulk pull — a real product (ShopERP's maintenanceSync.js)
+  // authenticates via Platform API Key, never a human session.
+  router.get('/maintenance/effective', authOrApiKey, requirePermission('view_only'), maintenanceController.effectiveForProduct);
+  // Operator-facing management.
+  router.get('/maintenance/policies', auth, requirePermission('view_only'), maintenanceController.list);
+  router.get('/maintenance/policies/:id', auth, requirePermission('view_only'), maintenanceController.getOne);
+  router.post('/maintenance/policies', auth, requirePermission('manage_products'), rateLimit(20, 60 * 1000), maintenanceController.create);
+  router.put('/maintenance/policies/:id', auth, requirePermission('manage_products'), rateLimit(20, 60 * 1000), maintenanceController.edit);
+  router.post('/maintenance/policies/:id/activate', auth, requirePermission('manage_products'), rateLimit(20, 60 * 1000), maintenanceController.activate);
+  router.post('/maintenance/policies/:id/deactivate', auth, requirePermission('manage_products'), rateLimit(20, 60 * 1000), maintenanceController.deactivate);
+  router.post('/maintenance/policies/:id/cancel', auth, requirePermission('manage_products'), rateLimit(20, 60 * 1000), maintenanceController.cancel);
+  router.get('/maintenance/history', auth, requirePermission('view_only'), maintenanceController.history);
+  router.get('/maintenance/resolve', auth, requirePermission('view_only'), maintenanceController.resolve);
 
   router.get('/platform-users', auth, requirePermission('manage_platform_users'), platformUserController.list);
   router.post('/platform-users', auth, requirePermission('manage_platform_users'), rateLimit(20, 60 * 1000), platformUserController.create);

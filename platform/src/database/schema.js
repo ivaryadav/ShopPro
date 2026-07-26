@@ -380,6 +380,45 @@ function migrate(db) {
       active_sessions     INTEGER NOT NULL DEFAULT 0,
       created_at          TEXT DEFAULT (datetime('now'))
     );
+
+    -- Phase 5D: Platform Maintenance & Business Continuity. Z-SUPERADMIN
+    -- is the single source of truth; scope_ref is TEXT (not a FK) for the
+    -- same reason organization_notes.organization_id is — it must hold a
+    -- product slug ("shoperp"), a synthetic org id ("shoperp:7"), or NULL
+    -- (platform-wide), and must support future products with zero schema
+    -- change. "emergency" is a MODE, not a scope — it can apply at any
+    -- scope and wins resolution regardless of specificity (see
+    -- maintenanceService.resolveEffective's documented precedence).
+    CREATE TABLE IF NOT EXISTS platform_maintenance_windows (
+      id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+      scope_type              TEXT NOT NULL CHECK (scope_type IN ('platform','product','organization')),
+      scope_ref               TEXT,
+      mode                    TEXT NOT NULL DEFAULT 'scheduled' CHECK (mode IN ('scheduled','immediate','emergency')),
+      access_level            TEXT NOT NULL DEFAULT 'locked' CHECK (access_level IN ('read_only','locked')),
+      status                  TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled','active','expired','cancelled')),
+      message                 TEXT NOT NULL DEFAULT '',
+      eta                     TEXT NOT NULL DEFAULT '',
+      starts_at               TEXT,
+      ends_at                 TEXT,
+      allowlist_users         TEXT NOT NULL DEFAULT '[]',
+      allowlist_organizations TEXT NOT NULL DEFAULT '[]',
+      allowlist_ips           TEXT NOT NULL DEFAULT '[]',
+      created_by              INTEGER REFERENCES platform_users(id) ON DELETE SET NULL,
+      created_at              TEXT DEFAULT (datetime('now')),
+      updated_at              TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_maint_windows_scope ON platform_maintenance_windows(scope_type, scope_ref);
+    CREATE INDEX IF NOT EXISTS idx_maint_windows_status ON platform_maintenance_windows(status);
+
+    CREATE TABLE IF NOT EXISTS platform_maintenance_history (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      window_id  INTEGER REFERENCES platform_maintenance_windows(id) ON DELETE CASCADE,
+      action     TEXT NOT NULL,
+      detail     TEXT NOT NULL DEFAULT '',
+      actor      TEXT NOT NULL DEFAULT 'system',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_maint_history_window ON platform_maintenance_history(window_id, created_at);
   `);
 
   runMigration(db, 'ALTER TABLE platform_users ADD COLUMN locked_until TEXT', 'platform_users.locked_until');

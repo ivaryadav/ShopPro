@@ -73,7 +73,8 @@ async function main() {
 
     // ── Runtime Monitoring API ────────────────────────────────────────────
     const jobsList = await api('/jobs');
-    assert(jobsList.status === 200 && jobsList.body.jobs.length === 3, 'GET /api/platform/jobs lists exactly the 3 real registered jobs');
+    const jobNames = jobsList.body.jobs.map((j) => j.name);
+    assert(jobsList.status === 200 && ['metric-snapshot', 'session-cleanup', 'login-failure-retention'].every((n) => jobNames.includes(n)), 'GET /api/platform/jobs lists the 3 real Phase 5C jobs (more may have been registered by later phases)');
     assert(jobsList.body.jobs.every((j) => Array.isArray(j.history)), 'each job includes its execution history');
     assert(jobsList.body.jobs.every((j) => 'successCount' in j && 'failureCount' in j && 'isRunning' in j && 'nextRunAt' in j), 'each job reports successCount/failureCount/isRunning/nextRunAt');
     const unauthedJobs = await fetch(server.baseUrl + '/api/platform/jobs');
@@ -81,7 +82,7 @@ async function main() {
 
     // ── System Health reflects real job runtime state ────────────────────
     const health = await api('/health');
-    assert(health.body.jobs.count === 3 && Array.isArray(health.body.jobs.jobs), 'System Health reports the 3 real jobs, not a stub');
+    assert(health.body.jobs.count >= 3 && Array.isArray(health.body.jobs.jobs), 'System Health reports real registered jobs, not a stub');
 
     // ── Manual execution: Metric Snapshot Job — real side effect ─────────
     const runSnapshot = await api('/jobs/metric-snapshot/run', { method: 'POST' });

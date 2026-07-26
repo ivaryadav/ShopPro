@@ -23,6 +23,8 @@ const crypto   = require('crypto');
 const license  = require('./license');
 const sessions = require('./sessions');
 const logger   = require('./logger');
+const maintenanceSync = require('./maintenanceSync');
+const maintenanceGateModule = require('./maintenanceGate');
 
 // Load .env file if present (no dotenv dependency needed)
 const envFile = path.join(__dirname, '.env');
@@ -193,6 +195,21 @@ db.exec(`
   );
 `);
 runMigration('ALTER TABLE cloud_backups ADD COLUMN shop_name TEXT', 'cloud_backups.shop_name');
+
+// Phase 5D: Platform Maintenance & Business Continuity — the local cache
+// maintenanceSync.js keeps fresh by pulling from Z-SUPERADMIN (never the
+// reverse; see server/maintenanceSync.js's header comment). Singleton row
+// (id=1), same pattern as this repo's other single-row config tables.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS maintenance_cache (
+    id                INTEGER PRIMARY KEY CHECK (id = 1),
+    payload           TEXT NOT NULL DEFAULT '{}',
+    last_synced_at    TEXT,
+    last_sync_status  TEXT NOT NULL DEFAULT 'never',
+    last_sync_error   TEXT,
+    updated_at        TEXT DEFAULT (datetime('now'))
+  );
+`);
 runMigration('ALTER TABLE tenants ADD COLUMN license_key_hash TEXT', 'tenants.license_key_hash');
 runMigration('ALTER TABLE tenants ADD COLUMN license_expiry TEXT', 'tenants.license_expiry');
 runMigration("ALTER TABLE tenants ADD COLUMN license_plan TEXT NOT NULL DEFAULT 'monthly'", 'tenants.license_plan');
@@ -529,6 +546,13 @@ function requireLicenseWrite(req, res, next) {
   return requireLicenseRead(req, res, next);
 }
 
+// ── Platform Maintenance enforcement (Phase 5D) ──────────────────────────────
+// Runs in addition to (always after) requireLicenseRead/Write above — same
+// "additional, newest gate goes last" convention. Reads ONLY the local
+// maintenance_cache (kept fresh by maintenanceSync.js); never a live call
+// to Z-SUPERADMIN on the request path.
+const { gateRead: maintenanceGateRead, gateWrite: maintenanceGateWrite, checkForLogin: checkMaintenanceForLogin } = maintenanceGateModule.createGates(db);
+
 // ── Admin session tokens (Issue 2, PasswordMigration.md) ─────────────────────
 // Replaces the old model (a single static, long-lived secret compared
 // directly against X-Admin-Key on every request) with a real login: a
@@ -653,6 +677,11 @@ function runLicenseTransitionSweep() {
 }
 runLicenseTransitionSweep();
 setInterval(runLicenseTransitionSweep, LICENSE_SWEEP_INTERVAL_MS);
+
+// ── Platform Maintenance sync (Phase 5D) ─────────────────────────────────────
+// Fully optional — see server/maintenanceSync.js's header comment. A no-op
+// when ZSUPERADMIN_BASE_URL/ZSUPERADMIN_API_KEY are unset.
+maintenanceSync.start(db, logger);
 
 // ── Express app ──────────────────────────────────────────────────────────────
 const app = express();
@@ -1048,6 +1077,21 @@ app.post('/api/auth/login', rateLimit(10, 5 * 60 * 1000), (req, res) => {
       recordLoginFailure(row.tid, mob, req.ip);
       return res.status(401).json({ error: 'Invalid mobile number or PIN.' });
     }
+    // Platform Maintenance (Phase 5D) — checked only AFTER a correct PIN, so
+    // a wrong-PIN attempt during maintenance still gets the generic invalid-
+    // credentials response, not a maintenance-shaped one (no new information
+    // disclosure). read_only mode does NOT block login — only a full lock does.
+    const loginMaintenance = checkMaintenanceForLogin(row.tid, row.id);
+    if (loginMaintenance.blocked) {
+      const retryAfter = loginMaintenance.active.endsAt ? maintenanceGateModule.retryAfterSeconds(db, loginMaintenance.active.endsAt) : null;
+      if (retryAfter) res.set('Retry-After', String(retryAfter));
+      return res.status(503).json({
+        error: loginMaintenance.active.message || 'This service is temporarily down for maintenance.',
+        maintenanceActive: true, accessLevel: loginMaintenance.active.accessLevel,
+        message: loginMaintenance.active.message, eta: loginMaintenance.active.eta, endsAt: loginMaintenance.active.endsAt,
+        retryAfterSeconds: retryAfter,
+      });
+    }
     // Device-limit enforcement (Phase 8) — only when a deviceId is sent (new
     // client builds); absent = old client build, byte-identical old behavior.
     if (deviceId) {
@@ -1127,7 +1171,7 @@ app.post('/api/auth/heartbeat', requireAuth, (req, res) => {
 });
 
 // ── GET /api/auth/sessions — list this tenant's active sessions (owner only) ─
-app.get('/api/auth/sessions', requireAuth, requireActive, requireLicenseRead, (req, res) => {
+app.get('/api/auth/sessions', requireAuth, requireActive, requireLicenseRead, maintenanceGateRead, (req, res) => {
   if (req.user.role !== 'owner') return res.status(403).json({ error: 'Only the owner can view active sessions' });
   res.json({ sessions: sessions.listActiveSessions(db, req.user.tenantId) });
 });
@@ -1143,7 +1187,7 @@ app.post('/api/auth/sessions/:sessionId/revoke', requireAuth, (req, res) => {
 });
 
 // ── POST /api/auth/add-staff ─────────────────────────────────────────────────
-app.post('/api/auth/add-staff', requireAuth, requireActive, requireLicenseWrite, (req, res) => {
+app.post('/api/auth/add-staff', requireAuth, requireActive, requireLicenseWrite, maintenanceGateWrite, (req, res) => {
   if (req.user.role !== 'owner') {
     return res.status(403).json({ error: 'Only the owner can add staff' });
   }
@@ -1248,6 +1292,26 @@ app.get('/api/license/status', requireAuth, (req, res) => {
     return res.json({ status: 'expired', reason: '', licenseExpiry: t.license_expiry, licensePlan: t.license_plan, license });
   }
   res.json({ status: t.status || 'active', reason: t.suspend_reason || '', licenseExpiry: t.license_expiry, licensePlan: t.license_plan, license });
+});
+
+// ── GET /api/maintenance/status — Phase 5D ───────────────────────────────────
+// Deliberately NOT gated by requireActive/requireLicenseRead — a tenant
+// should be able to check maintenance status regardless of their own
+// license state (same reasoning /api/license/status itself is ungated).
+// Polled periodically by the frontend (pssRefreshMaintenanceStatus) to
+// drive the banner/countdown/scheduled-notice UI without waiting for a
+// write to be blocked first.
+app.get('/api/maintenance/status', requireAuth, (req, res) => {
+  const result = maintenanceGateModule.checkMaintenance(db, { tenantId: req.user.tenantId, userId: req.user.userId });
+  const retryAfter = (result.active && result.active.endsAt) ? maintenanceGateModule.retryAfterSeconds(db, result.active.endsAt) : null;
+  res.json({
+    active: result.blocked || result.readOnly ? result.active : null,
+    accessLevel: result.active ? result.active.accessLevel : null,
+    blocked: result.blocked, readOnly: result.readOnly, bypassed: !!result.bypassed,
+    message: result.active ? result.active.message : '', eta: result.active ? result.active.eta : '',
+    retryAfterSeconds: retryAfter,
+    upcoming: result.upcoming,
+  });
 });
 
 // ── POST /api/admin/login — exchange the admin password for a session token ─
@@ -2106,7 +2170,7 @@ app.get('/api/admin/search', requireAdminKey, (req, res) => {
 });
 
 // ── GET /api/data ────────────────────────────────────────────────────────────
-app.get('/api/data', requireAuth, requireActive, requireLicenseRead, (req, res) => {
+app.get('/api/data', requireAuth, requireActive, requireLicenseRead, maintenanceGateRead, (req, res) => {
   try {
     const row = db.prepare('SELECT data, version, updated_at FROM tenant_data WHERE tenant_id = ?').get(req.user.tenantId);
     if (!row) return res.json({ data: {}, version: 0, updatedAt: null });
@@ -2120,7 +2184,7 @@ app.get('/api/data', requireAuth, requireActive, requireLicenseRead, (req, res) 
 // ── PUT /api/data — optimistic concurrency: caller must supply the version ───
 // it last read (expectedVersion). Never silently overwrites a newer save from
 // another device — see docs/architecture-review/ConflictResolution.md.
-app.put('/api/data', requireAuth, requireActive, requireLicenseWrite, (req, res) => {
+app.put('/api/data', requireAuth, requireActive, requireLicenseWrite, maintenanceGateWrite, (req, res) => {
   const { data, expectedVersion } = req.body;
   if (!data || typeof data !== 'object') {
     return res.status(400).json({ error: 'data must be a JSON object' });
@@ -2190,7 +2254,7 @@ function sendConflict(req, res) {
 }
 
 // ── GET /api/data/users ──────────────────────────────────────────────────────
-app.get('/api/data/users', requireAuth, requireActive, requireLicenseRead, (req, res) => {
+app.get('/api/data/users', requireAuth, requireActive, requireLicenseRead, maintenanceGateRead, (req, res) => {
   try {
     const users = db.prepare(
       'SELECT id, username, email, role, is_active, last_login, created_at FROM users WHERE tenant_id = ? ORDER BY created_at'

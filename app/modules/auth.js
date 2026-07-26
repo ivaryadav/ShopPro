@@ -124,6 +124,18 @@ const _api = {
       throw new Error(b?.error||'Forbidden');
     }
     if (r.status === 409) { const b=await r.json().catch(()=>({})); const err=new Error(b.error||'Conflict'); err.status=409; err.conflict=b; throw err; }
+    // Platform Maintenance (Phase 5D) — a locked window shows the full lock
+    // screen (same #suspended-screen shell every other lock state reuses);
+    // a read_only window just blocks writes with a toast, same posture as
+    // the existing READ_ONLY license case just above.
+    if (r.status === 503) {
+      const b = await r.json().catch(() => ({}));
+      if (b && b.maintenanceActive) {
+        if (b.accessLevel === 'locked' && typeof pssShowMaintenanceScreen === 'function') pssShowMaintenanceScreen(b.message, b.eta, b.retryAfterSeconds);
+        else if (typeof toast === 'function') toast(b.message || 'This action is disabled during scheduled maintenance.', 'error');
+      }
+      throw new Error((b && b.error) || 'Service temporarily unavailable');
+    }
     return r.json();
   },
   async get(path) {
