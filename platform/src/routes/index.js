@@ -7,6 +7,7 @@
 
 const express = require('express');
 const { requirePlatformAuth } = require('../middleware/requirePlatformAuth');
+const { requirePlatformAuthOrApiKey } = require('../middleware/requirePlatformAuthOrApiKey');
 const { requirePermission } = require('../middleware/requirePermission');
 const { rateLimit } = require('../middleware/rateLimit');
 
@@ -21,15 +22,31 @@ const platformUserController = require('../controllers/platformUserController');
 const healthController = require('../controllers/healthController');
 const alertController = require('../controllers/alertController');
 const reportController = require('../controllers/reportController');
+const securityController = require('../controllers/securityController');
+const apiKeyController = require('../controllers/apiKeyController');
 
 function createPlatformRouter({ jwtSecret }) {
   const router = express.Router();
   const auth = requirePlatformAuth(jwtSecret);
+  // Reachable WHILE a role-forced MFA enrollment is still pending — every
+  // other route 403s with MFA_SETUP_REQUIRED until setup completes.
+  const authMfaExempt = requirePlatformAuth(jwtSecret, { allowMfaSetupPending: true });
+  // Read-only, easily-automated endpoints proven reachable via a Platform
+  // API Key (X-Platform-Api-Key) as well as a human session — demonstrates
+  // the "future-ready for external integrations" mechanism end to end
+  // without retrofitting every existing mutating route in this pass.
+  const authOrApiKey = requirePlatformAuthOrApiKey(jwtSecret);
 
   router.post('/auth/login', rateLimit(10, 5 * 60 * 1000), authController.login(jwtSecret));
-  router.get('/auth/me', auth, authController.me);
+  router.post('/auth/mfa/challenge', rateLimit(10, 5 * 60 * 1000), authController.mfaChallenge(jwtSecret));
+  router.get('/auth/me', authMfaExempt, authController.me);
+  router.post('/auth/mfa/setup', authMfaExempt, rateLimit(10, 60 * 1000), authController.mfaSetup);
+  router.post('/auth/mfa/verify', authMfaExempt, rateLimit(10, 60 * 1000), authController.mfaVerify);
+  router.post('/auth/mfa/disable', auth, rateLimit(10, 60 * 1000), authController.mfaDisable);
+  router.post('/auth/mfa/recovery-codes/regenerate', auth, rateLimit(10, 60 * 1000), authController.mfaRegenerateRecoveryCodes);
+  router.post('/auth/change-password', authMfaExempt, rateLimit(10, 60 * 1000), authController.changePassword);
 
-  router.get('/dashboard/stats', auth, requirePermission('view_only'), dashboardController.stats);
+  router.get('/dashboard/stats', authOrApiKey, requirePermission('view_only'), dashboardController.stats);
 
   router.get('/products', auth, requirePermission('view_only'), productController.list);
   router.get('/products/:id', auth, requirePermission('view_only'), productController.getOne);
@@ -70,7 +87,7 @@ function createPlatformRouter({ jwtSecret }) {
   router.get('/audit-log', auth, requirePermission('view_audit_log'), auditController.list);
 
   // ── System Health (Phase 5A) ────────────────────────────────────────────
-  router.get('/health', auth, requirePermission('view_only'), healthController.health);
+  router.get('/health', authOrApiKey, requirePermission('view_only'), healthController.health);
 
   // ── Alerts & Notifications Center (Phase 5A) ───────────────────────────
   router.get('/alerts', auth, requirePermission('view_only'), alertController.list);
@@ -86,6 +103,28 @@ function createPlatformRouter({ jwtSecret }) {
   router.post('/platform-users/:id/unlock', auth, requirePermission('manage_platform_users'), rateLimit(20, 60 * 1000), platformUserController.unlock);
   router.post('/platform-users/:id/force-logout', auth, requirePermission('manage_platform_users'), rateLimit(20, 60 * 1000), platformUserController.forceLogout);
   router.get('/platform-users/:id/login-history', auth, requirePermission('manage_platform_users'), platformUserController.loginHistory);
+
+  // ── Platform Security Center (Phase 5B) ─────────────────────────────────
+  router.get('/security/overview', auth, requirePermission('view_only'), securityController.overview);
+  router.get('/security/logs', auth, requirePermission('view_audit_log'), securityController.logs);
+
+  router.get('/security/sessions', auth, requirePermission('manage_platform_users'), securityController.listSessions);
+  router.post('/security/sessions/:sessionId/revoke', auth, requirePermission('manage_platform_users'), rateLimit(30, 60 * 1000), securityController.revokeSession);
+  router.post('/security/sessions/terminate-all', auth, requirePermission('manage_platform_users'), rateLimit(5, 60 * 1000), securityController.terminateAllSessions);
+
+  router.get('/security/trusted-devices', auth, requirePermission('manage_platform_users'), securityController.listAllTrustedDevices);
+  router.post('/security/trusted-devices/:id/revoke', auth, requirePermission('manage_platform_users'), rateLimit(30, 60 * 1000), securityController.revokeTrustedDevice);
+  router.get('/security/my/trusted-devices', auth, securityController.myTrustedDevices);
+  router.post('/security/my/trusted-devices/:id/revoke', auth, rateLimit(30, 60 * 1000), securityController.revokeMyTrustedDevice);
+
+  router.get('/security/password-policy', auth, requirePermission('view_only'), securityController.getPasswordPolicy);
+  router.put('/security/password-policy', auth, requirePermission('manage_platform_users'), rateLimit(20, 60 * 1000), securityController.updatePasswordPolicy);
+
+  // ── Platform API Keys (Phase 5B) ────────────────────────────────────────
+  router.get('/api-keys', auth, requirePermission('manage_platform_users'), apiKeyController.list);
+  router.post('/api-keys', auth, requirePermission('manage_platform_users'), rateLimit(20, 60 * 1000), apiKeyController.create);
+  router.post('/api-keys/:id/rotate', auth, requirePermission('manage_platform_users'), rateLimit(20, 60 * 1000), apiKeyController.rotate);
+  router.post('/api-keys/:id/revoke', auth, requirePermission('manage_platform_users'), rateLimit(20, 60 * 1000), apiKeyController.revoke);
 
   return router;
 }

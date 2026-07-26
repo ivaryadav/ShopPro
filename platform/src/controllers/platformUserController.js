@@ -11,8 +11,8 @@
  */
 'use strict';
 
-const bcrypt = require('bcryptjs');
 const platformAuthService = require('../services/platformAuthService');
+const passwordService = require('../services/passwordService');
 const userRepository = require('../repositories/platformUserRepository');
 const sessionRepository = require('../repositories/platformSessionRepository');
 const loginFailureRepository = require('../repositories/platformLoginFailureRepository');
@@ -31,13 +31,10 @@ async function create(req, res, next) {
 }
 async function resetPassword(req, res, next) {
   try {
-    const { newPassword } = req.body;
-    if (!newPassword || newPassword.length < 8) throw new ValidationError('newPassword must be at least 8 characters');
     const user = userRepository.findById(Number(req.params.id));
     if (!user) throw new NotFoundError('Platform user not found');
-    userRepository.updatePassword(user.id, bcrypt.hashSync(newPassword, 10));
-    auditService.record({ platformUserId: req.platformUser.userId, action: 'PLATFORM_USER_PASSWORD_RESET', detail: user.email, ip: req.ip });
-    res.json({ ok: true });
+    const result = passwordService.adminResetPassword(user.id, req.body.newPassword, { userId: req.platformUser.userId, ip: req.ip });
+    res.json(result);
   } catch (e) { next(e); }
 }
 async function unlock(req, res, next) {

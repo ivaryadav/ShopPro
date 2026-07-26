@@ -6,6 +6,17 @@
  * own session table (platform_sessions). A ShopERP tenant JWT would fail
  * verification here outright (different secret) even if somehow presented
  * — there is no code path that accepts one, by construction.
+ *
+ * Phase 5B adds MFA to the login flow: password success now branches
+ * three ways — (1) MFA enabled and no valid trusted-device token: a
+ * short-lived "mfa_pending" token is issued, no session yet, the caller
+ * must call challengeMfa(); (2) MFA enabled and a valid trusted-device
+ * token was presented: skip straight to a full session; (3) MFA not
+ * enabled: a full session is issued immediately, with an informational
+ * mfaSetupRequired flag if the user's role forces enrollment. That flag
+ * is never trusted from a JWT claim — verifyToken() recomputes it live
+ * from the database on every request, so completing MFA setup takes
+ * effect immediately without needing to reissue the token.
  */
 'use strict';
 
@@ -16,18 +27,21 @@ const userRepository = require('../repositories/platformUserRepository');
 const roleRepository = require('../repositories/platformRoleRepository');
 const sessionRepository = require('../repositories/platformSessionRepository');
 const loginFailureRepository = require('../repositories/platformLoginFailureRepository');
+const trustedDeviceRepository = require('../repositories/platformTrustedDeviceRepository');
+const policyRepository = require('../repositories/platformPasswordPolicyRepository');
+const passwordHistoryRepository = require('../repositories/platformPasswordHistoryRepository');
+const mfaService = require('./mfaService');
+const passwordService = require('./passwordService');
 const auditService = require('./auditService');
 const { AuthenticationError, LockedError, ValidationError } = require('../errors');
 
-const LOCKOUT_THRESHOLD = 5;
-const LOCKOUT_WINDOW_MINUTES = 15;
-const LOCKOUT_DURATION_MS = 30 * 60 * 1000;
 const ACCESS_TOKEN_TTL = '12h';
+const MFA_PENDING_TOKEN_TTL = '5m';
+const TRUSTED_DEVICE_DAYS = 30;
 
 function isLocked(user) {
   return !!(user.locked_until && new Date(user.locked_until).getTime() > Date.now());
 }
-
 function parseUA(uaString) {
   const ua = uaString || '';
   let browser = 'Unknown', os = 'Unknown';
@@ -35,28 +49,9 @@ function parseUA(uaString) {
   if (/Windows/i.test(ua)) os = 'Windows'; else if (/Mac/i.test(ua)) os = 'macOS'; else if (/Linux/i.test(ua)) os = 'Linux'; else if (/Android/i.test(ua)) os = 'Android'; else if (/iPhone|iPad/i.test(ua)) os = 'iOS';
   return { browser, os };
 }
+function hashDeviceToken(token) { return crypto.createHash('sha256').update(token).digest('hex'); }
 
-async function login({ email, password, ip, userAgent }, jwtSecret) {
-  if (!email || !password) throw new ValidationError('email and password are required');
-  const user = userRepository.findByEmail(email);
-  if (!user || !user.is_active) {
-    loginFailureRepository.record(user ? user.id : null, email, ip);
-    throw new AuthenticationError('Invalid email or password.');
-  }
-  if (isLocked(user)) {
-    throw new LockedError('This account is temporarily locked due to repeated failed login attempts. Try again later.');
-  }
-  const verified = bcrypt.compareSync(password, user.password_hash);
-  if (!verified) {
-    loginFailureRepository.record(user.id, email, ip);
-    const recent = loginFailureRepository.countRecent(email, LOCKOUT_WINDOW_MINUTES);
-    if (recent >= LOCKOUT_THRESHOLD) {
-      const lockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS).toISOString();
-      userRepository.setLockedUntil(email, lockedUntil);
-      auditService.record({ action: 'PLATFORM_ACCOUNT_LOCKED', detail: `${recent} failed attempts in ${LOCKOUT_WINDOW_MINUTES}m`, ip });
-    }
-    throw new AuthenticationError('Invalid email or password.');
-  }
+function completeLogin(user, ip, userAgent, jwtSecret) {
   userRepository.touchLastLogin(user.id);
   const sessionId = crypto.randomBytes(24).toString('hex');
   const jwtId = crypto.randomBytes(12).toString('hex');
@@ -68,15 +63,107 @@ async function login({ email, password, ip, userAgent }, jwtSecret) {
     jwtSecret, { algorithm: 'HS256', expiresIn: ACCESS_TOKEN_TTL }
   );
   auditService.record({ platformUserId: user.id, action: 'PLATFORM_LOGIN', detail: `${user.email} logged in`, ip });
-  return { token, user: { id: user.id, email: user.email, displayName: user.display_name, roleCode: user.role_code, roleLabel: user.role_label, permissions } };
+  const mfaSetupRequired = !user.totp_enabled && !!user.role_mfa_required;
+  return {
+    token,
+    user: {
+      id: user.id, email: user.email, displayName: user.display_name, roleCode: user.role_code, roleLabel: user.role_label,
+      permissions, mfaEnabled: !!user.totp_enabled, mfaSetupRequired,
+    },
+  };
+}
+
+async function login({ email, password, ip, userAgent, trustedDeviceToken }, jwtSecret) {
+  if (!email || !password) throw new ValidationError('email and password are required');
+  const user = userRepository.findByEmail(email);
+  if (!user || !user.is_active) {
+    loginFailureRepository.record(user ? user.id : null, email, ip);
+    throw new AuthenticationError('Invalid email or password.');
+  }
+  if (isLocked(user)) {
+    throw new LockedError('This account is temporarily locked due to repeated failed login attempts. Try again later.');
+  }
+  const verified = bcrypt.compareSync(password, user.password_hash);
+  if (!verified) {
+    const policy = policyRepository.get();
+    loginFailureRepository.record(user.id, email, ip);
+    const recent = loginFailureRepository.countRecent(email, policy.lockout_window_minutes);
+    if (recent >= policy.lockout_threshold) {
+      const lockedUntil = new Date(Date.now() + policy.lockout_duration_minutes * 60000).toISOString();
+      userRepository.setLockedUntil(email, lockedUntil);
+      auditService.record({ action: 'PLATFORM_ACCOUNT_LOCKED', detail: `${recent} failed attempts in ${policy.lockout_window_minutes}m`, ip });
+    }
+    throw new AuthenticationError('Invalid email or password.');
+  }
+
+  if (user.totp_enabled) {
+    if (trustedDeviceToken) {
+      const device = trustedDeviceRepository.findValidByTokenHash(hashDeviceToken(trustedDeviceToken), user.id);
+      if (device) {
+        trustedDeviceRepository.touch(device.id);
+        auditService.record({ platformUserId: user.id, action: 'TRUSTED_DEVICE_LOGIN', detail: `${user.email} via trusted device "${device.device_name}"`, ip });
+        return completeLogin(user, ip, userAgent, jwtSecret);
+      }
+    }
+    const mfaToken = jwt.sign({ type: 'mfa_pending', userId: user.id }, jwtSecret, { algorithm: 'HS256', expiresIn: MFA_PENDING_TOKEN_TTL });
+    return { mfaRequired: true, mfaToken };
+  }
+
+  return completeLogin(user, ip, userAgent, jwtSecret);
+}
+
+/** Step 2 of an MFA-gated login — a TOTP code OR a single-use recovery code. Optionally issues a trusted-device token. */
+async function challengeMfa({ mfaToken, code, recoveryCode, rememberDevice, ip, userAgent }, jwtSecret) {
+  let payload;
+  try { payload = jwt.verify(mfaToken, jwtSecret, { algorithms: ['HS256'] }); }
+  catch (e) { throw new AuthenticationError('This MFA challenge has expired — please log in again.'); }
+  if (payload.type !== 'mfa_pending') throw new AuthenticationError('Invalid MFA challenge.');
+  const user = userRepository.findById(payload.userId);
+  if (!user || !user.totp_enabled) throw new AuthenticationError('Invalid MFA challenge.');
+
+  let usedRecoveryCode = false;
+  let ok = false;
+  if (recoveryCode) { ok = mfaService.consumeRecoveryCode(user.id, recoveryCode); usedRecoveryCode = ok; }
+  else if (code) { ok = await mfaService.verifyTotp(user.totp_secret, code); }
+
+  if (!ok) {
+    auditService.record({ platformUserId: user.id, action: 'MFA_CHALLENGE_FAILED', detail: user.email, ip });
+    throw new AuthenticationError('Invalid authentication code.');
+  }
+  if (usedRecoveryCode) auditService.record({ platformUserId: user.id, action: 'RECOVERY_CODE_USED', detail: user.email, ip });
+
+  const result = completeLogin(user, ip, userAgent, jwtSecret);
+  if (rememberDevice) {
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const { browser, os } = parseUA(userAgent);
+    trustedDeviceRepository.create({
+      userId: user.id, tokenHash: hashDeviceToken(rawToken), deviceName: `${browser} on ${os}`, browser, os, ip,
+      expiresAt: new Date(Date.now() + TRUSTED_DEVICE_DAYS * 24 * 3600000).toISOString(),
+    });
+    result.trustedDeviceToken = rawToken;
+  }
+  return result;
 }
 
 function verifyToken(token, jwtSecret) {
   const payload = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] });
   const session = sessionRepository.findBySessionId(payload.sid);
   if (!session || session.status !== 'active') throw new AuthenticationError('Session expired or was signed out elsewhere.');
+
+  const policy = policyRepository.get();
+  const expiry = sessionRepository.checkExpiry(payload.sid, policy.session_idle_timeout_minutes, policy.session_absolute_timeout_hours);
+  if (expiry && (expiry.idle_expired || expiry.absolute_expired)) {
+    sessionRepository.revoke(payload.sid);
+    throw new AuthenticationError(expiry.absolute_expired ? 'Session has reached its maximum lifetime. Please log in again.' : 'Session expired due to inactivity. Please log in again.');
+  }
   sessionRepository.touch(payload.sid);
-  return payload;
+
+  // mfaSetupRequired is ALWAYS recomputed live here, never trusted from any
+  // JWT claim — this is what makes completing MFA setup take effect
+  // immediately, without needing to reissue or refresh the access token.
+  const user = userRepository.findById(payload.userId);
+  const mfaSetupRequired = !!(user && !user.totp_enabled && user.role_mfa_required);
+  return { ...payload, mfaSetupRequired };
 }
 
 async function createUser({ email, displayName, password, roleCode }) {
@@ -85,8 +172,11 @@ async function createUser({ email, displayName, password, roleCode }) {
   if (!role) throw new ValidationError('Unknown roleCode');
   const existing = userRepository.findByEmail(email);
   if (existing) throw new ValidationError('A platform user with this email already exists');
+  passwordService.validateAgainstPolicy(password, policyRepository.get());
   const hash = bcrypt.hashSync(password, 10);
-  return userRepository.create({ email, displayName, passwordHash: hash, roleId: role.id });
+  const user = userRepository.create({ email, displayName, passwordHash: hash, roleId: role.id });
+  passwordHistoryRepository.record(user.id, hash);
+  return user;
 }
 
-module.exports = { login, verifyToken, createUser, isLocked };
+module.exports = { login, challengeMfa, verifyToken, createUser, isLocked };

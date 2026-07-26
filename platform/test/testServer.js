@@ -11,6 +11,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
+const otplib = require('otplib');
 const { _resetForTests } = require('../src/database/connection');
 const { createApp } = require('../src/app');
 const platformAuthService = require('../src/services/platformAuthService');
@@ -37,8 +38,22 @@ async function startTestServer(opts) {
   }).then((r) => r.json());
   if (!login.token) throw new Error('Test server owner login did not return a token: ' + JSON.stringify(login));
 
+  // OWNER is a role-forced-MFA role by default (Phase 5B) — exactly like a
+  // real first-time owner would, complete enrollment immediately so the
+  // rest of the test suite (and every OTHER suite reusing this harness)
+  // can use ownerToken against every route, not just the MFA-exempt ones.
+  let mfaSecret = null;
+  if (login.user && login.user.mfaSetupRequired) {
+    const setupHeaders = { Authorization: 'Bearer ' + login.token, 'Content-Type': 'application/json' };
+    const setup = await fetch(baseUrl + '/api/platform/auth/mfa/setup', { method: 'POST', headers: setupHeaders }).then((r) => r.json());
+    mfaSecret = setup.secret;
+    const code = await otplib.generate({ secret: mfaSecret });
+    const verify = await fetch(baseUrl + '/api/platform/auth/mfa/verify', { method: 'POST', headers: setupHeaders, body: JSON.stringify({ code }) }).then((r) => r.json());
+    if (!verify.recoveryCodes) throw new Error('Test server owner MFA enrollment failed: ' + JSON.stringify(verify));
+  }
+
   return {
-    baseUrl, ownerToken: login.token, ownerId: owner.id, ownerEmail, ownerPassword, dbPath,
+    baseUrl, ownerToken: login.token, ownerId: owner.id, ownerEmail, ownerPassword, ownerMfaSecret: mfaSecret, dbPath,
     stop() {
       server.close();
       _resetForTests();

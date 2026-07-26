@@ -7,6 +7,7 @@
 const { startTestServer } = require('./testServer');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const otplib = require('otplib');
 const platformUserRepository = require('../src/repositories/platformUserRepository');
 
 let passed = 0, failed = 0;
@@ -36,8 +37,15 @@ async function main() {
 
     const badLogin = await fetch(baseUrl + '/api/platform/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: ownerEmail, password: 'wrong-password' }) });
     assert(badLogin.status === 401, 'wrong password is rejected');
-    const goodLogin = await fetch(baseUrl + '/api/platform/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: ownerEmail, password: ownerPassword }) }).then((r) => r.json());
-    assert(!!goodLogin.token && goodLogin.user.roleCode === 'OWNER', 'correct login succeeds and reports the OWNER role + full permission set');
+    // OWNER is a role-forced-MFA role (Phase 5B) and testServer.js already
+    // enrolled it — a correct password alone now yields an MFA challenge,
+    // not a session directly. Complete that challenge with a real TOTP code
+    // to get the full session, same as any other OWNER login would.
+    const passwordOnlyLogin = await fetch(baseUrl + '/api/platform/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: ownerEmail, password: ownerPassword }) }).then((r) => r.json());
+    assert(passwordOnlyLogin.mfaRequired === true && !!passwordOnlyLogin.mfaToken, 'correct password for an MFA-enrolled OWNER yields an MFA challenge, not an immediate session');
+    const mfaCode = await otplib.generate({ secret: server.ownerMfaSecret });
+    const goodLogin = await fetch(baseUrl + '/api/platform/auth/mfa/challenge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mfaToken: passwordOnlyLogin.mfaToken, code: mfaCode }) }).then((r) => r.json());
+    assert(!!goodLogin.token && goodLogin.user.roleCode === 'OWNER', 'completing the MFA challenge succeeds and reports the OWNER role + full permission set');
     assert(goodLogin.user.permissions.includes('manage_platform_users'), 'OWNER has manage_platform_users (the one permission SUPER_ADMIN lacks)');
 
     // ── Account lockout ────────────────────────────────────────────────

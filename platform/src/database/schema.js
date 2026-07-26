@@ -267,9 +267,101 @@ function migrate(db) {
       dismissed_at TEXT,
       created_at   TEXT DEFAULT (datetime('now'))
     );
+
+    -- Phase 5B: Platform Security. One recovery code per row (not a JSON
+    -- blob) so each is independently single-use and its consumption is
+    -- individually auditable.
+    CREATE TABLE IF NOT EXISTS platform_mfa_recovery_codes (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id    INTEGER NOT NULL REFERENCES platform_users(id) ON DELETE CASCADE,
+      code_hash  TEXT NOT NULL,
+      used_at    TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_mfa_recovery_user ON platform_mfa_recovery_codes(user_id);
+
+    -- "Remember this device" — a random token (hashed at rest, like a
+    -- password) issued after a successful MFA challenge, letting a later
+    -- login from the same browser skip MFA until expiry or explicit revoke.
+    CREATE TABLE IF NOT EXISTS platform_trusted_devices (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id      INTEGER NOT NULL REFERENCES platform_users(id) ON DELETE CASCADE,
+      token_hash   TEXT NOT NULL UNIQUE,
+      device_name  TEXT NOT NULL DEFAULT '',
+      browser      TEXT NOT NULL DEFAULT '',
+      os           TEXT NOT NULL DEFAULT '',
+      ip           TEXT NOT NULL DEFAULT '',
+      last_used_at TEXT DEFAULT (datetime('now')),
+      expires_at   TEXT NOT NULL,
+      revoked_at   TEXT,
+      created_at   TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_trusted_devices_user ON platform_trusted_devices(user_id);
+
+    -- Platform API Keys — for future external/automation integrations
+    -- against Z-SUPERADMIN's own API. key_hash is a SHA-256 of the full
+    -- key (never reversible); key_prefix is stored in the clear purely so
+    -- an operator can recognize a key in a list without ever seeing it
+    -- again in full (same convention as GitHub/Stripe API key UIs).
+    CREATE TABLE IF NOT EXISTS platform_api_keys (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      name         TEXT NOT NULL,
+      key_hash     TEXT NOT NULL UNIQUE,
+      key_prefix   TEXT NOT NULL,
+      permissions  TEXT NOT NULL DEFAULT '[]',
+      created_by   INTEGER REFERENCES platform_users(id) ON DELETE SET NULL,
+      last_used_at TEXT,
+      usage_count  INTEGER NOT NULL DEFAULT 0,
+      expires_at   TEXT,
+      revoked_at   TEXT,
+      created_at   TEXT DEFAULT (datetime('now')),
+      updated_at   TEXT DEFAULT (datetime('now'))
+    );
+
+    -- Password History — every password ever set (including the current
+    -- one) is archived here so a new password can be checked against the
+    -- policy's history_count without needing to reverse any hash.
+    CREATE TABLE IF NOT EXISTS platform_password_history (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id       INTEGER NOT NULL REFERENCES platform_users(id) ON DELETE CASCADE,
+      password_hash TEXT NOT NULL,
+      created_at    TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_password_history_user ON platform_password_history(user_id, created_at);
+
+    -- Single configurable policy row — password rules, lockout, and session
+    -- timeout policy co-located since they're all "authentication posture"
+    -- settings an operator tunes from one Security Settings screen.
+    CREATE TABLE IF NOT EXISTS platform_password_policy (
+      id                              INTEGER PRIMARY KEY CHECK (id = 1),
+      min_length                      INTEGER NOT NULL DEFAULT 8,
+      require_uppercase               INTEGER NOT NULL DEFAULT 0,
+      require_lowercase               INTEGER NOT NULL DEFAULT 0,
+      require_number                  INTEGER NOT NULL DEFAULT 1,
+      require_symbol                  INTEGER NOT NULL DEFAULT 0,
+      max_age_days                    INTEGER,
+      history_count                   INTEGER NOT NULL DEFAULT 3,
+      lockout_threshold                INTEGER NOT NULL DEFAULT 5,
+      lockout_window_minutes          INTEGER NOT NULL DEFAULT 15,
+      lockout_duration_minutes        INTEGER NOT NULL DEFAULT 30,
+      session_idle_timeout_minutes    INTEGER NOT NULL DEFAULT 60,
+      session_absolute_timeout_hours  INTEGER NOT NULL DEFAULT 12,
+      updated_at                      TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   runMigration(db, 'ALTER TABLE platform_users ADD COLUMN locked_until TEXT', 'platform_users.locked_until');
+  runMigration(db, 'ALTER TABLE platform_users ADD COLUMN totp_secret TEXT', 'platform_users.totp_secret');
+  runMigration(db, 'ALTER TABLE platform_users ADD COLUMN totp_enabled INTEGER NOT NULL DEFAULT 0', 'platform_users.totp_enabled');
+  runMigration(db, 'ALTER TABLE platform_users ADD COLUMN totp_enrolled_at TEXT', 'platform_users.totp_enrolled_at');
+  runMigration(db, 'ALTER TABLE platform_users ADD COLUMN password_changed_at TEXT', 'platform_users.password_changed_at');
+  runMigration(db, 'ALTER TABLE platform_roles ADD COLUMN mfa_required INTEGER NOT NULL DEFAULT 0', 'platform_roles.mfa_required');
+  // SQLite forbids a non-constant (e.g. datetime('now')) default on ALTER
+  // TABLE ADD COLUMN, so pre-existing rows get NULL from the ALTER above —
+  // backfill using created_at as the best available approximation of when
+  // each user's password was last set (same reasoning this whole engagement
+  // already uses for every other backfill-from-legacy-data migration).
+  db.exec("UPDATE platform_users SET password_changed_at = created_at WHERE password_changed_at IS NULL");
 
   seed(db);
 }
@@ -333,6 +425,13 @@ function seed(db) {
   insertProduct.run('ZClinic', 'zclinic', 'Clinic/OPD management (planned).', '0.0.0', 'planned', 'subscription', '[]');
 
   db.prepare('INSERT OR IGNORE INTO platform_settings (id, platform_name) VALUES (1, ?)').run('Z-SUPERADMIN');
+
+  // Phase 5B: the two highest-privilege roles require MFA before they can
+  // use the platform for anything beyond enrolling it (enforced by
+  // requireMfaCompliance middleware) — every other role starts optional.
+  db.prepare("UPDATE platform_roles SET mfa_required = 1 WHERE code IN ('OWNER','SUPER_ADMIN')").run();
+
+  db.prepare('INSERT OR IGNORE INTO platform_password_policy (id) VALUES (1)').run();
 }
 
 module.exports = { migrate };
