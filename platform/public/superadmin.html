@@ -162,6 +162,7 @@ td{padding:8px 10px;border-bottom:1px solid var(--border)}
     <div class="nav-group">
       <div class="nav-group-label" onclick="toggleNavGroup(this)"><span>Operations</span><span class="chev">▾</span></div>
       <div class="nav-item" data-page="health" onclick="nav('health')">💚 System Health</div>
+      <div class="nav-item" data-page="jobs" onclick="nav('jobs')">🕐 Scheduled Jobs</div>
       <div class="nav-item" data-page="alerts" onclick="nav('alerts')">🔔 Alerts</div>
       <div class="nav-item" data-page="audit" onclick="nav('audit')">🧾 Audit Log</div>
     </div>
@@ -305,6 +306,7 @@ const PAGE_LABELS = {
   products: 'Products / Product Registry', health: 'Operations / System Health', alerts: 'Operations / Alerts',
   audit: 'Operations / Audit Log', 'platform-users': 'Settings / Platform Users',
   'security-center': 'Security / Security Center', 'security-settings': 'Security / Security Settings',
+  jobs: 'Operations / Scheduled Jobs',
 };
 function breadcrumb(){ return '<div class="breadcrumb">' + esc(PAGE_LABELS[CURRENT_PAGE] || CURRENT_PAGE) + '</div>'; }
 function nav(page){
@@ -314,6 +316,7 @@ function nav(page){
     dashboard: renderDashboard, organizations: renderOrganizations, products: renderProducts, audit: renderAudit,
     'platform-users': renderPlatformUsers, health: renderHealth, alerts: renderAlertsPage, reports: renderReports,
     'security-center': renderSecurityCenter, 'security-settings': renderSecuritySettings,
+    jobs: renderJobsPage,
   };
   (renderers[page] || renderDashboard)();
 }
@@ -1131,6 +1134,43 @@ async function renderSecTabLogs(){
     html += '</tbody></table></div>';
     body.innerHTML = html;
   } catch (e) { body.innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+
+// ── Scheduled Jobs (Phase 5C) ──
+async function renderJobsPage(){
+  const main = document.getElementById('main');
+  main.innerHTML = breadcrumb() + '<h2 style="margin-top:0">Scheduled Jobs</h2><div id="jobs-body" class="glass-card">Loading…</div>';
+  try {
+    const d = await api('/jobs');
+    let html = '';
+    if (!d.jobs.length) html = '<div style="color:var(--text3);font-size:12px">No jobs registered.</div>';
+    d.jobs.forEach(j => {
+      const statusColor = j.isRunning ? 'var(--accent)' : j.lastStatus === 'failure' ? 'var(--red)' : j.lastStatus === 'success' ? 'var(--green)' : 'var(--text3)';
+      const statusLabel = j.isRunning ? 'running' : (j.lastStatus || 'never run');
+      html += `<div class="row" style="align-items:flex-start"><span style="font-weight:700">${esc(j.name)}</span><span style="color:${statusColor};font-weight:700">${esc(statusLabel)}</span></div>`;
+      html += `<div class="row"><span>Last Run</span><span>${j.lastRunAt ? new Date(j.lastRunAt).toLocaleString() : '—'}</span></div>`;
+      html += `<div class="row"><span>Next Run</span><span>${j.nextRunAt ? new Date(j.nextRunAt).toLocaleString() : '—'}</span></div>`;
+      html += `<div class="row"><span>Last Duration</span><span>${j.lastDurationMs != null ? j.lastDurationMs + 'ms' : '—'}</span></div>`;
+      html += `<div class="row"><span>Successes / Failures</span><span style="color:${j.failureCount ? 'var(--orange)' : 'inherit'}">${j.successCount} / ${j.failureCount}</span></div>`;
+      if (j.lastError) html += `<div class="row"><span>Last Error</span><span style="color:var(--red)">${esc(j.lastError)}</span></div>`;
+      if (hasPermission('manage_platform_users')) {
+        html += `<div style="margin:8px 0;display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="runJobNow('${esc(j.name)}')">Run Now</button><button class="btn btn-xs btn-ghost" onclick="toggleJobHistory('${esc(j.name)}')">Execution History</button></div>`;
+      }
+      const historyRows = (j.history || []).map(h => `<tr><td>${h.started_at ? new Date(h.started_at).toLocaleString() : ''}</td><td><span class="badge ${h.status === 'success' ? 'badge-green' : 'badge-red'}">${esc(h.status)}</span></td><td>${h.duration_ms}ms</td><td>${h.items_processed == null ? '—' : h.items_processed}</td><td>${h.attempts}</td><td style="font-size:10px;color:var(--text3)">${esc(h.detail || '—')}</td></tr>`).join('');
+      html += `<div id="job-history-${esc(j.name)}" class="hidden table-scroll" style="margin-bottom:16px"><table><thead><tr><th>Started</th><th>Status</th><th>Duration</th><th>Items</th><th>Attempts</th><th>Detail</th></tr></thead><tbody>${historyRows || '<tr><td colspan="6" style="color:var(--text3);font-size:12px">No runs recorded yet.</td></tr>'}</tbody></table></div>`;
+      html += '<div style="border-top:1px solid var(--border);margin:10px 0"></div>';
+    });
+    document.getElementById('jobs-body').innerHTML = html;
+  } catch (e) { document.getElementById('jobs-body').innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+function toggleJobHistory(name){
+  const el = document.getElementById('job-history-' + name);
+  if (el) el.classList.toggle('hidden');
+}
+function runJobNow(name){
+  api('/jobs/' + encodeURIComponent(name) + '/run', { method: 'POST' })
+    .then(() => { toast('Job run complete', 'success'); renderJobsPage(); })
+    .catch(e => toast(e.message, 'error'));
 }
 
 // ── Boot ──

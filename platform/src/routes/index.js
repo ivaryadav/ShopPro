@@ -24,6 +24,7 @@ const alertController = require('../controllers/alertController');
 const reportController = require('../controllers/reportController');
 const securityController = require('../controllers/securityController');
 const apiKeyController = require('../controllers/apiKeyController');
+const jobController = require('../controllers/jobController');
 
 function createPlatformRouter({ jwtSecret }) {
   const router = express.Router();
@@ -96,6 +97,10 @@ function createPlatformRouter({ jwtSecret }) {
 
   // ── Reports & Trends (Phase 5A) ─────────────────────────────────────────
   router.get('/reports/trends', auth, requirePermission('view_only'), reportController.trends);
+
+  // ── Scheduled Jobs (Phase 5C) ────────────────────────────────────────────
+  router.get('/jobs', auth, requirePermission('view_only'), jobController.list);
+  router.post('/jobs/:name/run', auth, requirePermission('manage_platform_users'), rateLimit(10, 60 * 1000), jobController.runNow);
 
   router.get('/platform-users', auth, requirePermission('manage_platform_users'), platformUserController.list);
   router.post('/platform-users', auth, requirePermission('manage_platform_users'), rateLimit(20, 60 * 1000), platformUserController.create);

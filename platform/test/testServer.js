@@ -15,6 +15,8 @@ const otplib = require('otplib');
 const { _resetForTests } = require('../src/database/connection');
 const { createApp } = require('../src/app');
 const platformAuthService = require('../src/services/platformAuthService');
+const jobRunnerService = require('../src/services/jobRunnerService');
+const { registerAllJobs } = require('../src/jobs');
 
 async function startTestServer(opts) {
   opts = opts || {};
@@ -22,6 +24,13 @@ async function startTestServer(opts) {
   process.env.PLATFORM_DB_PATH = dbPath;
   process.env.PLATFORM_JWT_SECRET = crypto.randomBytes(32).toString('hex');
   _resetForTests();
+  // Registered but deliberately NOT started (no setInterval) — tests
+  // trigger jobs deterministically via runNow()/POST .../:name/run
+  // rather than waiting on a real schedule. _resetForTests() first in
+  // case an earlier startTestServer() call in this same process already
+  // registered these same job names (registerJob throws on a duplicate).
+  jobRunnerService._resetForTests();
+  registerAllJobs();
 
   const ownerEmail = opts.ownerEmail || `owner${Date.now()}@zmaxlab.com`;
   const ownerPassword = opts.ownerPassword || 'TestOwnerPass123!';
@@ -56,6 +65,7 @@ async function startTestServer(opts) {
     baseUrl, ownerToken: login.token, ownerId: owner.id, ownerEmail, ownerPassword, ownerMfaSecret: mfaSecret, dbPath,
     stop() {
       server.close();
+      jobRunnerService._resetForTests();
       _resetForTests();
       for (const f of [dbPath, dbPath + '-wal', dbPath + '-shm']) { try { fs.unlinkSync(f); } catch (_) {} }
     },

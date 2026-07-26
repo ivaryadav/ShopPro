@@ -13,5 +13,9 @@ function countRecent(email, windowMinutes) {
 function listForUser(userId) {
   return getDb().prepare('SELECT * FROM platform_login_failures WHERE user_id = ? ORDER BY created_at DESC LIMIT 100').all(userId);
 }
+/** Phase 5C Login Failure Retention Job — this table would otherwise grow forever; a real security-audit trail doesn't need attempts older than the retention window. */
+function purgeOlderThan(days) {
+  return getDb().prepare("DELETE FROM platform_login_failures WHERE created_at < datetime('now', ?)").run(`-${days} days`).changes;
+}
 
-module.exports = { record, countRecent, listForUser };
+module.exports = { record, countRecent, listForUser, purgeOlderThan };

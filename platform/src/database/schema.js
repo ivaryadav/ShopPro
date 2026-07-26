@@ -348,6 +348,38 @@ function migrate(db) {
       session_absolute_timeout_hours  INTEGER NOT NULL DEFAULT 12,
       updated_at                      TEXT DEFAULT (datetime('now'))
     );
+
+    -- Phase 5C: Runtime Operations — the Job Runner's own execution
+    -- history. One row per attempt-set (retries collapse into a single
+    -- row via the "attempts" count, not one row per retry) so this table
+    -- stays a clean run log, not a retry log.
+    CREATE TABLE IF NOT EXISTS platform_job_runs (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      job_name        TEXT NOT NULL,
+      started_at      TEXT NOT NULL,
+      finished_at     TEXT NOT NULL,
+      status          TEXT NOT NULL CHECK (status IN ('success','failure')),
+      detail          TEXT NOT NULL DEFAULT '',
+      items_processed INTEGER,
+      attempts        INTEGER NOT NULL DEFAULT 1,
+      duration_ms     INTEGER NOT NULL DEFAULT 0,
+      created_at      TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_job_runs_name ON platform_job_runs(job_name, started_at);
+
+    -- One row per calendar day, upserted by the Metric Snapshot Job — real
+    -- historical data for Reports & Trends, which otherwise can only
+    -- compute from CURRENT state (unable to reconstruct a past point in
+    -- time for anything that changes destructively, like active sessions).
+    CREATE TABLE IF NOT EXISTS platform_metric_snapshots (
+      id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+      snapshot_date       TEXT NOT NULL UNIQUE,
+      total_organizations INTEGER NOT NULL DEFAULT 0,
+      active_licenses     INTEGER NOT NULL DEFAULT 0,
+      expired_licenses    INTEGER NOT NULL DEFAULT 0,
+      active_sessions     INTEGER NOT NULL DEFAULT 0,
+      created_at          TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   runMigration(db, 'ALTER TABLE platform_users ADD COLUMN locked_until TEXT', 'platform_users.locked_until');

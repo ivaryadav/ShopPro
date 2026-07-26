@@ -1,19 +1,24 @@
 /**
- * platform/src/services/reportService.js — Reports & Trends (Phase 5A).
+ * platform/src/services/reportService.js — Reports & Trends (Phase 5A;
+ * customerGrowth/licenseTrends upgraded to real historical snapshots in
+ * Phase 5C, once the Metric Snapshot Job has run at least once).
  *
- * Every number here is computed on demand from data that already exists
- * (organizations.created_at, platform_licenses.status, platform_audit_logs,
- * each adapter's own dashboard stats) — there is no metric-snapshot job
- * persisting daily history yet (scheduled job infrastructure is a later
- * milestone), so trends are real aggregates recomputed per request rather
- * than a stored time series. Documented as "future-ready architecture":
- * the shape returned here is exactly what a future snapshot job would
- * backfill into, without changing this service's contract.
+ * registrationTrends/productUsage/activityMetrics stay computed on
+ * demand always — organizations.created_at never changes after the
+ * fact, so recomputing them is already perfectly accurate; snapshotting
+ * them would just be a redundant, staler copy. customerGrowth and
+ * licenseTrends are different: active-session-style state changes
+ * destructively, so a PAST point in time can only be known if something
+ * recorded it at the time — that's what platform_metric_snapshots is
+ * for. When no snapshot exists yet (job never ran), this falls back to
+ * the original Phase 5A on-demand computation rather than returning
+ * nothing.
  */
 'use strict';
 
 const { getDb } = require('../database/connection');
 const { listConfiguredAdapters } = require('../adapters');
+const metricSnapshotRepository = require('../repositories/platformMetricSnapshotRepository');
 
 function mergeMonthly(seriesArrays) {
   const map = new Map();
@@ -84,10 +89,19 @@ function activityMetrics() {
 }
 
 async function getTrends() {
-  const [growth, registrations, licenses, products] = await Promise.all([
-    customerGrowth(), registrationTrends(), licenseTrends(), productUsage(),
-  ]);
-  return { customerGrowth: growth, registrationTrends: registrations, licenseTrends: licenses, productUsage: products, activityMetrics: activityMetrics() };
+  const snapshots = metricSnapshotRepository.listRecent(90);
+  const [registrations, products] = await Promise.all([registrationTrends(), productUsage()]);
+  let growth, licenses, dataSource;
+  if (snapshots.length) {
+    growth = snapshots.map((s) => ({ month: s.snapshot_date, total: s.total_organizations }));
+    const latest = snapshots[snapshots.length - 1];
+    licenses = { ACTIVE: latest.active_licenses, READ_ONLY: latest.expired_licenses };
+    dataSource = 'snapshots';
+  } else {
+    [growth, licenses] = await Promise.all([customerGrowth(), licenseTrends()]);
+    dataSource = 'computed';
+  }
+  return { customerGrowth: growth, registrationTrends: registrations, licenseTrends: licenses, productUsage: products, activityMetrics: activityMetrics(), dataSource };
 }
 
 module.exports = { getTrends, customerGrowth, registrationTrends, licenseTrends, productUsage, activityMetrics };

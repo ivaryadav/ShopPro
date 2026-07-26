@@ -34,7 +34,7 @@ async function main() {
     assert(health.platformStatus === 'operational', 'System Health reports platformStatus operational');
     assert(health.database.status === 'ok', 'System Health reports database status ok');
     assert(Array.isArray(health.services) && health.services.some((s) => s.slug === 'shoperp'), 'System Health lists the shoperp product service');
-    assert(health.jobs.count === 0 && typeof health.jobs.note === 'string', 'System Health honestly reports zero scheduled jobs configured (a later milestone), not fake data');
+    assert(health.jobs.count === 3 && Array.isArray(health.jobs.jobs), 'System Health reports the 3 real Phase 5C jobs (job runner infrastructure is no longer a stub)');
     assert(health.version.platform && health.version.node, 'System Health reports platform + Node version information');
     const unauthedHealth = await fetch(server.baseUrl + '/api/platform/health');
     assert(unauthedHealth.status === 401, 'GET /api/platform/health requires authentication (got ' + unauthedHealth.status + ')');

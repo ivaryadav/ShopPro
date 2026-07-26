@@ -48,5 +48,20 @@ function checkExpiry(sessionId, idleMinutes, absoluteHours) {
     FROM platform_sessions WHERE session_id = ?
   `).get(`-${idleMinutes} minutes`, `-${absoluteHours} hours`, sessionId);
 }
+/**
+ * Phase 5C Session Cleanup Job — proactively revokes sessions that have
+ * exceeded the SAME idle/absolute policy checkExpiry() already enforces
+ * lazily on next use. Without this sweep, an abandoned session's row
+ * stays status='active' forever unless someone happens to present its
+ * token again — meaning Security Center's "Active Sessions" count would
+ * silently overcount idle-but-never-revoked sessions.
+ */
+function sweepExpired(idleMinutes, absoluteHours) {
+  return getDb().prepare(`
+    UPDATE platform_sessions SET status = 'revoked'
+    WHERE status = 'active' AND (last_activity < datetime('now', ?) OR login_time < datetime('now', ?))
+  `).run(`-${idleMinutes} minutes`, `-${absoluteHours} hours`).changes;
+}
+function countActive() { return getDb().prepare("SELECT COUNT(*) c FROM platform_sessions WHERE status='active'").get().c; }
 
-module.exports = { create, findBySessionId, touch, revoke, revokeAllForUser, listForUser, listAllActive, revokeAllActive, checkExpiry };
+module.exports = { create, findBySessionId, touch, revoke, revokeAllForUser, listForUser, listAllActive, revokeAllActive, checkExpiry, sweepExpired, countActive };
