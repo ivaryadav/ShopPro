@@ -44,6 +44,14 @@ function createApp({ jwtSecret, allowedOrigins }) {
     }
   });
 
+  // Bare liveness probe for load balancers / uptime monitors — intentionally
+  // minimal and unauthenticated, unlike the rich GET /api/platform/health
+  // (Phase 5A System Health) which requires a session and reports DB +
+  // per-adapter reachability + version info.
+  app.get('/healthz', (_req, res) => {
+    res.json({ status: 'ok', uptime: process.uptime() });
+  });
+
   app.use('/api/platform', createPlatformRouter({ jwtSecret }));
   app.use(errorHandler);
 

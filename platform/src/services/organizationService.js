@@ -22,6 +22,7 @@ const organizationUserRepository = require('../repositories/organizationUserRepo
 const platformNotificationRepository = require('../repositories/platformNotificationRepository');
 const productRepository = require('../repositories/platformProductRepository');
 const auditLogRepository = require('../repositories/platformAuditLogRepository');
+const organizationNoteRepository = require('../repositories/organizationNoteRepository');
 const auditService = require('./auditService');
 const orgRef = require('./orgRef');
 const { listConfiguredAdapters } = require('../adapters');
@@ -226,6 +227,78 @@ async function getFailedLogins(rawId) {
   return ref.adapter.getFailedLogins(ref.sourceId);
 }
 
+// ── Organization 360 Workspace (Phase 5A) ────────────────────────────────
+/** Internal Notes — Z-SUPERADMIN's own operator context, never product data. */
+function listNotes(rawId) {
+  return organizationNoteRepository.listForOrganization(rawId).map((n) => ({
+    id: n.id, authorEmail: n.author_email, note: n.note, createdAt: n.created_at,
+  }));
+}
+function addNote(rawId, note, actor) {
+  const trimmed = String(note || '').trim();
+  if (!trimmed) throw new ValidationError('note is required');
+  const created = organizationNoteRepository.create(rawId, actor.email || 'unknown', trimmed);
+  const ref = orgRef.resolve(rawId);
+  auditService.record({
+    platformUserId: actor.userId, organizationId: ref.isAdapter ? null : ref.localId,
+    action: 'NOTE_ADDED', detail: ref.isAdapter ? `${ref.slug}:${ref.sourceId} — ${trimmed.slice(0, 200)}` : trimmed.slice(0, 200), ip: actor.ip,
+  });
+  return { id: created.id, authorEmail: created.author_email, note: created.note, createdAt: created.created_at };
+}
+
+/** Renewals — every license for this org, soonest-expiring first, flagged urgent within 30 days. */
+async function getRenewals(rawId) {
+  const org = await getOrganization(rawId);
+  const licenses = (org.licenses || []).slice()
+    .sort((a, b) => {
+      if (!a.expiresAt) return 1;
+      if (!b.expiresAt) return -1;
+      return new Date(a.expiresAt) - new Date(b.expiresAt);
+    })
+    .map((l) => ({ ...l, urgent: l.daysRemaining !== null && l.daysRemaining !== undefined && l.daysRemaining <= 30 }));
+  return { licenses };
+}
+
+/** Security — login/lockout history for adapter-backed orgs (ShopERP has this); security-relevant audit entries for locally-managed orgs (no end-user identity system of their own yet). */
+async function getSecurity(rawId) {
+  const ref = orgRef.resolve(rawId);
+  if (ref.isAdapter) {
+    const [loginHistory, failedLogins] = await Promise.all([
+      ref.adapter.getLoginHistory(ref.sourceId), ref.adapter.getFailedLogins(ref.sourceId),
+    ]);
+    return { loginHistory, failedLogins, securityEvents: [] };
+  }
+  const { rows } = auditLogRepository.list({ organizationId: ref.localId, page: 1, pageSize: 50 });
+  const securityEvents = rows.filter((r) => /LOCK|PASSWORD|SESSION|SECURITY/i.test(r.action)).map(mapAudit);
+  return { loginHistory: [], failedLogins: [], securityEvents };
+}
+
+/** Activity Timeline — every event this org has, from every source, merged and sorted. */
+async function getActivityTimeline(rawId) {
+  const org = await getOrganization(rawId);
+  const notes = listNotes(rawId).map((n) => ({ type: 'note', timestamp: n.createdAt, actor: n.authorEmail, summary: n.note }));
+  const auditEntries = (org.auditHistory || []).map((a) => ({
+    type: 'audit', timestamp: a.timestamp, actor: a.admin || a.actor || 'system',
+    summary: `${a.action || a.eventType || 'EVENT'}${a.detail ? ' — ' + a.detail : ''}`,
+  }));
+  const emailEntries = (org.emailsSent || []).map((e) => ({
+    type: 'email', timestamp: e.sentAt, actor: 'system', summary: `Sent "${e.subject}" to ${e.recipient} (${e.status})`,
+  }));
+  let loginEntries = [];
+  const ref = orgRef.resolve(rawId);
+  if (ref.isAdapter) {
+    const logins = await ref.adapter.getLoginHistory(ref.sourceId);
+    loginEntries = logins.map((l) => ({
+      type: 'login', timestamp: l.loginTime, actor: l.userName || 'unknown',
+      summary: `Logged in from ${l.ip || 'unknown IP'} (${l.status || 'active'})`,
+    }));
+  }
+  const timeline = [...notes, ...auditEntries, ...emailEntries, ...loginEntries]
+    .filter((e) => e.timestamp)
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  return { timeline };
+}
+
 async function sendEmail(rawId, type, extra, actor) {
   const ref = orgRef.resolve(rawId);
   if (ref.isAdapter) {
@@ -276,4 +349,5 @@ module.exports = {
   createOrganization, listOrganizations, getOrganization, attachProduct, setStatus, approve, suspend,
   listDevices, revokeDevice, renameDevice, unlockAccount, forcePasswordReset, killSessions, getLoginHistory, getFailedLogins,
   sendEmail, mapOrg, mapLicense, mapAudit,
+  listNotes, addNote, getRenewals, getSecurity, getActivityTimeline,
 };

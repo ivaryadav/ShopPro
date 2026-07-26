@@ -43,6 +43,50 @@ td{padding:8px 10px;border-bottom:1px solid var(--border)}
 .section-title{font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 6px}
 .toast{position:fixed;bottom:20px;right:20px;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:99999;animation:toastIn .2s}
 @keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Nav grouping ── */
+.nav-group{margin-bottom:10px}
+.nav-group-label{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;padding:8px 12px 4px;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+.nav-group-label .chev{transition:transform .15s}
+.nav-group.collapsed .chev{transform:rotate(-90deg)}
+.nav-group.collapsed .nav-item{display:none}
+
+/* ── Notification bell ── */
+#notif-bell{position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.06);border:1px solid var(--border)}
+#notif-badge{position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;font-size:9px;font-weight:800;border-radius:8px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+#notif-dropdown{position:absolute;top:44px;right:0;width:320px;max-height:400px;overflow:auto;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.5);z-index:9998;padding:8px}
+.alert-row{padding:8px 10px;border-radius:8px;margin-bottom:4px;font-size:12px}
+.alert-row.sev-critical{background:rgba(239,68,68,.1);border-left:3px solid var(--red)}
+.alert-row.sev-warning{background:rgba(251,191,36,.1);border-left:3px solid var(--orange)}
+.alert-row.sev-info{background:rgba(124,140,248,.1);border-left:3px solid var(--accent)}
+.alert-row .alert-title{font-weight:700;margin-bottom:2px}
+.alert-row .alert-msg{color:var(--text2);font-size:11px}
+.alert-row .alert-actions{display:flex;gap:6px;margin-top:6px}
+
+/* ── Breadcrumb ── */
+.breadcrumb{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:6px}
+
+/* ── Command palette ── */
+.cmdk-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);display:flex;align-items:flex-start;justify-content:center;padding-top:12vh;z-index:99998}
+.cmdk-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;width:520px;max-width:92vw;max-height:60vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.cmdk-box input{border:none;border-bottom:1px solid var(--border);border-radius:0;padding:14px 16px;font-size:15px;background:transparent}
+.cmdk-results{overflow:auto;padding:6px}
+.cmdk-item{padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between}
+.cmdk-item:hover,.cmdk-item.sel{background:var(--bg3)}
+.cmdk-item .cmdk-hint{color:var(--text3);font-size:10px;text-transform:uppercase}
+
+/* ── Tablet / responsive ── */
+.table-scroll{overflow-x:auto}
+@media (max-width:900px){
+  #app-shell{flex-direction:column}
+  #sidebar{width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:10px}
+  #sidebar .nav-group{display:flex;align-items:center;margin-bottom:0}
+  #sidebar .nav-group-label{display:none}
+  #sidebar .nav-item{display:inline-block;margin-bottom:0}
+  #sidebar > div[style*="margin-bottom:16px"]{width:100%}
+  .kpi-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+  .modal-box{max-width:96vw}
+}
 </style>
 </head>
 <body>
@@ -64,24 +108,56 @@ td{padding:8px 10px;border-bottom:1px solid var(--border)}
 
 <div id="app-shell" style="display:flex">
   <div id="sidebar">
-    <div style="font-size:15px;font-weight:800;margin-bottom:4px">🛡️ Z-SUPERADMIN</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div style="font-size:15px;font-weight:800">🛡️ Z-SUPERADMIN</div>
+      <div id="notif-bell" onclick="toggleNotifDropdown()">
+        🔔<span id="notif-badge" class="hidden">0</span>
+        <div id="notif-dropdown" class="hidden" onclick="event.stopPropagation()"></div>
+      </div>
+    </div>
     <div style="font-size:10px;color:var(--text3);margin-bottom:16px" id="sb-user"></div>
-    <div style="margin-bottom:14px">
+    <div style="margin-bottom:16px">
       <label style="font-size:9px;color:var(--text3);text-transform:uppercase;font-weight:700">Product Switcher</label>
       <select id="product-switcher" style="width:100%;margin-top:4px" onchange="onProductSwitch()">
         <option value="">All Products</option>
       </select>
     </div>
-    <div class="nav-item active" onclick="nav('dashboard')">📈 Dashboard</div>
-    <div class="nav-item" onclick="nav('organizations')">🏢 Organizations</div>
-    <div class="nav-item" onclick="nav('products')">🧩 Product Registry</div>
-    <div class="nav-item" onclick="nav('audit')">🧾 Audit Log</div>
-    <div class="nav-item" onclick="nav('platform-users')">👤 Platform Users</div>
-    <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border)">
+    <div class="nav-group">
+      <div class="nav-group-label" onclick="toggleNavGroup(this)"><span>Overview</span><span class="chev">▾</span></div>
+      <div class="nav-item active" data-page="dashboard" onclick="nav('dashboard')">📈 Dashboard</div>
+      <div class="nav-item" data-page="reports" onclick="nav('reports')">📊 Reports</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label" onclick="toggleNavGroup(this)"><span>Customers</span><span class="chev">▾</span></div>
+      <div class="nav-item" data-page="organizations" onclick="nav('organizations')">🏢 Organizations</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label" onclick="toggleNavGroup(this)"><span>Products</span><span class="chev">▾</span></div>
+      <div class="nav-item" data-page="products" onclick="nav('products')">🧩 Product Registry</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label" onclick="toggleNavGroup(this)"><span>Operations</span><span class="chev">▾</span></div>
+      <div class="nav-item" data-page="health" onclick="nav('health')">💚 System Health</div>
+      <div class="nav-item" data-page="alerts" onclick="nav('alerts')">🔔 Alerts</div>
+      <div class="nav-item" data-page="audit" onclick="nav('audit')">🧾 Audit Log</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label" onclick="toggleNavGroup(this)"><span>Settings</span><span class="chev">▾</span></div>
+      <div class="nav-item" data-page="platform-users" onclick="nav('platform-users')">👤 Platform Users</div>
+    </div>
+    <div style="margin-top:10px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Press <b>⌘K</b> / <b>Ctrl+K</b> to search</div>
       <button class="btn btn-ghost" style="width:100%" onclick="doLogout()">Log Out</button>
     </div>
   </div>
   <div id="main"></div>
+</div>
+
+<div id="cmdk-overlay" class="cmdk-overlay hidden">
+  <div class="cmdk-box">
+    <input id="cmdk-input" placeholder="Search pages or organizations…" oninput="cmdkSearch()" onkeydown="cmdkKeydown(event)">
+    <div class="cmdk-results" id="cmdk-results"></div>
+  </div>
 </div>
 
 <script>
@@ -140,6 +216,7 @@ async function showApp(){
   document.getElementById('sb-user').textContent = ME.email + ' — ' + ME.roleLabel;
   await loadProducts();
   nav('dashboard');
+  startNotifPolling();
 }
 async function loadProducts(){
   const d = await api('/products');
@@ -151,14 +228,22 @@ function onProductSwitch(){
   CURRENT_PRODUCT = document.getElementById('product-switcher').value;
   nav(CURRENT_PAGE);
 }
+const PAGE_LABELS = {
+  dashboard: 'Overview / Dashboard', reports: 'Overview / Reports', organizations: 'Customers / Organizations',
+  products: 'Products / Product Registry', health: 'Operations / System Health', alerts: 'Operations / Alerts',
+  audit: 'Operations / Audit Log', 'platform-users': 'Settings / Platform Users',
+};
+function breadcrumb(){ return '<div class="breadcrumb">' + esc(PAGE_LABELS[CURRENT_PAGE] || CURRENT_PAGE) + '</div>'; }
 function nav(page){
   CURRENT_PAGE = page;
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  const idx = ['dashboard','organizations','products','audit','platform-users'].indexOf(page);
-  if (idx >= 0) document.querySelectorAll('.nav-item')[idx].classList.add('active');
-  const renderers = { dashboard: renderDashboard, organizations: renderOrganizations, products: renderProducts, audit: renderAudit, 'platform-users': renderPlatformUsers };
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.getAttribute('data-page') === page));
+  const renderers = {
+    dashboard: renderDashboard, organizations: renderOrganizations, products: renderProducts, audit: renderAudit,
+    'platform-users': renderPlatformUsers, health: renderHealth, alerts: renderAlertsPage, reports: renderReports,
+  };
   (renderers[page] || renderDashboard)();
 }
+function toggleNavGroup(labelEl){ labelEl.parentElement.classList.toggle('collapsed'); }
 
 // ── Dashboard ──
 async function renderDashboard(){
@@ -174,7 +259,7 @@ async function renderDashboard(){
       ['Revenue', '₹' + d.revenue], ['Expiring Licenses', d.expiringLicenses],
       ['Active Devices', d.activeDevices],
     ];
-    let html = '<h2 style="margin-top:0">Platform Dashboard</h2><div class="kpi-grid">';
+    let html = breadcrumb() + '<h2 style="margin-top:0">Platform Dashboard</h2><div class="kpi-grid">';
     kpis.forEach(k => { html += `<div class="glass-card kpi-card"><div class="kpi-label">${esc(k[0])}</div><div class="kpi-value">${k[1]}</div></div>`; });
     html += '</div>';
     html += '<div class="glass-card"><div style="font-weight:700;margin-bottom:10px">Recent Organizations</div>';
@@ -194,6 +279,7 @@ let ORG_STATE = { q: '', status: '', page: 1 };
 async function renderOrganizations(){
   const main = document.getElementById('main');
   main.innerHTML = `
+    ${breadcrumb()}
     <h2 style="margin-top:0">Organizations</h2>
     <div class="glass-card" style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
       <input id="org-search" placeholder="Search business, owner, email, phone, GST…" style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter')orgSearch()">
@@ -250,7 +336,13 @@ async function showOrgDetail(id){
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
   try {
-    const d = await api('/organizations/' + id);
+    const [d, renewalsData, securityData, notesData, activityData] = await Promise.all([
+      api('/organizations/' + id),
+      api('/organizations/' + id + '/renewals').catch(() => ({ licenses: [] })),
+      api('/organizations/' + id + '/security').catch(() => ({ loginHistory: [], failedLogins: [], securityEvents: [] })),
+      api('/organizations/' + id + '/notes').catch(() => ({ notes: [] })),
+      api('/organizations/' + id + '/activity').catch(() => ({ timeline: [] })),
+    ]);
     const b = d.business;
     function row(l, v) { return `<div class="row"><span>${esc(l)}</span><span>${v === null || v === undefined || v === '' ? '—' : esc(v)}</span></div>`; }
     let html = `<button onclick="document.getElementById('org-modal').remove()" style="float:right;background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer">✕</button>`;
@@ -277,6 +369,14 @@ async function showOrgDetail(id){
         </div>`;
       }
     });
+    html += '<div class="section-title">Renewals</div>';
+    if (!renewalsData.licenses.length) html += '<div style="color:var(--text3);font-size:12px">No licenses to renew.</div>';
+    renewalsData.licenses.forEach(l => {
+      const label = l.productName + ' — ' + l.planCode;
+      const value = l.expiresAt ? new Date(l.expiresAt).toLocaleDateString() + (l.daysRemaining != null ? ' (' + l.daysRemaining + 'd)' : '') : 'never expires';
+      html += `<div class="row"><span>${esc(label)}</span><span style="${l.urgent ? 'color:var(--orange);font-weight:700' : ''}">${esc(value)}</span></div>`;
+    });
+
     html += '<div class="section-title">Devices</div>';
     if (!d.devices.length) html += '<div style="color:var(--text3);font-size:12px">No devices on file.</div>';
     d.devices.forEach(dev => {
@@ -288,9 +388,32 @@ async function showOrgDetail(id){
         </div>`;
       }
     });
-    html += '<div class="section-title">Audit History</div>';
-    if (!d.auditHistory.length) html += '<div style="color:var(--text3);font-size:12px">No history yet.</div>';
-    d.auditHistory.slice(0, 10).forEach(h => { html += row(h.action, (h.timestamp ? new Date(h.timestamp).toLocaleString() : '') + ' — ' + (h.detail || '')); });
+
+    html += '<div class="section-title">Security</div>';
+    const loginHistory = securityData.loginHistory || [];
+    const failedLogins = securityData.failedLogins || [];
+    const securityEvents = securityData.securityEvents || [];
+    if (loginHistory.length) html += row('Last login', (loginHistory[0].loginTime ? new Date(loginHistory[0].loginTime).toLocaleString() : '—') + (loginHistory[0].userName ? ' — ' + loginHistory[0].userName : ''));
+    if (failedLogins.length) html += row('Recent failed logins', String(failedLogins.length));
+    securityEvents.slice(0, 5).forEach(ev => { html += row(ev.action, (ev.timestamp ? new Date(ev.timestamp).toLocaleString() + ' — ' : '') + (ev.detail || '')); });
+    if (!loginHistory.length && !failedLogins.length && !securityEvents.length) html += '<div style="color:var(--text3);font-size:12px">No security events on file.</div>';
+
+    html += '<div class="section-title">Internal Notes</div>';
+    if (!notesData.notes.length) html += '<div style="color:var(--text3);font-size:12px">No notes yet.</div>';
+    notesData.notes.slice(0, 5).forEach(n => { html += row(n.authorEmail, (n.createdAt ? new Date(n.createdAt).toLocaleString() + ' — ' : '') + n.note); });
+    if (hasPermission('support_actions')) {
+      html += `<div style="display:flex;gap:6px;margin-top:6px"><input id="note-input" placeholder="Add an internal note…" style="flex:1"><button class="btn btn-xs btn-primary" onclick="addOrgNote(${esc(JSON.stringify(id))})">Add</button></div>`;
+    }
+
+    html += '<div class="section-title">Activity Timeline</div>';
+    const timeline = activityData.timeline || [];
+    if (!timeline.length) html += '<div style="color:var(--text3);font-size:12px">No activity yet.</div>';
+    const TIMELINE_ICONS = { audit: '🧾', email: '✉️', note: '📝', login: '🔐' };
+    timeline.slice(0, 15).forEach(ev => {
+      const label = (TIMELINE_ICONS[ev.type] || '•') + ' ' + (ev.actor || 'system');
+      html += row(label, (ev.timestamp ? new Date(ev.timestamp).toLocaleString() + ' — ' : '') + ev.summary);
+    });
+
     if (hasPermission('support_actions')) {
       html += '<div class="section-title">Support Actions</div><div style="display:flex;gap:6px;flex-wrap:wrap">';
       html += `<button class="btn btn-xs btn-success" onclick="orgAction(${esc(JSON.stringify(id))},'approve')">Approve</button>`;
@@ -309,6 +432,14 @@ async function showOrgDetail(id){
   } catch (e) {
     document.querySelector('#org-modal .modal-box').innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>';
   }
+}
+function addOrgNote(orgId){
+  const input = document.getElementById('note-input');
+  const note = input ? input.value.trim() : '';
+  if (!note) return;
+  api('/organizations/' + orgId + '/notes', { method: 'POST', body: { note } })
+    .then(() => { toast('Note added', 'success'); showOrgDetail(orgId); })
+    .catch(e => toast(e.message, 'error'));
 }
 function attachProduct(orgId){
   const slug = document.getElementById('attach-product-select').value;
@@ -359,7 +490,7 @@ function revokeDevicePrompt(orgId, deviceId){
     .catch(e => toast(e.message, 'error'));
 }
 function forcePasswordResetPrompt(orgId){
-  if (!confirm('Force a password reset for this organization\\'s owner? They will be required to set a new password.')) return;
+  if (!confirm('Force a password reset for this organization\'s owner? They will be required to set a new password.')) return;
   api('/organizations/' + orgId + '/force-password-reset', { method: 'POST' })
     .then(() => { toast('Password reset forced', 'success'); showOrgDetail(orgId); })
     .catch(e => toast(e.message, 'error'));
@@ -371,7 +502,7 @@ async function showLoginHistory(orgId){
     let html = '<h4>Login History</h4>';
     if (!rows.length) html += '<div style="color:var(--text3);font-size:12px">No login history.</div>';
     else { html += '<table><thead><tr><th>Time</th><th>User</th><th>IP</th><th>Status</th></tr></thead><tbody>'; rows.forEach(r => { html += `<tr><td>${r.loginTime ? new Date(r.loginTime).toLocaleString() : ''}</td><td>${esc(r.userName || '—')}</td><td>${esc(r.ip || '—')}</td><td>${esc(r.status || '—')}</td></tr>`; }); html += '</tbody></table>'; }
-    html += '<button class="btn btn-xs btn-ghost" style="margin-top:8px" onclick="this.closest(\\'.modal-overlay\\').remove()">Close</button>';
+    html += '<button class="btn btn-xs btn-ghost" style="margin-top:8px" onclick="this.closest(\'.modal-overlay\').remove()">Close</button>';
     const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
     overlay.innerHTML = '<div class="modal-box">' + html + '</div>';
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
@@ -385,7 +516,7 @@ async function showFailedLogins(orgId){
     let html = '<h4>Failed Login Attempts</h4>';
     if (!rows.length) html += '<div style="color:var(--text3);font-size:12px">No failed attempts on file.</div>';
     else { html += '<table><thead><tr><th>Time</th><th>Mobile</th><th>IP</th></tr></thead><tbody>'; rows.forEach(r => { html += `<tr><td>${r.created_at ? new Date(r.created_at).toLocaleString() : ''}</td><td>${esc(r.mobile || '—')}</td><td>${esc(r.ip || '—')}</td></tr>`; }); html += '</tbody></table>'; }
-    html += '<button class="btn btn-xs btn-ghost" style="margin-top:8px" onclick="this.closest(\\'.modal-overlay\\').remove()">Close</button>';
+    html += '<button class="btn btn-xs btn-ghost" style="margin-top:8px" onclick="this.closest(\'.modal-overlay\').remove()">Close</button>';
     const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
     overlay.innerHTML = '<div class="modal-box">' + html + '</div>';
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
@@ -396,7 +527,7 @@ async function showFailedLogins(orgId){
 // ── Product Registry ──
 async function renderProducts(){
   const main = document.getElementById('main');
-  main.innerHTML = `<h2 style="margin-top:0">Product Registry</h2>
+  main.innerHTML = `${breadcrumb()}<h2 style="margin-top:0">Product Registry</h2>
     ${hasPermission('manage_products') ? '<button class="btn btn-primary" style="margin-bottom:14px" onclick="createProductPrompt()">+ Register Product</button>' : ''}
     <div id="product-table" class="glass-card">Loading…</div>`;
   const d = await api('/products');
@@ -420,7 +551,7 @@ function createProductPrompt(){
 // ── Audit Log ──
 async function renderAudit(){
   const main = document.getElementById('main');
-  main.innerHTML = '<h2 style="margin-top:0">Audit Log</h2><div id="audit-table" class="glass-card">Loading…</div>';
+  main.innerHTML = breadcrumb() + '<h2 style="margin-top:0">Audit Log</h2><div id="audit-table" class="glass-card">Loading…</div>';
   const d = await api('/audit-log' + (CURRENT_PRODUCT ? '?productId=' + CURRENT_PRODUCT : ''));
   let html = '<table><thead><tr><th>Timestamp</th><th>Admin</th><th>Organization</th><th>Product</th><th>Action</th><th>Old</th><th>New</th><th>Detail</th></tr></thead><tbody>';
   d.entries.forEach(e => {
@@ -434,7 +565,7 @@ async function renderAudit(){
 async function renderPlatformUsers(){
   const main = document.getElementById('main');
   if (!hasPermission('manage_platform_users')) { main.innerHTML = '<div style="color:var(--text3)">You do not have permission to manage platform users.</div>'; return; }
-  main.innerHTML = `<h2 style="margin-top:0">Platform Users</h2>
+  main.innerHTML = `${breadcrumb()}<h2 style="margin-top:0">Platform Users</h2>
     <button class="btn btn-primary" style="margin-bottom:14px" onclick="createPlatformUserPrompt()">+ Add Platform User</button>
     <div id="pu-table" class="glass-card">Loading…</div>`;
   const d = await api('/platform-users');
@@ -459,6 +590,184 @@ function platformUserAction(id, action){
     .then(() => { toast('Done', 'success'); renderPlatformUsers(); })
     .catch(e => toast(e.message, 'error'));
 }
+
+// ── System Health (Phase 5A) ──
+async function renderHealth(){
+  const main = document.getElementById('main');
+  main.innerHTML = breadcrumb() + '<h2 style="margin-top:0">System Health</h2><div id="health-body" class="glass-card">Loading…</div>';
+  try {
+    const d = await api('/health');
+    let html = '<div class="kpi-grid">';
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Platform</div><div class="kpi-value" style="color:${d.platformStatus==='operational'?'var(--green)':'var(--red)'};font-size:16px">${esc(d.platformStatus)}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Database</div><div class="kpi-value" style="color:${d.database.status==='ok'?'var(--green)':'var(--red)'};font-size:16px">${esc(d.database.status)}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Uptime</div><div class="kpi-value">${Math.floor(d.version.uptimeSeconds/60)}m</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Platform Version</div><div class="kpi-value" style="font-size:16px">${esc(d.version.platform)}</div></div>`;
+    html += '</div>';
+    html += '<div class="section-title" style="margin-top:0">Product Services</div>';
+    if (!d.services.length) html += '<div style="color:var(--text3);font-size:12px">No product adapters registered.</div>';
+    d.services.forEach(s => {
+      const color = s.configured ? (s.reachable ? 'var(--green)' : 'var(--red)') : 'var(--text3)';
+      const label = s.configured ? (s.reachable ? 'reachable' : 'unreachable') : 'not configured';
+      html += `<div class="row"><span>${esc(s.slug)}</span><span style="color:${color}">${esc(label)}</span></div>`;
+    });
+    html += '<div class="section-title">Scheduled Jobs</div>';
+    html += `<div style="color:var(--text3);font-size:12px">${d.jobs.count} job(s) configured. ${esc(d.jobs.note)}</div>`;
+    html += '<div class="section-title">Version Information</div>';
+    html += `<div class="row"><span>Platform</span><span>${esc(d.version.platform)}</span></div><div class="row"><span>Node.js</span><span>${esc(d.version.node)}</span></div>`;
+    document.getElementById('health-body').innerHTML = html;
+  } catch (e) { document.getElementById('health-body').innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+
+// ── Alerts & Notifications Center (Phase 5A) ──
+async function renderAlertsPage(){
+  const main = document.getElementById('main');
+  main.innerHTML = breadcrumb() + '<h2 style="margin-top:0">Alerts</h2><div id="alerts-body" class="glass-card">Loading…</div>';
+  try {
+    const d = await api('/alerts?includeDismissed=true');
+    let html = '';
+    if (!d.alerts.length) html = '<div style="color:var(--text3);font-size:12px">No alerts.</div>';
+    d.alerts.forEach(a => {
+      html += `<div class="alert-row sev-${esc(a.severity)}" style="${a.dismissedAt?'opacity:.45':''}">`;
+      html += `<div class="alert-title">${esc(a.title)}</div><div class="alert-msg">${esc(a.message)}</div>`;
+      html += '<div class="alert-actions">';
+      if (!a.readAt) html += `<button class="btn btn-xs btn-ghost" onclick="markAlertRead('${encodeURIComponent(a.key)}')">Mark Read</button>`;
+      if (!a.dismissedAt) html += `<button class="btn btn-xs btn-ghost" onclick="dismissAlert('${encodeURIComponent(a.key)}')">Dismiss</button>`;
+      html += '</div></div>';
+    });
+    document.getElementById('alerts-body').innerHTML = html;
+  } catch (e) { document.getElementById('alerts-body').innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+function markAlertRead(key){
+  api('/alerts/' + key + '/read', { method: 'POST' })
+    .then(() => { loadNotifBadge().then(renderNotifDropdown); if (CURRENT_PAGE === 'alerts') renderAlertsPage(); })
+    .catch(e => toast(e.message, 'error'));
+}
+function dismissAlert(key){
+  api('/alerts/' + key + '/dismiss', { method: 'POST' })
+    .then(() => { toast('Dismissed', 'success'); loadNotifBadge().then(renderNotifDropdown); if (CURRENT_PAGE === 'alerts') renderAlertsPage(); })
+    .catch(e => toast(e.message, 'error'));
+}
+let _notifIntervalStarted = false;
+async function loadNotifBadge(){
+  try {
+    const d = await api('/alerts');
+    const badge = document.getElementById('notif-badge');
+    if (d.unreadCount > 0) { badge.textContent = d.unreadCount > 99 ? '99+' : d.unreadCount; badge.classList.remove('hidden'); }
+    else badge.classList.add('hidden');
+    window._LAST_ALERTS = d.alerts;
+  } catch (e) { /* best-effort — a failed badge refresh should never interrupt the operator */ }
+}
+function startNotifPolling(){
+  if (_notifIntervalStarted) return;
+  _notifIntervalStarted = true;
+  loadNotifBadge();
+  setInterval(loadNotifBadge, 60000);
+}
+let NOTIF_DROPDOWN_OPEN = false;
+function toggleNotifDropdown(){
+  const dd = document.getElementById('notif-dropdown');
+  NOTIF_DROPDOWN_OPEN = !NOTIF_DROPDOWN_OPEN;
+  if (NOTIF_DROPDOWN_OPEN) { renderNotifDropdown(); dd.classList.remove('hidden'); }
+  else dd.classList.add('hidden');
+}
+function renderNotifDropdown(){
+  const dd = document.getElementById('notif-dropdown');
+  const alerts = window._LAST_ALERTS || [];
+  if (!alerts.length) { dd.innerHTML = '<div style="padding:10px;color:var(--text3);font-size:12px">No alerts.</div>'; return; }
+  dd.innerHTML = alerts.slice(0, 8).map(a => `
+    <div class="alert-row sev-${esc(a.severity)}">
+      <div class="alert-title">${esc(a.title)}</div><div class="alert-msg">${esc(a.message)}</div>
+      <div class="alert-actions">
+        ${!a.readAt ? `<button class="btn btn-xs btn-ghost" onclick="markAlertRead('${encodeURIComponent(a.key)}')">Mark Read</button>` : ''}
+        <button class="btn btn-xs btn-ghost" onclick="dismissAlert('${encodeURIComponent(a.key)}')">Dismiss</button>
+      </div>
+    </div>`).join('') + '<div style="text-align:center;margin-top:6px"><button class="btn btn-xs btn-ghost" onclick="nav(\'alerts\');toggleNotifDropdown()">View All</button></div>';
+}
+
+// ── Reports & Trends (Phase 5A) ──
+async function renderReports(){
+  const main = document.getElementById('main');
+  main.innerHTML = breadcrumb() + '<h2 style="margin-top:0">Reports & Trends</h2><div id="reports-body" class="glass-card">Loading…</div>';
+  try {
+    const d = await api('/reports/trends');
+    function sparkline(series, key){
+      if (!series || !series.length) return '<div style="color:var(--text3);font-size:12px">No data yet.</div>';
+      const max = Math.max(...series.map(s => s[key])) || 1;
+      const w = 600, h = 70, step = w / Math.max(series.length - 1, 1);
+      const points = series.map((s, i) => (i * step) + ',' + (h - (s[key] / max) * h)).join(' ');
+      return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:70px;display:block"><polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${points}"/></svg>`;
+    }
+    let html = '';
+    html += '<div class="section-title" style="margin-top:0">Customer Growth (cumulative organizations)</div>' + sparkline(d.customerGrowth, 'total');
+    html += '<div class="section-title">Registration Trends (new organizations per month)</div>' + sparkline(d.registrationTrends, 'count');
+    html += '<div class="section-title">License Status Mix</div>';
+    const licRows = Object.entries(d.licenseTrends || {}).map(([status, count]) => `<div class="row"><span>${esc(status)}</span><span>${count}</span></div>`).join('');
+    html += licRows || '<div style="color:var(--text3);font-size:12px">No license data yet.</div>';
+    html += '<div class="section-title">Product Usage</div>';
+    const usageRows = (d.productUsage || []).map(p => `<div class="row"><span>${esc(p.product)}</span><span>${p.organizations}</span></div>`).join('');
+    html += usageRows || '<div style="color:var(--text3);font-size:12px">No products in use yet.</div>';
+    html += '<div class="section-title">Activity (last 30 days)</div>' + sparkline(d.activityMetrics, 'count');
+    document.getElementById('reports-body').innerHTML = html;
+  } catch (e) { document.getElementById('reports-body').innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+
+// ── Command palette ──
+const NAV_ITEMS_FOR_CMDK = [
+  { label: 'Dashboard', page: 'dashboard' }, { label: 'Reports', page: 'reports' },
+  { label: 'Organizations', page: 'organizations' }, { label: 'Product Registry', page: 'products' },
+  { label: 'System Health', page: 'health' }, { label: 'Alerts', page: 'alerts' },
+  { label: 'Audit Log', page: 'audit' }, { label: 'Platform Users', page: 'platform-users' },
+];
+let CMDK_RESULTS = [];
+let CMDK_SEL = 0;
+function openCmdk(){
+  document.getElementById('cmdk-overlay').classList.remove('hidden');
+  const input = document.getElementById('cmdk-input');
+  input.value = '';
+  input.focus();
+  cmdkSearch();
+}
+function closeCmdk(){ document.getElementById('cmdk-overlay').classList.add('hidden'); }
+async function cmdkSearch(){
+  const q = document.getElementById('cmdk-input').value.trim().toLowerCase();
+  let results = NAV_ITEMS_FOR_CMDK.filter(n => !q || n.label.toLowerCase().includes(q)).map(n => ({ type: 'nav', label: n.label, page: n.page }));
+  if (q.length >= 2) {
+    try {
+      const d = await api('/customers/search?q=' + encodeURIComponent(q));
+      results = results.concat((d.results || []).slice(0, 6).map(o => ({ type: 'org', label: o.businessName, id: o.organizationId })));
+    } catch (e) { /* a broken search should never block palette navigation */ }
+  }
+  CMDK_RESULTS = results;
+  CMDK_SEL = 0;
+  renderCmdkResults();
+}
+function renderCmdkResults(){
+  const el = document.getElementById('cmdk-results');
+  if (!CMDK_RESULTS.length) { el.innerHTML = '<div style="padding:10px;color:var(--text3);font-size:12px">No matches.</div>'; return; }
+  el.innerHTML = CMDK_RESULTS.map((r, i) => `<div class="cmdk-item ${i===CMDK_SEL?'sel':''}" onclick="cmdkSelect(${i})"><span>${esc(r.label)}</span><span class="cmdk-hint">${r.type==='nav'?'page':'organization'}</span></div>`).join('');
+}
+function cmdkSelect(i){
+  const r = CMDK_RESULTS[i];
+  if (!r) return;
+  closeCmdk();
+  if (r.type === 'nav') nav(r.page);
+  else { nav('organizations'); showOrgDetail(r.id); }
+}
+function cmdkKeydown(e){
+  if (e.key === 'ArrowDown') { e.preventDefault(); CMDK_SEL = Math.min(CMDK_SEL + 1, CMDK_RESULTS.length - 1); renderCmdkResults(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); CMDK_SEL = Math.max(CMDK_SEL - 1, 0); renderCmdkResults(); }
+  else if (e.key === 'Enter') { e.preventDefault(); cmdkSelect(CMDK_SEL); }
+  else if (e.key === 'Escape') { closeCmdk(); }
+}
+document.addEventListener('keydown', function(e){
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    if (ME) openCmdk();
+  } else if (e.key === 'Escape') {
+    closeCmdk();
+  }
+});
+document.getElementById('cmdk-overlay').addEventListener('click', function(e){ if (e.target === this) closeCmdk(); });
 
 // ── Boot ──
 (function boot(){

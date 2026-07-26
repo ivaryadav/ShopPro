@@ -238,6 +238,35 @@ function migrate(db) {
       created_at      TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_org_users_org ON organization_users(organization_id);
+
+    -- Phase 5A: Organization 360 Workspace — Internal Notes. organization_id
+    -- is TEXT (not a FK) because it must hold either a local integer
+    -- organizations.id (as a string) or an adapter's synthetic "shoperp:7"
+    -- form — this table is entirely Z-SUPERADMIN's own operator context,
+    -- never ShopERP (or any product's) data, so no adapter sync is needed.
+    CREATE TABLE IF NOT EXISTS organization_notes (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      organization_id TEXT NOT NULL,
+      author_email    TEXT NOT NULL,
+      note            TEXT NOT NULL,
+      created_at      TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_org_notes_org ON organization_notes(organization_id, created_at);
+
+    -- Phase 5A: Alerts & Notifications Center. Alerts themselves are
+    -- computed live on every request from current data (expiring licenses,
+    -- pending registrations, locked accounts — see alertService.js), not
+    -- pre-materialized by a background job (scheduled job infrastructure is
+    -- an explicit later milestone). This table only persists per-alert
+    -- read/dismiss state, keyed by a stable, deterministic alert_key so
+    -- that state survives across recomputation.
+    CREATE TABLE IF NOT EXISTS platform_alert_state (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      alert_key    TEXT NOT NULL UNIQUE,
+      read_at      TEXT,
+      dismissed_at TEXT,
+      created_at   TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   runMigration(db, 'ALTER TABLE platform_users ADD COLUMN locked_until TEXT', 'platform_users.locked_until');

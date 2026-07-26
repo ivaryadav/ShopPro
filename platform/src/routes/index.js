@@ -18,6 +18,9 @@ const licenseController = require('../controllers/licenseController');
 const customerController = require('../controllers/customerController');
 const auditController = require('../controllers/auditController');
 const platformUserController = require('../controllers/platformUserController');
+const healthController = require('../controllers/healthController');
+const alertController = require('../controllers/alertController');
+const reportController = require('../controllers/reportController');
 
 function createPlatformRouter({ jwtSecret }) {
   const router = express.Router();
@@ -49,6 +52,13 @@ function createPlatformRouter({ jwtSecret }) {
   router.get('/organizations/:id/login-history', auth, requirePermission('view_only'), organizationController.loginHistory);
   router.get('/organizations/:id/failed-logins', auth, requirePermission('view_only'), organizationController.failedLogins);
 
+  // ── Organization 360 Workspace (Phase 5A) ──────────────────────────────
+  router.get('/organizations/:id/notes', auth, requirePermission('view_only'), organizationController.notesList);
+  router.post('/organizations/:id/notes', auth, requirePermission('support_actions'), rateLimit(60, 60 * 1000), organizationController.notesAdd);
+  router.get('/organizations/:id/renewals', auth, requirePermission('view_only'), organizationController.renewals);
+  router.get('/organizations/:id/security', auth, requirePermission('view_only'), organizationController.security);
+  router.get('/organizations/:id/activity', auth, requirePermission('view_only'), organizationController.activity);
+
   router.post('/organizations/:orgId/licenses/:productId/activate', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), licenseController.activate);
   router.post('/organizations/:orgId/licenses/:productId/suspend', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), licenseController.suspend);
   router.post('/organizations/:orgId/licenses/:productId/resume', auth, requirePermission('manage_licenses'), rateLimit(30, 60 * 1000), licenseController.resume);
@@ -58,6 +68,17 @@ function createPlatformRouter({ jwtSecret }) {
   router.get('/customers/search', auth, requirePermission('view_only'), customerController.search);
 
   router.get('/audit-log', auth, requirePermission('view_audit_log'), auditController.list);
+
+  // ── System Health (Phase 5A) ────────────────────────────────────────────
+  router.get('/health', auth, requirePermission('view_only'), healthController.health);
+
+  // ── Alerts & Notifications Center (Phase 5A) ───────────────────────────
+  router.get('/alerts', auth, requirePermission('view_only'), alertController.list);
+  router.post('/alerts/:key/read', auth, requirePermission('view_only'), rateLimit(120, 60 * 1000), alertController.markRead);
+  router.post('/alerts/:key/dismiss', auth, requirePermission('view_only'), rateLimit(120, 60 * 1000), alertController.markDismissed);
+
+  // ── Reports & Trends (Phase 5A) ─────────────────────────────────────────
+  router.get('/reports/trends', auth, requirePermission('view_only'), reportController.trends);
 
   router.get('/platform-users', auth, requirePermission('manage_platform_users'), platformUserController.list);
   router.post('/platform-users', auth, requirePermission('manage_platform_users'), rateLimit(20, 60 * 1000), platformUserController.create);

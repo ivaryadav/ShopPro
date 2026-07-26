@@ -2,7 +2,7 @@
 
 const organizationService = require('../services/organizationService');
 
-function actor(req) { return { userId: req.platformUser.userId, ip: req.ip }; }
+function actor(req) { return { userId: req.platformUser.userId, email: req.platformUser.email, ip: req.ip }; }
 
 async function list(req, res, next) { try { res.json(await organizationService.listOrganizations(req.query)); } catch (e) { next(e); } }
 async function create(req, res, next) { try { res.status(201).json({ organization: organizationService.createOrganization(req.body, actor(req)) }); } catch (e) { next(e); } }
@@ -26,7 +26,15 @@ async function killSessions(req, res, next) { try { res.json(await organizationS
 async function loginHistory(req, res, next) { try { res.json({ logins: await organizationService.getLoginHistory(req.params.id) }); } catch (e) { next(e); } }
 async function failedLogins(req, res, next) { try { res.json({ failedLogins: await organizationService.getFailedLogins(req.params.id) }); } catch (e) { next(e); } }
 
+// ── Organization 360 Workspace (Phase 5A) ────────────────────────────────
+async function notesList(req, res, next) { try { res.json({ notes: organizationService.listNotes(req.params.id) }); } catch (e) { next(e); } }
+async function notesAdd(req, res, next) { try { res.status(201).json({ note: organizationService.addNote(req.params.id, req.body.note, actor(req)) }); } catch (e) { next(e); } }
+async function renewals(req, res, next) { try { res.json(await organizationService.getRenewals(req.params.id)); } catch (e) { next(e); } }
+async function security(req, res, next) { try { res.json(await organizationService.getSecurity(req.params.id)); } catch (e) { next(e); } }
+async function activity(req, res, next) { try { res.json(await organizationService.getActivityTimeline(req.params.id)); } catch (e) { next(e); } }
+
 module.exports = {
   list, create, getOne, attachProduct, approve, suspend, deviceList, deviceRevoke, deviceRename, sendEmail,
   unlockAccount, forcePasswordReset, killSessions, loginHistory, failedLogins,
+  notesList, notesAdd, renewals, security, activity,
 };
