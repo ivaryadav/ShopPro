@@ -103,14 +103,16 @@ const s2Snippets = [
   ["toast(`${escHtml(p.name)} is out of stock`,'error')", 'out of stock toast'],
   ["toast(`Only ${prod.stock} unit${prod.stock!==1?'s':''} of \"${escHtml(prod.name)}\" in stock`,'error')", 'stock-limit toast (repair part)'],
   ["toast(escHtml(name)+' added as '+role+'. Set their PIN now.','success')", 'staff added toast'],
-  ["toast((isRenew?'Renewed ':'Key generated for ')+escHtml(shopName),'success')", 'admin key generated toast'],
-  ["toast('Account paused for '+escHtml(c.shopName),'info')", 'admin account paused toast'],
-  ["toast('Account terminated for '+escHtml(c.shopName),'error')", 'admin account terminated toast'],
-  ["toast('Account restored for '+escHtml(c.shopName),'success')", 'admin account restored toast'],
-  ["toast('Server updated: '+escHtml(shopName)+' is now '+status,'success')", 'admin server-status-updated toast'],
-  ["toast('PIN reset for '+escHtml(userName),'success')", 'admin PIN reset toast'],
   ['stockErrors.push(`"${escHtml(item.name)}": selling ${item.qty} but only ${prod.stock} in stock`)', 'stock-insufficient error list construction'],
   ["toast('Category \"'+escHtml(n)+'\" added','success')", 'expense category added toast'],
+  // The 6 admin-console-specific snippets formerly here (key-generated/
+  // account-paused/terminated/restored/server-status-updated/PIN-reset
+  // toasts) verified escaping inside admDoGenerate/admPauseCustomer/
+  // admTerminateCustomer/admRestoreCustomer/admToggleWebUser/admResetPin —
+  // all removed entirely as part of the Z-SUPERADMIN migration (ShopERP's
+  // Super Admin console no longer exists; see platform/docs/Architecture.md
+  // and the Z-SUPERADMIN migration report). Nothing to regression-test:
+  // the code these assertions protected doesn't exist anymore.
 ];
 
 for (const [snippet, label] of s2Snippets) {
@@ -123,7 +125,10 @@ for (const [snippet, label] of s2Snippets) {
 // incorrectly display literal "&#39;" etc. for names containing quotes/
 // apostrophes at worst. This guards against a future "helpful" but wrong fix.
 const negativeControls = [
-  ["confirm('Clear PIN for '+u.name+'?", 'confirm() for PIN clear'],
+  // The admin-console "Clear PIN for X?" confirm() negative control formerly
+  // here (admClearPin, part of the removed "User PINs" admin page) was
+  // removed along with the rest of the Z-SUPERADMIN migration — see the
+  // comment above the s2Snippets array.
   ["confirm('⚠️ Phone '+phone+' already exists for \"'+dup.name+'\"", 'confirm() for duplicate phone'],
 ];
 for (const [snippet, label] of negativeControls) {

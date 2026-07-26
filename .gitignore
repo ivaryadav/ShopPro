@@ -17,6 +17,14 @@ server/*.db-shm
 server/*.db-wal
 server/*.db-journal
 server/backups/
+platform/.env
+platform/.env.*
+!platform/.env.example
+!platform/.env.*.example
+platform/*.db
+platform/*.db-shm
+platform/*.db-wal
+platform/*.db-journal
 logs/
 *.log
 tmp/

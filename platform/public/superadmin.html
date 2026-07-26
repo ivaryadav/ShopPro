@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Z-SUPERADMIN</title>
+<style>
+:root{--bg:#0b0c10;--bg2:#131419;--bg3:#1a1c23;--text:#f5f5f7;--text2:rgba(255,255,255,.6);--text3:rgba(255,255,255,.35);--border:rgba(255,255,255,.08);--accent:#7C8CF8;--red:#F87171;--green:#34D399;--orange:#FBBF24}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.hidden{display:none !important}
+.glass-card{background:linear-gradient(145deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid var(--border);border-radius:16px;padding:20px}
+.btn{padding:9px 16px;border-radius:9px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,#7C8CF8,#A78BFA);color:#fff}
+.btn-ghost{background:rgba(255,255,255,.06);color:var(--text2);border:1px solid var(--border)}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.btn-success{background:rgba(52,211,153,.15);color:var(--green);border:1px solid rgba(52,211,153,.3)}
+.btn-xs{padding:5px 10px;font-size:11px;border-radius:7px}
+input,select,textarea{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;font-family:inherit}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;color:var(--text3);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+td{padding:8px 10px;border-bottom:1px solid var(--border)}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700}
+.badge-green{background:rgba(52,211,153,.15);color:var(--green)}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red)}
+.badge-orange{background:rgba(251,191,36,.15);color:var(--orange)}
+.badge-gray{background:rgba(255,255,255,.08);color:var(--text3)}
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center}
+#app-shell{display:none;min-height:100vh}
+#sidebar{width:230px;background:var(--bg2);border-right:1px solid var(--border);flex-shrink:0;padding:16px}
+#main{flex:1;padding:24px;overflow:auto}
+.nav-item{padding:10px 12px;border-radius:9px;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:2px}
+.nav-item:hover{background:var(--bg3)}
+.nav-item.active{background:rgba(124,140,248,.15);color:var(--accent)}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.kpi-card{text-align:center}
+.kpi-label{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.kpi-value{font-size:24px;font-weight:800;color:var(--accent)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:9999}
+.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:600px;width:92%;max-height:85vh;overflow:auto}
+.row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.04)}
+.row span:first-child{color:var(--text3)}
+.section-title{font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 6px}
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:99999;animation:toastIn .2s}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="glass-card" style="width:360px">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:22px;font-weight:800">Z-SUPERADMIN</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Platform foundation for every ZMAX SaaS product</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <input id="li-email" placeholder="Platform email" type="email">
+      <input id="li-password" placeholder="Password" type="password" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="btn btn-primary" onclick="doLogin()" style="width:100%">Log In</button>
+      <div id="li-error" style="color:var(--red);font-size:11px;text-align:center;min-height:14px"></div>
+    </div>
+  </div>
+</div>
+
+<div id="app-shell" style="display:flex">
+  <div id="sidebar">
+    <div style="font-size:15px;font-weight:800;margin-bottom:4px">🛡️ Z-SUPERADMIN</div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:16px" id="sb-user"></div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:9px;color:var(--text3);text-transform:uppercase;font-weight:700">Product Switcher</label>
+      <select id="product-switcher" style="width:100%;margin-top:4px" onchange="onProductSwitch()">
+        <option value="">All Products</option>
+      </select>
+    </div>
+    <div class="nav-item active" onclick="nav('dashboard')">📈 Dashboard</div>
+    <div class="nav-item" onclick="nav('organizations')">🏢 Organizations</div>
+    <div class="nav-item" onclick="nav('products')">🧩 Product Registry</div>
+    <div class="nav-item" onclick="nav('audit')">🧾 Audit Log</div>
+    <div class="nav-item" onclick="nav('platform-users')">👤 Platform Users</div>
+    <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border)">
+      <button class="btn btn-ghost" style="width:100%" onclick="doLogout()">Log Out</button>
+    </div>
+  </div>
+  <div id="main"></div>
+</div>
+
+<script>
+const API = window.location.origin + '/api/platform';
+let TOKEN = sessionStorage.getItem('zsa_token') || '';
+let ME = null;
+let PRODUCTS = [];
+let CURRENT_PRODUCT = '';
+let CURRENT_PAGE = 'dashboard';
+
+function esc(s){ return String(s===null||s===undefined?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg, type){
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.style.background = type==='error' ? 'rgba(239,68,68,.9)' : type==='success' ? 'rgba(52,211,153,.9)' : 'rgba(124,140,248,.9)';
+  t.style.color = '#fff';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+async function api(path, opts){
+  opts = opts || {};
+  const res = await fetch(API + path, {
+    method: opts.method || 'GET',
+    headers: Object.assign({ 'Content-Type': 'application/json' }, TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {}),
+    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data.error && data.error.message) || 'Request failed');
+  return data;
+}
+
+async function doLogin(){
+  const email = document.getElementById('li-email').value.trim();
+  const password = document.getElementById('li-password').value;
+  const errEl = document.getElementById('li-error');
+  errEl.textContent = '';
+  try {
+    const result = await api('/auth/login', { method: 'POST', body: { email, password } });
+    TOKEN = result.token; ME = result.user;
+    sessionStorage.setItem('zsa_token', TOKEN);
+    sessionStorage.setItem('zsa_user', JSON.stringify(ME));
+    showApp();
+  } catch (e) { errEl.textContent = e.message; }
+}
+function doLogout(){
+  TOKEN = ''; sessionStorage.removeItem('zsa_token'); sessionStorage.removeItem('zsa_user');
+  document.getElementById('app-shell').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+function hasPermission(code){ return !!(ME && ME.permissions && ME.permissions.includes(code)); }
+
+async function showApp(){
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-shell').style.display = 'flex';
+  document.getElementById('sb-user').textContent = ME.email + ' — ' + ME.roleLabel;
+  await loadProducts();
+  nav('dashboard');
+}
+async function loadProducts(){
+  const d = await api('/products');
+  PRODUCTS = d.products;
+  const sel = document.getElementById('product-switcher');
+  sel.innerHTML = '<option value="">All Products</option>' + PRODUCTS.map(p => `<option value="${p.id}">${esc(p.name)}${p.status==='planned'?' (planned)':''}</option>`).join('');
+}
+function onProductSwitch(){
+  CURRENT_PRODUCT = document.getElementById('product-switcher').value;
+  nav(CURRENT_PAGE);
+}
+function nav(page){
+  CURRENT_PAGE = page;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const idx = ['dashboard','organizations','products','audit','platform-users'].indexOf(page);
+  if (idx >= 0) document.querySelectorAll('.nav-item')[idx].classList.add('active');
+  const renderers = { dashboard: renderDashboard, organizations: renderOrganizations, products: renderProducts, audit: renderAudit, 'platform-users': renderPlatformUsers };
+  (renderers[page] || renderDashboard)();
+}
+
+// ── Dashboard ──
+async function renderDashboard(){
+  const main = document.getElementById('main');
+  main.innerHTML = '<div style="color:var(--text3)">Loading…</div>';
+  try {
+    const qs = CURRENT_PRODUCT ? '?productId=' + CURRENT_PRODUCT : '';
+    const d = await api('/dashboard/stats' + qs);
+    const kpis = [
+      ['Total Organizations', d.totalOrganizations], ['Total Products', d.totalProducts],
+      ['Active Licenses', d.activeLicenses], ['Expired Licenses', d.expiredLicenses],
+      ['Pending Registrations', d.pendingRegistrations], ['Online Orgs Today', d.onlineOrganizationsToday],
+      ['Revenue', '₹' + d.revenue], ['Expiring Licenses', d.expiringLicenses],
+      ['Active Devices', d.activeDevices],
+    ];
+    let html = '<h2 style="margin-top:0">Platform Dashboard</h2><div class="kpi-grid">';
+    kpis.forEach(k => { html += `<div class="glass-card kpi-card"><div class="kpi-label">${esc(k[0])}</div><div class="kpi-value">${k[1]}</div></div>`; });
+    html += '</div>';
+    html += '<div class="glass-card"><div style="font-weight:700;margin-bottom:10px">Recent Organizations</div>';
+    if (!d.recentOrganizations.length) html += '<div style="color:var(--text3);font-size:12px">None yet.</div>';
+    else {
+      html += '<table><thead><tr><th>Business</th><th>Owner</th><th>Email</th><th>Created</th></tr></thead><tbody>';
+      d.recentOrganizations.forEach(o => { html += `<tr style="cursor:pointer" onclick="showOrgDetail(${esc(JSON.stringify(o.id))})"><td>${esc(o.businessName)}</td><td>${esc(o.ownerName)}</td><td>${esc(o.email)}</td><td>${o.createdAt ? new Date(o.createdAt).toLocaleDateString() : ''}</td></tr>`; });
+      html += '</tbody></table>';
+    }
+    html += '</div>';
+    main.innerHTML = html;
+  } catch (e) { main.innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+
+// ── Organizations ──
+let ORG_STATE = { q: '', status: '', page: 1 };
+async function renderOrganizations(){
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <h2 style="margin-top:0">Organizations</h2>
+    <div class="glass-card" style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
+      <input id="org-search" placeholder="Search business, owner, email, phone, GST…" style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter')orgSearch()">
+      <select id="org-status" onchange="orgSearch()">
+        <option value="">All Statuses</option><option value="PENDING_APPROVAL">Pending</option>
+        <option value="ACTIVE">Active</option><option value="SUSPENDED">Suspended</option><option value="ARCHIVED">Archived</option>
+      </select>
+      <button class="btn btn-ghost" onclick="orgSearch()">Search</button>
+      ${hasPermission('manage_organizations') ? '<button class="btn btn-primary" onclick="createOrgPrompt()">+ New Organization</button>' : ''}
+    </div>
+    <div id="org-table" class="glass-card"></div>
+  `;
+  await loadOrganizations();
+}
+function orgSearch(){
+  ORG_STATE.q = document.getElementById('org-search').value.trim();
+  ORG_STATE.status = document.getElementById('org-status').value;
+  ORG_STATE.page = 1;
+  loadOrganizations();
+}
+async function loadOrganizations(){
+  const el = document.getElementById('org-table');
+  el.innerHTML = 'Loading…';
+  try {
+    let qs = '?page=' + ORG_STATE.page;
+    if (ORG_STATE.q) qs += '&q=' + encodeURIComponent(ORG_STATE.q);
+    if (ORG_STATE.status) qs += '&status=' + encodeURIComponent(ORG_STATE.status);
+    if (CURRENT_PRODUCT) qs += '&productId=' + CURRENT_PRODUCT;
+    const d = await api('/organizations' + qs);
+    if (!d.organizations.length) { el.innerHTML = '<div style="color:var(--text3)">No organizations match.</div>'; return; }
+    const statusClass = { PENDING_APPROVAL: 'badge-orange', ACTIVE: 'badge-green', SUSPENDED: 'badge-red', ARCHIVED: 'badge-gray' };
+    let html = '<table><thead><tr><th>Business</th><th>Owner</th><th>Email</th><th>Status</th><th>Created</th></tr></thead><tbody>';
+    d.organizations.forEach(o => {
+      html += `<tr style="cursor:pointer" onclick="showOrgDetail(${esc(JSON.stringify(o.id))})"><td><strong>${esc(o.businessName)}</strong></td><td>${esc(o.ownerName)}</td><td>${esc(o.email)}</td><td><span class="badge ${statusClass[o.status] || 'badge-gray'}">${esc(o.status)}</span></td><td>${o.createdAt ? new Date(o.createdAt).toLocaleDateString() : ''}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  } catch (e) { el.innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+function createOrgPrompt(){
+  const businessName = prompt('Business Name:'); if (!businessName) return;
+  const ownerName = prompt('Owner Name:') || '';
+  const email = prompt('Email:') || '';
+  const phone = prompt('Phone:') || '';
+  api('/organizations', { method: 'POST', body: { businessName, ownerName, email, phone } })
+    .then(() => { toast('Organization created', 'success'); loadOrganizations(); })
+    .catch(e => toast(e.message, 'error'));
+}
+async function showOrgDetail(id){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'org-modal';
+  overlay.innerHTML = '<div class="modal-box">Loading…</div>';
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  try {
+    const d = await api('/organizations/' + id);
+    const b = d.business;
+    function row(l, v) { return `<div class="row"><span>${esc(l)}</span><span>${v === null || v === undefined || v === '' ? '—' : esc(v)}</span></div>`; }
+    let html = `<button onclick="document.getElementById('org-modal').remove()" style="float:right;background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer">✕</button>`;
+    html += `<h3 style="margin-top:0">${esc(b.businessName)}</h3>`;
+    html += '<div class="section-title">Business Information</div>';
+    html += row('Owner', b.ownerName) + row('Email', b.email) + row('Phone', b.phone) + row('Address', b.address) + row('GST', b.gstNumber) + row('Status', b.status) + row('Created', b.createdAt ? new Date(b.createdAt).toLocaleString() : null);
+    html += '<div class="section-title">Products</div>';
+    if (!d.products.length) html += '<div style="color:var(--text3);font-size:12px">No products attached.</div>';
+    d.products.forEach(p => { html += row(p.productName, p.status); });
+    if (hasPermission('manage_organizations')) {
+      html += `<select id="attach-product-select" style="margin-top:8px">${PRODUCTS.filter(p => !d.products.some(x => x.productId === p.id)).map(p => `<option value="${esc(p.slug)}">${esc(p.name)}</option>`).join('')}</select> <button class="btn btn-xs btn-ghost" onclick="attachProduct(${esc(JSON.stringify(id))})">Attach Product</button>`;
+    }
+    html += '<div class="section-title">Licenses</div>';
+    if (!d.licenses.length) html += '<div style="color:var(--text3);font-size:12px">No licenses yet.</div>';
+    d.licenses.forEach(l => {
+      html += row(l.productName + ' — ' + l.planCode, l.status + (l.expiresAt ? ' (expires ' + new Date(l.expiresAt).toLocaleDateString() + ')' : ' (never expires)'));
+      if (hasPermission('manage_licenses')) {
+        html += `<div style="display:flex;gap:6px;margin:4px 0 10px;flex-wrap:wrap">
+          <button class="btn btn-xs btn-success" onclick="licenseAction(${esc(JSON.stringify(id))},${l.productId},'activate')">Activate</button>
+          <button class="btn btn-xs btn-danger" onclick="licenseAction(${esc(JSON.stringify(id))},${l.productId},'suspend')">Suspend</button>
+          <button class="btn btn-xs btn-ghost" onclick="licenseAction(${esc(JSON.stringify(id))},${l.productId},'resume')">Resume</button>
+          <button class="btn btn-xs btn-ghost" onclick="licenseRenewPrompt(${esc(JSON.stringify(id))},${l.productId})">Renew</button>
+          <button class="btn btn-xs btn-ghost" onclick="licensePlanPrompt(${esc(JSON.stringify(id))},${l.productId})">Change Plan</button>
+        </div>`;
+      }
+    });
+    html += '<div class="section-title">Devices</div>';
+    if (!d.devices.length) html += '<div style="color:var(--text3);font-size:12px">No devices on file.</div>';
+    d.devices.forEach(dev => {
+      html += row(dev.productName + ' — ' + (dev.deviceName || dev.deviceId), dev.isActive ? 'active' : 'revoked');
+      if (hasPermission('support_actions') && dev.isActive) {
+        html += `<div style="display:flex;gap:6px;margin:4px 0 10px;flex-wrap:wrap">
+          <button class="btn btn-xs btn-ghost" onclick="renameDevicePrompt(${esc(JSON.stringify(id))},${esc(JSON.stringify(dev.id))})">Rename</button>
+          <button class="btn btn-xs btn-danger" onclick="revokeDevicePrompt(${esc(JSON.stringify(id))},${esc(JSON.stringify(dev.id))})">Revoke</button>
+        </div>`;
+      }
+    });
+    html += '<div class="section-title">Audit History</div>';
+    if (!d.auditHistory.length) html += '<div style="color:var(--text3);font-size:12px">No history yet.</div>';
+    d.auditHistory.slice(0, 10).forEach(h => { html += row(h.action, (h.timestamp ? new Date(h.timestamp).toLocaleString() : '') + ' — ' + (h.detail || '')); });
+    if (hasPermission('support_actions')) {
+      html += '<div class="section-title">Support Actions</div><div style="display:flex;gap:6px;flex-wrap:wrap">';
+      html += `<button class="btn btn-xs btn-success" onclick="orgAction(${esc(JSON.stringify(id))},'approve')">Approve</button>`;
+      html += `<button class="btn btn-xs btn-danger" onclick="orgAction(${esc(JSON.stringify(id))},'suspend')">Suspend</button>`;
+      html += `<button class="btn btn-xs btn-ghost" onclick="sendOrgEmail(${esc(JSON.stringify(id))},'welcome')">Send Welcome Email</button>`;
+      html += `<button class="btn btn-xs btn-ghost" onclick="sendOrgEmail(${esc(JSON.stringify(id))},'renewal-reminder')">Send Renewal Reminder</button>`;
+      html += `<button class="btn btn-xs btn-ghost" onclick="sendOrgEmail(${esc(JSON.stringify(id))},'resend-verification')">Resend Verification</button>`;
+      html += `<button class="btn btn-xs btn-ghost" onclick="orgAction(${esc(JSON.stringify(id))},'unlock')">Unlock Account</button>`;
+      html += `<button class="btn btn-xs btn-danger" onclick="forcePasswordResetPrompt(${esc(JSON.stringify(id))})">Force Password Reset</button>`;
+      html += `<button class="btn btn-xs btn-danger" onclick="orgAction(${esc(JSON.stringify(id))},'kill-sessions')">Force Logout (Kill Sessions)</button>`;
+      html += `<button class="btn btn-xs btn-ghost" onclick="showLoginHistory(${esc(JSON.stringify(id))})">Login History</button>`;
+      html += `<button class="btn btn-xs btn-ghost" onclick="showFailedLogins(${esc(JSON.stringify(id))})">Failed Logins</button>`;
+      html += '</div>';
+    }
+    document.querySelector('#org-modal .modal-box').innerHTML = html;
+  } catch (e) {
+    document.querySelector('#org-modal .modal-box').innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>';
+  }
+}
+function attachProduct(orgId){
+  const slug = document.getElementById('attach-product-select').value;
+  api('/organizations/' + orgId + '/products', { method: 'POST', body: { productSlug: slug } })
+    .then(() => { toast('Product attached', 'success'); showOrgDetail(orgId); })
+    .catch(e => toast(e.message, 'error'));
+}
+function orgAction(id, action){
+  api('/organizations/' + id + '/' + action, { method: 'POST' })
+    .then(() => { toast('Done', 'success'); showOrgDetail(id); loadOrganizations(); })
+    .catch(e => toast(e.message, 'error'));
+}
+function sendOrgEmail(id, type){
+  api('/organizations/' + id + '/email', { method: 'POST', body: { type } })
+    .then((r) => toast(r.delivered ? 'Email sent' : 'SMTP not configured — logged only', r.delivered ? 'success' : 'info'))
+    .catch(e => toast(e.message, 'error'));
+}
+function licenseAction(orgId, productId, action){
+  api('/organizations/' + orgId + '/licenses/' + productId + '/' + action, { method: 'POST', body: {} })
+    .then(() => { toast('Done', 'success'); showOrgDetail(orgId); })
+    .catch(e => toast(e.message, 'error'));
+}
+function licenseRenewPrompt(orgId, productId){
+  const days = parseInt(prompt('Extend by how many days?', '30'), 10);
+  if (!days) return;
+  api('/organizations/' + orgId + '/licenses/' + productId + '/renew', { method: 'POST', body: { days } })
+    .then(() => { toast('License renewed', 'success'); showOrgDetail(orgId); })
+    .catch(e => toast(e.message, 'error'));
+}
+function licensePlanPrompt(orgId, productId){
+  const planCode = prompt('New plan code (e.g. BASIC/PREMIUM):');
+  if (!planCode) return;
+  api('/organizations/' + orgId + '/licenses/' + productId + '/change-plan', { method: 'POST', body: { planCode, direction: 'upgrade' } })
+    .then(() => { toast('Plan changed', 'success'); showOrgDetail(orgId); })
+    .catch(e => toast(e.message, 'error'));
+}
+function renameDevicePrompt(orgId, deviceId){
+  const name = prompt('New device name:');
+  if (!name) return;
+  api('/organizations/' + orgId + '/devices/' + deviceId + '/rename', { method: 'POST', body: { deviceName: name } })
+    .then(() => { toast('Device renamed', 'success'); showOrgDetail(orgId); })
+    .catch(e => toast(e.message, 'error'));
+}
+function revokeDevicePrompt(orgId, deviceId){
+  if (!confirm('Revoke this device? The user will need to log in again from it.')) return;
+  api('/organizations/' + orgId + '/devices/' + deviceId + '/revoke', { method: 'POST' })
+    .then(() => { toast('Device revoked', 'success'); showOrgDetail(orgId); })
+    .catch(e => toast(e.message, 'error'));
+}
+function forcePasswordResetPrompt(orgId){
+  if (!confirm('Force a password reset for this organization\\'s owner? They will be required to set a new password.')) return;
+  api('/organizations/' + orgId + '/force-password-reset', { method: 'POST' })
+    .then(() => { toast('Password reset forced', 'success'); showOrgDetail(orgId); })
+    .catch(e => toast(e.message, 'error'));
+}
+async function showLoginHistory(orgId){
+  try {
+    const d = await api('/organizations/' + orgId + '/login-history');
+    const rows = d.logins || [];
+    let html = '<h4>Login History</h4>';
+    if (!rows.length) html += '<div style="color:var(--text3);font-size:12px">No login history.</div>';
+    else { html += '<table><thead><tr><th>Time</th><th>User</th><th>IP</th><th>Status</th></tr></thead><tbody>'; rows.forEach(r => { html += `<tr><td>${r.loginTime ? new Date(r.loginTime).toLocaleString() : ''}</td><td>${esc(r.userName || '—')}</td><td>${esc(r.ip || '—')}</td><td>${esc(r.status || '—')}</td></tr>`; }); html += '</tbody></table>'; }
+    html += '<button class="btn btn-xs btn-ghost" style="margin-top:8px" onclick="this.closest(\\'.modal-overlay\\').remove()">Close</button>';
+    const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
+    overlay.innerHTML = '<div class="modal-box">' + html + '</div>';
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  } catch (e) { toast(e.message, 'error'); }
+}
+async function showFailedLogins(orgId){
+  try {
+    const d = await api('/organizations/' + orgId + '/failed-logins');
+    const rows = d.failedLogins || [];
+    let html = '<h4>Failed Login Attempts</h4>';
+    if (!rows.length) html += '<div style="color:var(--text3);font-size:12px">No failed attempts on file.</div>';
+    else { html += '<table><thead><tr><th>Time</th><th>Mobile</th><th>IP</th></tr></thead><tbody>'; rows.forEach(r => { html += `<tr><td>${r.created_at ? new Date(r.created_at).toLocaleString() : ''}</td><td>${esc(r.mobile || '—')}</td><td>${esc(r.ip || '—')}</td></tr>`; }); html += '</tbody></table>'; }
+    html += '<button class="btn btn-xs btn-ghost" style="margin-top:8px" onclick="this.closest(\\'.modal-overlay\\').remove()">Close</button>';
+    const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
+    overlay.innerHTML = '<div class="modal-box">' + html + '</div>';
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ── Product Registry ──
+async function renderProducts(){
+  const main = document.getElementById('main');
+  main.innerHTML = `<h2 style="margin-top:0">Product Registry</h2>
+    ${hasPermission('manage_products') ? '<button class="btn btn-primary" style="margin-bottom:14px" onclick="createProductPrompt()">+ Register Product</button>' : ''}
+    <div id="product-table" class="glass-card">Loading…</div>`;
+  const d = await api('/products');
+  const statusClass = { active: 'badge-green', inactive: 'badge-gray', planned: 'badge-orange' };
+  let html = '<table><thead><tr><th>Name</th><th>Slug</th><th>Version</th><th>Status</th><th>License Model</th><th>Feature Flags</th></tr></thead><tbody>';
+  d.products.forEach(p => {
+    html += `<tr><td><strong>${esc(p.name)}</strong></td><td>${esc(p.slug)}</td><td>${esc(p.version)}</td><td><span class="badge ${statusClass[p.status] || 'badge-gray'}">${esc(p.status)}</span></td><td>${esc(p.licenseModel)}</td><td style="font-size:10px;color:var(--text3)">${(p.featureFlags || []).join(', ') || '—'}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('product-table').innerHTML = html;
+}
+function createProductPrompt(){
+  const name = prompt('Product Name (e.g. ZLAB):'); if (!name) return;
+  const slug = prompt('Slug (e.g. zlab):'); if (!slug) return;
+  const description = prompt('Description:') || '';
+  api('/products', { method: 'POST', body: { name, slug, description, status: 'planned' } })
+    .then(() => { toast('Product registered', 'success'); renderProducts(); loadProducts(); })
+    .catch(e => toast(e.message, 'error'));
+}
+
+// ── Audit Log ──
+async function renderAudit(){
+  const main = document.getElementById('main');
+  main.innerHTML = '<h2 style="margin-top:0">Audit Log</h2><div id="audit-table" class="glass-card">Loading…</div>';
+  const d = await api('/audit-log' + (CURRENT_PRODUCT ? '?productId=' + CURRENT_PRODUCT : ''));
+  let html = '<table><thead><tr><th>Timestamp</th><th>Admin</th><th>Organization</th><th>Product</th><th>Action</th><th>Old</th><th>New</th><th>Detail</th></tr></thead><tbody>';
+  d.entries.forEach(e => {
+    html += `<tr><td>${e.timestamp ? new Date(e.timestamp).toLocaleString() : ''}</td><td>${esc(e.admin)}</td><td>${esc(e.organization || '—')}</td><td>${esc(e.product || '—')}</td><td><span class="badge badge-gray">${esc(e.action)}</span></td><td style="font-size:10px">${esc(e.oldValue || '—')}</td><td style="font-size:10px">${esc(e.newValue || '—')}</td><td style="font-size:10px;color:var(--text3)">${esc(e.detail || '—')}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('audit-table').innerHTML = html;
+}
+
+// ── Platform Users ──
+async function renderPlatformUsers(){
+  const main = document.getElementById('main');
+  if (!hasPermission('manage_platform_users')) { main.innerHTML = '<div style="color:var(--text3)">You do not have permission to manage platform users.</div>'; return; }
+  main.innerHTML = `<h2 style="margin-top:0">Platform Users</h2>
+    <button class="btn btn-primary" style="margin-bottom:14px" onclick="createPlatformUserPrompt()">+ Add Platform User</button>
+    <div id="pu-table" class="glass-card">Loading…</div>`;
+  const d = await api('/platform-users');
+  let html = '<table><thead><tr><th>Email</th><th>Role</th><th>Active</th><th>Last Login</th><th>Actions</th></tr></thead><tbody>';
+  d.users.forEach(u => {
+    html += `<tr><td>${esc(u.email)}</td><td>${esc(u.role_label)}</td><td>${u.is_active ? 'Yes' : 'No'}</td><td>${u.last_login ? new Date(u.last_login).toLocaleString() : 'Never'}</td>
+      <td><div style="display:flex;gap:5px"><button class="btn btn-xs btn-ghost" onclick="platformUserAction(${u.id},'unlock')">Unlock</button><button class="btn btn-xs btn-ghost" onclick="platformUserAction(${u.id},'force-logout')">Force Logout</button></div></td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('pu-table').innerHTML = html;
+}
+function createPlatformUserPrompt(){
+  const email = prompt('Email:'); if (!email) return;
+  const password = prompt('Temporary Password (min 8 chars):'); if (!password) return;
+  const roleCode = prompt('Role code (OWNER/SUPER_ADMIN/ADMINISTRATOR/SUPPORT/BILLING/AUDITOR/READ_ONLY):', 'SUPPORT');
+  api('/platform-users', { method: 'POST', body: { email, password, roleCode } })
+    .then(() => { toast('Platform user created', 'success'); renderPlatformUsers(); })
+    .catch(e => toast(e.message, 'error'));
+}
+function platformUserAction(id, action){
+  api('/platform-users/' + id + '/' + action, { method: 'POST' })
+    .then(() => { toast('Done', 'success'); renderPlatformUsers(); })
+    .catch(e => toast(e.message, 'error'));
+}
+
+// ── Boot ──
+(function boot(){
+  if (TOKEN) {
+    try { ME = JSON.parse(sessionStorage.getItem('zsa_user') || 'null'); } catch (_) { ME = null; }
+    if (ME) { showApp(); return; }
+  }
+  document.getElementById('login-screen').style.display = 'flex';
+})();
+</script>
+</body>
+</html>
