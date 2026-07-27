@@ -14,6 +14,7 @@
 
 const { getDb } = require('../database/connection');
 const licenseHistoryRepository = require('../repositories/platformLicenseHistoryRepository');
+const eventBusService = require('../services/eventBusService');
 
 async function run() {
   const db = getDb();
@@ -22,6 +23,7 @@ async function run() {
   for (const lic of due) {
     update.run(lic.id);
     licenseHistoryRepository.record({ organizationId: lic.organization_id, productId: lic.product_id, eventType: 'EXPIRED', fromValue: 'ACTIVE', toValue: 'READ_ONLY', detail: `expired at ${lic.expires_at}`, actor: 'system' });
+    eventBusService.publish({ eventType: 'license.expired', organizationId: lic.organization_id, productId: lic.product_id, payload: { organizationId: lic.organization_id, productId: lic.product_id, expiredAt: lic.expires_at } });
   }
   return { itemsProcessed: due.length };
 }

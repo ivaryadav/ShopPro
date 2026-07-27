@@ -9,12 +9,14 @@
 
 const windowRepository = require('../repositories/platformMaintenanceWindowRepository');
 const historyRepository = require('../repositories/platformMaintenanceHistoryRepository');
+const eventBusService = require('../services/eventBusService');
 
 async function run() {
   const due = windowRepository.listScheduledDue();
   for (const w of due) {
     windowRepository.setStatus(w.id, 'active');
     historyRepository.record({ windowId: w.id, action: 'PUBLISHED', detail: 'scheduled window reached its start time', actor: 'system' });
+    eventBusService.publish({ eventType: 'maintenance.started', organizationId: w.scope_type === 'organization' ? w.scope_ref : null, payload: { windowId: w.id, scopeType: w.scope_type, scopeRef: w.scope_ref } });
   }
   return { itemsProcessed: due.length };
 }

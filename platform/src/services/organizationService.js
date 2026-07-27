@@ -24,6 +24,7 @@ const productRepository = require('../repositories/platformProductRepository');
 const auditLogRepository = require('../repositories/platformAuditLogRepository');
 const organizationNoteRepository = require('../repositories/organizationNoteRepository');
 const auditService = require('./auditService');
+const eventBusService = require('./eventBusService');
 const orgRef = require('./orgRef');
 const { listConfiguredAdapters } = require('../adapters');
 const { ValidationError, NotFoundError } = require('../errors');
@@ -32,6 +33,7 @@ function createOrganization(data, actor) {
   if (!data.businessName) throw new ValidationError('businessName is required');
   const org = organizationRepository.create(data);
   auditService.record({ platformUserId: actor.userId, organizationId: org.id, action: 'ORGANIZATION_CREATED', detail: org.business_name, ip: actor.ip });
+  eventBusService.publish({ eventType: 'organization.created', organizationId: org.id, payload: { organizationId: org.id, businessName: org.business_name, status: org.status } });
   return mapOrg(org);
 }
 
@@ -137,6 +139,7 @@ async function setStatus(rawId, status, actor) {
   if (!org) throw new NotFoundError('Organization not found');
   organizationRepository.updateStatus(organizationId, status);
   auditService.record({ platformUserId: actor.userId, organizationId, action: 'ORGANIZATION_STATUS_CHANGED', oldValue: org.status, newValue: status, ip: actor.ip });
+  eventBusService.publish({ eventType: 'organization.updated', organizationId, payload: { organizationId, oldStatus: org.status, newStatus: status } });
   return getOrganization(organizationId);
 }
 
@@ -146,6 +149,7 @@ async function approve(rawId, actor) {
   if (ref.isAdapter) {
     await ref.adapter.approveRegistration(ref.sourceId);
     auditService.record({ platformUserId: actor.userId, action: 'ORGANIZATION_APPROVED', detail: `${ref.slug}:${ref.sourceId}`, ip: actor.ip });
+    eventBusService.publish({ eventType: 'organization.updated', organizationId: rawId, payload: { organizationId: rawId, newStatus: 'ACTIVE' } });
     return getOrganization(rawId);
   }
   return setStatus(rawId, 'ACTIVE', actor);
@@ -156,6 +160,7 @@ async function suspend(rawId, reason, actor) {
   if (ref.isAdapter) {
     await ref.adapter.suspendTenant(ref.sourceId, reason);
     auditService.record({ platformUserId: actor.userId, action: 'ORGANIZATION_SUSPENDED', detail: `${ref.slug}:${ref.sourceId} — ${reason || ''}`, ip: actor.ip });
+    eventBusService.publish({ eventType: 'organization.updated', organizationId: rawId, payload: { organizationId: rawId, newStatus: 'SUSPENDED', reason: reason || '' } });
     return getOrganization(rawId);
   }
   const organizationId = ref.localId;
@@ -163,6 +168,7 @@ async function suspend(rawId, reason, actor) {
   if (!org) throw new NotFoundError('Organization not found');
   organizationRepository.updateStatus(organizationId, 'SUSPENDED');
   auditService.record({ platformUserId: actor.userId, organizationId, action: 'ORGANIZATION_STATUS_CHANGED', oldValue: org.status, newValue: 'SUSPENDED', detail: reason || '', ip: actor.ip });
+  eventBusService.publish({ eventType: 'organization.updated', organizationId, payload: { organizationId, oldStatus: org.status, newStatus: 'SUSPENDED', reason: reason || '' } });
   return getOrganization(organizationId);
 }
 

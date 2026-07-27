@@ -29,6 +29,7 @@ const maintenanceController = require('../controllers/maintenanceController');
 const subscriptionController = require('../controllers/subscriptionController');
 const billingController = require('../controllers/billingController');
 const businessController = require('../controllers/businessController');
+const integrationController = require('../controllers/integrationController');
 
 function createPlatformRouter({ jwtSecret }) {
   const router = express.Router();
@@ -126,6 +127,25 @@ function createPlatformRouter({ jwtSecret }) {
   router.get('/business/dashboard', auth, requirePermission('view_only'), businessController.dashboard);
   router.get('/business/renewals', auth, requirePermission('view_only'), businessController.renewalCenter);
   router.get('/business/reports', auth, requirePermission('view_only'), businessController.reports);
+
+  // ── Integration Center (Phase 5F) ───────────────────────────────────────
+  router.get('/integrations/webhooks', auth, requirePermission('view_only'), integrationController.listWebhooks);
+  router.post('/integrations/webhooks', auth, requirePermission('manage_products'), rateLimit(20, 60 * 1000), integrationController.createWebhook);
+  router.put('/integrations/webhooks/:id', auth, requirePermission('manage_products'), rateLimit(20, 60 * 1000), integrationController.updateWebhook);
+  router.post('/integrations/webhooks/:id/enable', auth, requirePermission('manage_products'), rateLimit(20, 60 * 1000), integrationController.enableWebhook);
+  router.post('/integrations/webhooks/:id/disable', auth, requirePermission('manage_products'), rateLimit(20, 60 * 1000), integrationController.disableWebhook);
+  router.post('/integrations/webhooks/:id/rotate-secret', auth, requirePermission('manage_products'), rateLimit(10, 60 * 1000), integrationController.rotateWebhookSecret);
+  router.delete('/integrations/webhooks/:id', auth, requirePermission('manage_products'), rateLimit(20, 60 * 1000), integrationController.deleteWebhook);
+  router.get('/integrations/webhooks/:id/deliveries', auth, requirePermission('view_only'), integrationController.webhookDeliveries);
+
+  router.get('/integrations/retry-queue', auth, requirePermission('view_only'), integrationController.retryQueue);
+  router.get('/integrations/dead-letters', auth, requirePermission('view_only'), integrationController.deadLetters);
+  router.get('/integrations/delivery-counts', auth, requirePermission('view_only'), integrationController.deliveryCounts);
+  router.post('/integrations/deliveries/:id/replay', auth, requirePermission('manage_products'), rateLimit(20, 60 * 1000), integrationController.replayDelivery);
+
+  router.get('/integrations/events', auth, requirePermission('view_only'), integrationController.searchEvents);
+  router.get('/integrations/events/recent', auth, requirePermission('view_only'), integrationController.recentEvents);
+  router.get('/integrations/api-usage', auth, requirePermission('view_only'), integrationController.apiUsage);
 
   router.get('/customers/search', auth, requirePermission('view_only'), customerController.search);
 

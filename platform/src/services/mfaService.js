@@ -18,6 +18,7 @@ const userRepository = require('../repositories/platformUserRepository');
 const recoveryCodeRepository = require('../repositories/platformMfaRecoveryCodeRepository');
 const trustedDeviceRepository = require('../repositories/platformTrustedDeviceRepository');
 const auditService = require('./auditService');
+const eventBusService = require('./eventBusService');
 const { ValidationError, AuthenticationError } = require('../errors');
 
 function assertPassword(user, password) {
@@ -58,6 +59,7 @@ async function confirmSetup(userId, code, actor) {
     recoveryCodeRepository.replaceAllForUser(userId, codes.map((c) => bcrypt.hashSync(c, 10)));
   })();
   auditService.record({ platformUserId: userId, action: 'MFA_ENABLED', detail: user.email, ip: actor.ip });
+  eventBusService.publish({ eventType: 'mfa.enabled', organizationId: null, payload: { platformUserId: userId, email: user.email } });
   return { recoveryCodes: codes };
 }
 

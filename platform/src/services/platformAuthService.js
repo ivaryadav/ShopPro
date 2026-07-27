@@ -32,6 +32,7 @@ const policyRepository = require('../repositories/platformPasswordPolicyReposito
 const passwordHistoryRepository = require('../repositories/platformPasswordHistoryRepository');
 const mfaService = require('./mfaService');
 const passwordService = require('./passwordService');
+const eventBusService = require('./eventBusService');
 const auditService = require('./auditService');
 const { AuthenticationError, LockedError, ValidationError } = require('../errors');
 
@@ -101,6 +102,7 @@ async function login({ email, password, ip, userAgent, trustedDeviceToken }, jwt
       const lockedUntil = new Date(Date.now() + policy.lockout_duration_minutes * 60000).toISOString();
       userRepository.setLockedUntil(email, lockedUntil);
       auditService.record({ action: 'PLATFORM_ACCOUNT_LOCKED', detail: `${recent} failed attempts in ${policy.lockout_window_minutes}m`, ip });
+      eventBusService.publish({ eventType: 'user.locked', organizationId: null, payload: { email, lockedUntil, reason: 'failed_login_attempts' } });
     }
     throw new AuthenticationError('Invalid email or password.');
   }
@@ -151,6 +153,7 @@ async function challengeMfa({ mfaToken, code, recoveryCode, rememberDevice, ip, 
       const lockedUntil = new Date(Date.now() + policy.lockout_duration_minutes * 60000).toISOString();
       userRepository.setLockedUntil(user.email, lockedUntil);
       auditService.record({ platformUserId: user.id, action: 'PLATFORM_ACCOUNT_LOCKED', detail: `${recentFailures} failed MFA/login attempts in ${policy.lockout_window_minutes}m`, ip });
+      eventBusService.publish({ eventType: 'user.locked', organizationId: null, payload: { email: user.email, lockedUntil, reason: 'failed_mfa_attempts' } });
     }
     auditService.record({ platformUserId: user.id, action: 'MFA_CHALLENGE_FAILED', detail: user.email, ip });
     throw new AuthenticationError('Invalid authentication code.');

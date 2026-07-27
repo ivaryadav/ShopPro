@@ -518,6 +518,82 @@ function migrate(db) {
       created_at      TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_billing_adj_org ON platform_billing_adjustments(organization_id, created_at);
+
+    -- Phase 5F: Integration Platform — the Event Bus. One row per business
+    -- event, INSERT-only for the life of the row (no code anywhere ever
+    -- UPDATEs a platform_events row) — that is what "events must be
+    -- immutable" means in practice for a SQLite-backed log; the Event
+    -- Retention Job's bulk delete of rows past their retention window is
+    -- data lifecycle management, not a mutation of a live event.
+    -- organization_id is TEXT (like organization_notes/platform_license_
+    -- history) so events cover adapter-backed organizations too.
+    CREATE TABLE IF NOT EXISTS platform_events (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_type      TEXT NOT NULL,
+      organization_id TEXT,
+      product_id      INTEGER REFERENCES platform_products(id) ON DELETE SET NULL,
+      payload         TEXT NOT NULL DEFAULT '{}',
+      created_at      TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_events_type ON platform_events(event_type, created_at);
+    CREATE INDEX IF NOT EXISTS idx_events_org ON platform_events(organization_id, created_at);
+
+    -- Outbound Webhooks. secret is stored in the clear (unlike an API key's
+    -- hash) because it must be read back on every delivery to compute the
+    -- HMAC signature — same posture as Stripe/GitHub webhook secrets,
+    -- which are retrievable/regenerable, not one-way hashed like a
+    -- password. event_types is a JSON array of subscribed event_type
+    -- strings; an empty array means "all events".
+    CREATE TABLE IF NOT EXISTS platform_webhooks (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      url         TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      event_types TEXT NOT NULL DEFAULT '[]',
+      secret      TEXT NOT NULL,
+      is_enabled  INTEGER NOT NULL DEFAULT 1,
+      created_by  INTEGER REFERENCES platform_users(id) ON DELETE SET NULL,
+      created_at  TEXT DEFAULT (datetime('now')),
+      updated_at  TEXT DEFAULT (datetime('now'))
+    );
+
+    -- Delivery attempts. payload is a DENORMALIZED copy of the triggering
+    -- event's payload, captured at enqueue time — deliberately NOT a live
+    -- join back to platform_events, so the Webhook Retry Job can always
+    -- retry a delivery correctly even after the Event Retention Job has
+    -- purged the original event row (event_id is kept purely as a
+    -- best-effort cross-reference, ON DELETE SET NULL, never load-bearing).
+    CREATE TABLE IF NOT EXISTS platform_webhook_deliveries (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      webhook_id       INTEGER NOT NULL REFERENCES platform_webhooks(id) ON DELETE CASCADE,
+      event_id         INTEGER REFERENCES platform_events(id) ON DELETE SET NULL,
+      event_type       TEXT NOT NULL,
+      payload          TEXT NOT NULL DEFAULT '{}',
+      status           TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','delivered','failed','dead_letter')),
+      attempts         INTEGER NOT NULL DEFAULT 0,
+      next_attempt_at  TEXT,
+      last_status_code INTEGER,
+      last_error       TEXT,
+      delivered_at     TEXT,
+      created_at       TEXT DEFAULT (datetime('now')),
+      updated_at       TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_webhook ON platform_webhook_deliveries(webhook_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_status ON platform_webhook_deliveries(status, next_attempt_at);
+
+    -- Public API Foundation: per-request usage metrics for API-key-
+    -- authenticated calls, keyed to the existing platform_api_keys table
+    -- (no new auth mechanism — "reuse existing Platform API Keys").
+    CREATE TABLE IF NOT EXISTS platform_api_usage (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      api_key_id  INTEGER REFERENCES platform_api_keys(id) ON DELETE SET NULL,
+      method      TEXT NOT NULL,
+      path        TEXT NOT NULL,
+      status_code INTEGER,
+      duration_ms INTEGER,
+      request_id  TEXT NOT NULL DEFAULT '',
+      created_at  TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_api_usage_key ON platform_api_usage(api_key_id, created_at);
   `);
 
   runMigration(db, 'ALTER TABLE platform_licenses ADD COLUMN license_key TEXT', 'platform_licenses.license_key');

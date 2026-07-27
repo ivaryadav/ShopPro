@@ -9,6 +9,7 @@
 const crypto = require('crypto');
 const apiKeyRepository = require('../repositories/platformApiKeyRepository');
 const auditService = require('./auditService');
+const eventBusService = require('./eventBusService');
 const { ValidationError, NotFoundError } = require('../errors');
 
 const KEY_PREFIX = 'zsa_live_';
@@ -27,6 +28,7 @@ function create({ name, permissions, expiresInDays }, actor) {
     permissions: permissions || [], createdBy: actor.userId, expiresInDays: expiresInDays || null,
   });
   auditService.record({ platformUserId: actor.userId, action: 'API_KEY_CREATED', detail: created.name, ip: actor.ip });
+  eventBusService.publish({ eventType: 'api_key.created', organizationId: null, payload: { apiKeyId: created.id, name: created.name } });
   return { key: mapKey(created), rawKey };
 }
 function list() { return apiKeyRepository.listAll().map(mapKey); }

@@ -15,6 +15,8 @@
 const { getDb } = require('../database/connection');
 const { REGISTRY, listConfiguredAdapters } = require('../adapters');
 const jobRunnerService = require('../services/jobRunnerService');
+const eventBusService = require('../services/eventBusService');
+const webhookService = require('../services/webhookService');
 const pkg = require('../../package.json');
 
 const SYNC_STALE_THRESHOLD_MINUTES = 30; // matches maintenanceSyncMonitorJob's own threshold
@@ -57,6 +59,21 @@ function maintenanceHealth() {
   };
 }
 
+/** Phase 5F — Integration Platform monitoring: events published, webhook delivery outcomes, queue depths, and a real success-rate figure, all read from existing tables (no new tracking state beyond what publish()/attemptDelivery() already record). */
+function integrationsHealth() {
+  const counts = webhookService.getDeliveryCounts();
+  const totalAttempted = counts.delivered + counts.failed + counts.deadLetter;
+  return {
+    eventsPublished24h: eventBusService.countSince('-1 day'),
+    eventsPublishedTotal: eventBusService.countTotal(),
+    webhooksDelivered: counts.delivered,
+    failedDeliveries: counts.failed,
+    retryQueueDepth: counts.pending,
+    deadLetterCount: counts.deadLetter,
+    deliverySuccessRate: totalAttempted > 0 ? Math.round((counts.delivered / totalAttempted) * 100) : null,
+  };
+}
+
 function withTimeout(promise, ms) {
   return Promise.race([
     promise,
@@ -93,6 +110,7 @@ async function health(req, res, next) {
         jobs: jobStatuses,
       },
       maintenance: maintenanceHealth(),
+      integrations: integrationsHealth(),
       version: { platform: pkg.version, node: process.version, uptimeSeconds: Math.floor(process.uptime()) },
     });
   } catch (e) { next(e); }

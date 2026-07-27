@@ -177,6 +177,7 @@ td{padding:8px 10px;border-bottom:1px solid var(--border)}
     <div class="nav-group">
       <div class="nav-group-label" onclick="toggleNavGroup(this)"><span>Settings</span><span class="chev">▾</span></div>
       <div class="nav-item" data-page="platform-users" onclick="nav('platform-users')">👤 Platform Users</div>
+      <div class="nav-item" data-page="integrations" onclick="nav('integrations')">🔌 Integrations</div>
     </div>
     <div class="nav-group">
       <div class="nav-group-label" onclick="toggleNavGroup(this)"><span>Security</span><span class="chev">▾</span></div>
@@ -312,7 +313,7 @@ function onProductSwitch(){
 const PAGE_LABELS = {
   dashboard: 'Overview / Dashboard', reports: 'Overview / Reports', organizations: 'Customers / Organizations',
   products: 'Products / Product Registry', health: 'Operations / System Health', alerts: 'Operations / Alerts',
-  audit: 'Operations / Audit Log', 'platform-users': 'Settings / Platform Users',
+  audit: 'Operations / Audit Log', 'platform-users': 'Settings / Platform Users', integrations: 'Settings / Integrations',
   'security-center': 'Security / Security Center', 'security-settings': 'Security / Security Settings',
   jobs: 'Operations / Scheduled Jobs', maintenance: 'Operations / Maintenance Center',
   'business-dashboard': 'Business / Dashboard', 'business-renewals': 'Business / Renewals',
@@ -325,6 +326,7 @@ function nav(page){
   const renderers = {
     dashboard: renderDashboard, organizations: renderOrganizations, products: renderProducts, audit: renderAudit,
     'platform-users': renderPlatformUsers, health: renderHealth, alerts: renderAlertsPage, reports: renderReports,
+    integrations: renderIntegrationCenter,
     'security-center': renderSecurityCenter, 'security-settings': renderSecuritySettings,
     jobs: renderJobsPage, maintenance: renderMaintenanceCenter,
     'business-dashboard': renderBusinessDashboard, 'business-renewals': renderRenewalCenter,
@@ -857,6 +859,7 @@ const NAV_ITEMS_FOR_CMDK = [
   { label: 'Organizations', page: 'organizations' }, { label: 'Product Registry', page: 'products' },
   { label: 'System Health', page: 'health' }, { label: 'Alerts', page: 'alerts' },
   { label: 'Audit Log', page: 'audit' }, { label: 'Platform Users', page: 'platform-users' },
+  { label: 'Integrations', page: 'integrations' },
   { label: 'Business Dashboard', page: 'business-dashboard' }, { label: 'Renewals', page: 'business-renewals' },
   { label: 'Billing', page: 'business-billing' }, { label: 'Subscription Plans', page: 'subscription-plans' },
 ];
@@ -1490,6 +1493,196 @@ async function renderSubscriptionPlans(){
     html += '</tbody></table></div>';
     document.getElementById('plans-body').innerHTML = html;
   } catch (e) { document.getElementById('plans-body').innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+
+// ── Integration Center (Phase 5F) ──
+let INTEG_TAB = 'webhooks';
+const INTEG_TABS = [['webhooks', 'Webhooks'], ['queue', 'Delivery Queue'], ['retry', 'Retry Queue'], ['dead', 'Dead Letters'], ['events', 'Recent Events'], ['explorer', 'Event Explorer']];
+function renderIntegrationCenter(){
+  const main = document.getElementById('main');
+  main.innerHTML = breadcrumb() + '<h2 style="margin-top:0">Integrations</h2>' +
+    '<div class="sec-tabs">' + INTEG_TABS.map(([key, label]) => `<div class="sec-tab ${INTEG_TAB===key?'active':''}" onclick="switchIntegTab('${key}')">${esc(label)}</div>`).join('') + '</div>' +
+    '<div id="integ-tab-body" class="glass-card">Loading…</div>';
+  loadIntegTab(INTEG_TAB);
+}
+function switchIntegTab(key){ INTEG_TAB = key; renderIntegrationCenter(); }
+function loadIntegTab(key){
+  const fns = { webhooks: renderIntegTabWebhooks, queue: renderIntegTabQueue, retry: renderIntegTabRetry, dead: renderIntegTabDead, events: renderIntegTabEvents, explorer: renderIntegTabExplorer };
+  (fns[key] || renderIntegTabWebhooks)();
+}
+
+async function renderIntegTabWebhooks(){
+  const body = document.getElementById('integ-tab-body');
+  try {
+    const d = await api('/integrations/webhooks');
+    let html = '';
+    if (hasPermission('manage_products')) html += '<div style="margin-bottom:10px"><button class="btn btn-xs btn-primary" onclick="openWebhookCreateForm()">+ New Webhook Endpoint</button></div>';
+    html += '<div class="table-scroll"><table><thead><tr><th>URL</th><th>Events</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>';
+    d.webhooks.forEach(w => {
+      html += `<tr><td>${esc(w.url)}</td><td style="font-size:10px;color:var(--text3)">${w.eventTypes.length ? esc(w.eventTypes.join(', ')) : 'all events'}</td><td><span class="badge ${w.isEnabled?'badge-green':'badge-gray'}">${w.isEnabled?'enabled':'disabled'}</span></td><td>${w.createdAt?new Date(w.createdAt).toLocaleDateString():''}</td><td>`;
+      if (hasPermission('manage_products')) {
+        html += `<button class="btn btn-xs btn-ghost" onclick="showWebhookDeliveries(${w.id})">Deliveries</button> `;
+        html += w.isEnabled ? `<button class="btn btn-xs btn-danger" onclick="webhookAction(${w.id},'disable')">Disable</button>` : `<button class="btn btn-xs btn-success" onclick="webhookAction(${w.id},'enable')">Enable</button>`;
+        html += ` <button class="btn btn-xs btn-ghost" onclick="rotateWebhookSecretPrompt(${w.id})">Rotate Secret</button>`;
+        html += ` <button class="btn btn-xs btn-danger" onclick="deleteWebhookPrompt(${w.id})">Delete</button>`;
+      }
+      html += '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    body.innerHTML = d.webhooks.length ? html : (html.split('</div>')[0] + '</div>' + '<div style="color:var(--text3);font-size:12px">No webhook endpoints configured yet.</div>');
+  } catch (e) { body.innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+function openWebhookCreateForm(){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `<div class="modal-box">
+    <h3 style="margin-top:0">New Webhook Endpoint</h3>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <input id="wh-url" placeholder="https://example.com/webhooks/zmax">
+      <input id="wh-description" placeholder="Description (optional)">
+      <input id="wh-event-types" placeholder="Event types, comma-separated (blank = all events)">
+      <div id="wh-error" style="color:var(--red);font-size:11px;min-height:14px"></div>
+      <div style="display:flex;gap:8px"><button class="btn btn-primary" onclick="submitWebhookCreate()">Create</button><button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">Cancel</button></div>
+    </div>
+  </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+function submitWebhookCreate(){
+  const url = document.getElementById('wh-url').value.trim();
+  const description = document.getElementById('wh-description').value.trim();
+  const eventTypes = document.getElementById('wh-event-types').value.split(',').map(s => s.trim()).filter(Boolean);
+  api('/integrations/webhooks', { method: 'POST', body: { url, description, eventTypes } })
+    .then((r) => {
+      document.querySelector('.modal-overlay').remove();
+      alert('Webhook created. Signing secret (shown once):\n\n' + r.secret);
+      toast('Webhook created', 'success'); renderIntegTabWebhooks();
+    })
+    .catch(e => { document.getElementById('wh-error').textContent = e.message; });
+}
+function webhookAction(id, action){
+  api('/integrations/webhooks/' + id + '/' + action, { method: 'POST' })
+    .then(() => { toast('Done', 'success'); renderIntegTabWebhooks(); })
+    .catch(e => toast(e.message, 'error'));
+}
+function rotateWebhookSecretPrompt(id){
+  if (!confirm('Rotate this webhook\'s signing secret? The old secret will stop working immediately.')) return;
+  api('/integrations/webhooks/' + id + '/rotate-secret', { method: 'POST' })
+    .then((r) => alert('New signing secret (shown once):\n\n' + r.secret))
+    .catch(e => toast(e.message, 'error'));
+}
+function deleteWebhookPrompt(id){
+  if (!confirm('Delete this webhook endpoint? This cannot be undone.')) return;
+  api('/integrations/webhooks/' + id, { method: 'DELETE' })
+    .then(() => { toast('Webhook deleted', 'success'); renderIntegTabWebhooks(); })
+    .catch(e => toast(e.message, 'error'));
+}
+async function showWebhookDeliveries(id){
+  try {
+    const d = await api('/integrations/webhooks/' + id + '/deliveries');
+    let html = '<h4>Delivery History</h4>';
+    html += deliveryTableHtml(d.deliveries);
+    html += '<button class="btn btn-xs btn-ghost" style="margin-top:8px" onclick="this.closest(\'.modal-overlay\').remove()">Close</button>';
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = '<div class="modal-box">' + html + '</div>';
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  } catch (e) { toast(e.message, 'error'); }
+}
+function deliveryTableHtml(deliveries){
+  if (!deliveries.length) return '<div style="color:var(--text3);font-size:12px">No deliveries yet.</div>';
+  const statusClass = { delivered: 'badge-green', pending: 'badge-orange', failed: 'badge-red', dead_letter: 'badge-red' };
+  let html = '<div class="table-scroll"><table><thead><tr><th>Event</th><th>Status</th><th>Attempts</th><th>Last Error</th><th>Updated</th><th></th></tr></thead><tbody>';
+  deliveries.forEach(d => {
+    html += `<tr><td>${esc(d.event_type)}</td><td><span class="badge ${statusClass[d.status]||'badge-gray'}">${esc(d.status)}</span></td><td>${d.attempts}</td><td style="font-size:10px;color:var(--text3)">${esc(d.last_error||'—')}</td><td>${d.updated_at?new Date(d.updated_at).toLocaleString():''}</td><td>`;
+    if ((d.status === 'failed' || d.status === 'dead_letter') && hasPermission('manage_products')) html += `<button class="btn btn-xs btn-ghost" onclick="replayDeliveryAction(${d.id})">Replay</button>`;
+    html += '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+function replayDeliveryAction(id){
+  api('/integrations/deliveries/' + id + '/replay', { method: 'POST' })
+    .then((r) => { toast('Replayed — new status: ' + r.delivery.status, r.delivery.status === 'delivered' ? 'success' : 'info'); document.querySelectorAll('.modal-overlay').forEach(o => o.remove()); loadIntegTab(INTEG_TAB); })
+    .catch(e => toast(e.message, 'error'));
+}
+
+async function renderIntegTabQueue(){
+  const body = document.getElementById('integ-tab-body');
+  try {
+    const d = await api('/integrations/delivery-counts');
+    let html = '<div class="kpi-grid">';
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Delivered</div><div class="kpi-value" style="color:var(--green)">${d.delivered}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Pending</div><div class="kpi-value" style="color:var(--orange)">${d.pending}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Failed</div><div class="kpi-value" style="color:var(--red)">${d.failed}</div></div>`;
+    html += `<div class="glass-card kpi-card"><div class="kpi-label">Dead Letters</div><div class="kpi-value" style="color:var(--red)">${d.deadLetter}</div></div>`;
+    html += '</div>';
+    body.innerHTML = html;
+  } catch (e) { body.innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+
+async function renderIntegTabRetry(){
+  const body = document.getElementById('integ-tab-body');
+  try {
+    const d = await api('/integrations/retry-queue');
+    body.innerHTML = deliveryTableHtml(d.deliveries);
+  } catch (e) { body.innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+
+async function renderIntegTabDead(){
+  const body = document.getElementById('integ-tab-body');
+  try {
+    const d = await api('/integrations/dead-letters');
+    body.innerHTML = deliveryTableHtml(d.deliveries);
+  } catch (e) { body.innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+
+async function renderIntegTabEvents(){
+  const body = document.getElementById('integ-tab-body');
+  try {
+    const d = await api('/integrations/events/recent?limit=50');
+    let html = '<div class="table-scroll"><table><thead><tr><th>Type</th><th>Organization</th><th>Product</th><th>Time</th></tr></thead><tbody>';
+    d.events.forEach(e => {
+      html += `<tr><td>${esc(e.event_type)}</td><td>${esc(e.organization_id||'—')}</td><td>${e.product_id||'—'}</td><td>${e.created_at?new Date(e.created_at).toLocaleString():''}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    body.innerHTML = d.events.length ? html : '<div style="color:var(--text3);font-size:12px">No events published yet.</div>';
+  } catch (e) { body.innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+
+async function renderIntegTabExplorer(){
+  const body = document.getElementById('integ-tab-body');
+  body.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <input id="ee-event-type" placeholder="Event type">
+    <input id="ee-org-id" placeholder="Organization ID">
+    <input id="ee-date-from" type="date">
+    <input id="ee-date-to" type="date">
+    <button class="btn btn-xs btn-primary" onclick="runEventExplorerSearch()">Search</button>
+  </div><div id="ee-results">Loading…</div>`;
+  runEventExplorerSearch();
+}
+async function runEventExplorerSearch(){
+  const results = document.getElementById('ee-results');
+  const eventType = document.getElementById('ee-event-type').value.trim();
+  const organizationId = document.getElementById('ee-org-id').value.trim();
+  const dateFrom = document.getElementById('ee-date-from').value;
+  const dateTo = document.getElementById('ee-date-to').value;
+  const qs = new URLSearchParams();
+  if (eventType) qs.set('eventType', eventType);
+  if (organizationId) qs.set('organizationId', organizationId);
+  if (dateFrom) qs.set('dateFrom', dateFrom);
+  if (dateTo) qs.set('dateTo', dateTo);
+  try {
+    const d = await api('/integrations/events?' + qs.toString());
+    let html = `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">${d.total} matching event(s)</div>`;
+    html += '<div class="table-scroll"><table><thead><tr><th>Type</th><th>Organization</th><th>Product</th><th>Payload</th><th>Time</th></tr></thead><tbody>';
+    d.events.forEach(e => {
+      html += `<tr><td>${esc(e.event_type)}</td><td>${esc(e.organization_id||'—')}</td><td>${e.product_id||'—'}</td><td style="font-size:10px;color:var(--text3);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.payload)}</td><td>${e.created_at?new Date(e.created_at).toLocaleString():''}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    results.innerHTML = html;
+  } catch (e) { results.innerHTML = '<div style="color:var(--red)">' + esc(e.message) + '</div>'; }
 }
 
 // ── Boot ──

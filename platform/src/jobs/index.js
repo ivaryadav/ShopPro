@@ -17,6 +17,9 @@ const maintenanceSyncMonitorJob = require('./maintenanceSyncMonitorJob');
 const licenseExpiryJob = require('./licenseExpiryJob');
 const gracePeriodJob = require('./gracePeriodJob');
 const renewalReminderJob = require('./renewalReminderJob');
+const webhookRetryJob = require('./webhookRetryJob');
+const deadLetterCleanupJob = require('./deadLetterCleanupJob');
+const eventRetentionJob = require('./eventRetentionJob');
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -36,6 +39,10 @@ function registerAllJobs() {
   jobRunnerService.registerJob('license-expiry', 1 * HOUR, licenseExpiryJob.run);
   jobRunnerService.registerJob('grace-period', 1 * HOUR, gracePeriodJob.run);
   jobRunnerService.registerJob('renewal-reminder', 24 * HOUR, renewalReminderJob.run);
+  // Phase 5F: Integration Platform runtime jobs.
+  jobRunnerService.registerJob('webhook-retry', 1 * MINUTE, webhookRetryJob.run);
+  jobRunnerService.registerJob('dead-letter-cleanup', 24 * HOUR, deadLetterCleanupJob.run);
+  jobRunnerService.registerJob('event-retention', 24 * HOUR, eventRetentionJob.run);
 }
 
 /** Runs every job once immediately (fire-and-forget) so a fresh boot doesn't wait a full interval for its first data point — then starts the normal recurring schedule. */
@@ -48,6 +55,9 @@ function bootAllJobs() {
   jobRunnerService.runNow('maintenance-expiry').catch(() => {});
   jobRunnerService.runNow('license-expiry').catch(() => {});
   jobRunnerService.runNow('grace-period').catch(() => {});
+  jobRunnerService.runNow('webhook-retry').catch(() => {});
+  jobRunnerService.runNow('dead-letter-cleanup').catch(() => {});
+  jobRunnerService.runNow('event-retention').catch(() => {});
   jobRunnerService.startAll();
 }
 

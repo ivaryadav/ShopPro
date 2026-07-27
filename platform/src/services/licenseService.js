@@ -30,6 +30,7 @@ const licenseRepository = require('../repositories/platformLicenseRepository');
 const licenseHistoryRepository = require('../repositories/platformLicenseHistoryRepository');
 const planRepository = require('../repositories/platformSubscriptionPlanRepository');
 const auditService = require('./auditService');
+const eventBusService = require('./eventBusService');
 const orgRef = require('./orgRef');
 const { listConfiguredAdapters } = require('../adapters');
 const { NotFoundError: NF, ValidationError: VE } = require('../errors');
@@ -87,6 +88,7 @@ async function assign(rawOrgId, productId, planCode, actor) {
     await ref.adapter.assignPlan(ref.sourceId, planCode, 'monthly');
     auditService.record({ platformUserId: actor.userId, action: 'LICENSE_ASSIGNED', newValue: planCode, detail: `${ref.slug}:${ref.sourceId}`, ip: actor.ip });
     recordHistory(rawOrgId, null, 'ASSIGNED', null, planCode, '', actor);
+    eventBusService.publish({ eventType: 'license.issued', organizationId: rawOrgId, payload: { organizationId: rawOrgId, planCode } });
     return { plan_code: planCode };
   }
   validatePlanCode(planCode);
@@ -98,6 +100,7 @@ async function assign(rawOrgId, productId, planCode, actor) {
   if (!lic.license_key) require('../database/connection').getDb().prepare('UPDATE platform_licenses SET license_key = ? WHERE id = ?').run(key, lic.id);
   auditService.record({ platformUserId: actor.userId, organizationId, productId, action: 'LICENSE_ASSIGNED', newValue: planCode, ip: actor.ip });
   recordHistory(organizationId, productId, 'ASSIGNED', null, planCode, `key: ${key}`, actor);
+  eventBusService.publish({ eventType: 'license.issued', organizationId, productId, payload: { organizationId, productId, planCode, licenseKey: key } });
   return licenseRepository.findById(lic.id);
 }
 
@@ -143,6 +146,7 @@ async function renew(rawOrgId, productId, { days }, actor) {
     const result = await ref.adapter.extendLicense(ref.sourceId, days);
     auditService.record({ platformUserId: actor.userId, action: 'LICENSE_RENEWED', newValue: result.expiresAt, detail: `${ref.slug}:${ref.sourceId}`, ip: actor.ip });
     recordHistory(rawOrgId, null, 'RENEWED', null, result.expiresAt, `+${days} days`, actor);
+    eventBusService.publish({ eventType: 'license.renewed', organizationId: rawOrgId, payload: { organizationId: rawOrgId, expiresAt: result.expiresAt, days } });
     return { expires_at: result.expiresAt };
   }
   const organizationId = ref.localId;
@@ -154,6 +158,7 @@ async function renew(rawOrgId, productId, { days }, actor) {
   require('../database/connection').getDb().prepare("UPDATE platform_licenses SET grace_started_at = NULL WHERE id = ?").run(lic.id);
   auditService.record({ platformUserId: actor.userId, organizationId, productId, action: 'LICENSE_RENEWED', oldValue: lic.expires_at, newValue: expiresAt, ip: actor.ip });
   recordHistory(organizationId, productId, 'RENEWED', lic.expires_at, expiresAt, `+${days} days`, actor);
+  eventBusService.publish({ eventType: 'license.renewed', organizationId, productId, payload: { organizationId, productId, expiresAt, days } });
   return updated;
 }
 
@@ -166,6 +171,7 @@ async function changePlan(rawOrgId, productId, planCode, direction, actor) {
     const eventType = direction === 'upgrade' ? 'LICENSE_UPGRADED' : 'LICENSE_DOWNGRADED';
     auditService.record({ platformUserId: actor.userId, action: eventType, newValue: planCode, detail: `${ref.slug}:${ref.sourceId}`, ip: actor.ip });
     recordHistory(rawOrgId, null, direction === 'upgrade' ? 'UPGRADED' : 'DOWNGRADED', null, planCode, '', actor);
+    eventBusService.publish({ eventType: 'subscription.changed', organizationId: rawOrgId, payload: { organizationId: rawOrgId, direction, planCode } });
     return { plan_code: planCode };
   }
   validatePlanCode(planCode);
@@ -176,6 +182,7 @@ async function changePlan(rawOrgId, productId, planCode, direction, actor) {
   const eventType = direction === 'upgrade' ? 'LICENSE_UPGRADED' : 'LICENSE_DOWNGRADED';
   auditService.record({ platformUserId: actor.userId, organizationId, productId, action: eventType, oldValue: lic.plan_code, newValue: planCode, ip: actor.ip });
   recordHistory(organizationId, productId, direction === 'upgrade' ? 'UPGRADED' : 'DOWNGRADED', lic.plan_code, planCode, '', actor);
+  eventBusService.publish({ eventType: 'subscription.changed', organizationId, productId, payload: { organizationId, productId, direction, fromPlan: lic.plan_code, toPlan: planCode } });
   return updated;
 }
 

@@ -25,6 +25,7 @@ const historyRepository = require('../repositories/platformMaintenanceHistoryRep
 const productRepository = require('../repositories/platformProductRepository');
 const orgRef = require('./orgRef');
 const auditService = require('./auditService');
+const eventBusService = require('./eventBusService');
 const { ValidationError, NotFoundError } = require('../errors');
 
 const SPECIFICITY = { organization: 0, product: 1, platform: 2 };
@@ -84,7 +85,10 @@ function createPolicy(fields, actor) {
     createdBy: actor.userId,
   });
   historyRepository.record({ windowId: window.id, action: 'CREATED', detail: describeScope(window), actor: actor.email || 'system' });
-  if (initialStatus === 'active') historyRepository.record({ windowId: window.id, action: 'ACTIVATED', detail: `${mode} mode, effective immediately`, actor: actor.email || 'system' });
+  if (initialStatus === 'active') {
+    historyRepository.record({ windowId: window.id, action: 'ACTIVATED', detail: `${mode} mode, effective immediately`, actor: actor.email || 'system' });
+    eventBusService.publish({ eventType: 'maintenance.started', organizationId: window.scope_type === 'organization' ? window.scope_ref : null, payload: { windowId: window.id, scopeType: window.scope_type, scopeRef: window.scope_ref, mode } });
+  }
   auditService.record({ platformUserId: actor.userId, action: 'MAINTENANCE_CREATED', detail: describeScope(window), ip: actor.ip });
   return mapWindow(window);
 }
@@ -121,6 +125,7 @@ function activate(id, actor) {
   const updated = windowRepository.setStatus(id, 'active');
   historyRepository.record({ windowId: id, action: 'ACTIVATED', detail: describeScope(updated), actor: actor.email || 'system' });
   auditService.record({ platformUserId: actor.userId, action: 'MAINTENANCE_ACTIVATED', detail: describeScope(updated), ip: actor.ip });
+  eventBusService.publish({ eventType: 'maintenance.started', organizationId: updated.scope_type === 'organization' ? updated.scope_ref : null, payload: { windowId: id, scopeType: updated.scope_type, scopeRef: updated.scope_ref } });
   return mapWindow(updated);
 }
 function deactivate(id, actor) {
@@ -129,6 +134,7 @@ function deactivate(id, actor) {
   const updated = windowRepository.setStatus(id, 'expired');
   historyRepository.record({ windowId: id, action: 'DEACTIVATED', detail: describeScope(updated), actor: actor.email || 'system' });
   auditService.record({ platformUserId: actor.userId, action: 'MAINTENANCE_DEACTIVATED', detail: describeScope(updated), ip: actor.ip });
+  eventBusService.publish({ eventType: 'maintenance.ended', organizationId: updated.scope_type === 'organization' ? updated.scope_ref : null, payload: { windowId: id, scopeType: updated.scope_type, scopeRef: updated.scope_ref } });
   return mapWindow(updated);
 }
 function cancel(id, actor) {

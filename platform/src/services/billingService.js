@@ -17,6 +17,7 @@ const invoiceRepository = require('../repositories/platformInvoiceRepository');
 const paymentRepository = require('../repositories/platformPaymentRepository');
 const adjustmentRepository = require('../repositories/platformBillingAdjustmentRepository');
 const auditService = require('./auditService');
+const eventBusService = require('./eventBusService');
 const { NotFoundError: NF, ValidationError: VE } = require('../errors');
 
 function generateInvoiceNumber() {
@@ -42,6 +43,7 @@ function createInvoice({ organizationId, productId, description, amount, currenc
     organizationId, productId, invoiceNumber: generateInvoiceNumber(), description, amount, currency, dueAt, createdBy: actor.userId,
   });
   auditService.record({ platformUserId: actor.userId, organizationId: null, action: 'INVOICE_CREATED', newValue: invoice.invoice_number, detail: `${organizationId} — ${amount} ${currency || 'INR'}`, ip: actor.ip });
+  eventBusService.publish({ eventType: 'invoice.created', organizationId, payload: { organizationId, invoiceId: invoice.id, invoiceNumber: invoice.invoice_number, amount, currency: currency || 'INR' } });
   return invoice;
 }
 
@@ -76,7 +78,10 @@ function recordPayment({ organizationId, invoiceId, amount, currency, method, re
   const payment = paymentRepository.create({ organizationId, invoiceId, amount, currency, method, reference, note, recordedBy: actor.userId });
   if (invoice) {
     const totalPaid = paymentRepository.sumForInvoice(invoiceId);
-    if (totalPaid >= invoice.amount) invoiceRepository.updateStatus(invoiceId, 'paid', new Date().toISOString());
+    if (totalPaid >= invoice.amount) {
+      invoiceRepository.updateStatus(invoiceId, 'paid', new Date().toISOString());
+      eventBusService.publish({ eventType: 'invoice.paid', organizationId, payload: { organizationId, invoiceId, invoiceNumber: invoice.invoice_number, amount: invoice.amount, currency: invoice.currency } });
+    }
   }
   auditService.record({ platformUserId: actor.userId, action: 'PAYMENT_RECORDED', newValue: String(amount), detail: `${organizationId}${invoiceId ? ' — invoice ' + invoiceId : ''}`, ip: actor.ip });
   return payment;
