@@ -3,11 +3,23 @@
   "version": "1.0.0",
   "description": "Z-SUPERADMIN — the parent platform managing all ZMAX SaaS products (ShopERP, and future products). Completely independent of every product's own codebase and database.",
   "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "lint": "node scripts/lint.js",
-    "test": "node test/platform-foundation.test.js"
+    "test:foundation": "node test/platform-foundation.test.js",
+    "test:operating-console": "node test/operating-console.test.js",
+    "test:security": "node test/security-suite.test.js",
+    "test:job-runner": "node test/job-runner.test.js",
+    "test:maintenance": "node test/maintenance.test.js",
+    "test:business-operations": "node test/business-operations.test.js",
+    "test:integration-platform": "node test/integration-platform.test.js",
+    "test:shoperp-adapter-e2e": "node test/shoperp-adapter-e2e.test.js",
+    "test": "npm run test:foundation && npm run test:operating-console && npm run test:security && npm run test:job-runner && npm run test:maintenance && npm run test:business-operations && npm run test:integration-platform && npm run test:shoperp-adapter-e2e",
+    "backup:verify": "node scripts/backup-verify.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

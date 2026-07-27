@@ -129,3 +129,40 @@ jobs:
       - name: Licensing tests — legacy tenant backfill + backward compatibility
         working-directory: server
         run: npm run test:license-backfill-regression
+
+  # Z-SUPERADMIN (platform/) — a completely separate service (own
+  # package.json, own database, own port) from server/ above; run as an
+  # independent job so a failure here is clearly attributed and either job
+  # can be re-run alone. Previously had zero CI coverage — added for the
+  # Version 1.0 GA release.
+  platform-test:
+    name: Z-SUPERADMIN — lint, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install platform dependencies
+        working-directory: platform
+        run: npm install --no-audit --no-fund
+
+      - name: Lint (syntax check, including the inline superadmin.html script)
+        working-directory: platform
+        run: npm run lint
+
+      # Runs all 8 suites (platform-foundation, operating-console, security,
+      # job-runner, maintenance, business-operations, integration-platform,
+      # shoperp-adapter-e2e) — 278 assertions total. shoperp-adapter-e2e
+      # spins up a real disposable server/local.js child process to verify
+      # the ShopERP adapter end-to-end, so server/'s own dependencies must
+      # be installed too.
+      - name: Install server dependencies (for the ShopERP adapter e2e test)
+        working-directory: server
+        run: npm install --no-audit --no-fund
+
+      - name: Full test suite
+        working-directory: platform
+        run: npm test

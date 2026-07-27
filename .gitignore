@@ -25,6 +25,7 @@ platform/*.db
 platform/*.db-shm
 platform/*.db-wal
 platform/*.db-journal
+platform/backups/
 logs/
 *.log
 tmp/
