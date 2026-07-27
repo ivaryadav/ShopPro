@@ -23,6 +23,10 @@ async function startTestServer(opts) {
   const dbPath = path.join(os.tmpdir(), `zsuperadmin-test-${crypto.randomBytes(8).toString('hex')}.db`);
   process.env.PLATFORM_DB_PATH = dbPath;
   process.env.PLATFORM_JWT_SECRET = crypto.randomBytes(32).toString('hex');
+  // RC1 SSRF hardening (webhookService) blocks webhook URLs pointing at
+  // loopback/private ranges in production — this disposable test harness
+  // legitimately needs to point webhooks at its own local sink server.
+  process.env.PLATFORM_ALLOW_PRIVATE_WEBHOOKS = 'true';
   _resetForTests();
   // Registered but deliberately NOT started (no setInterval) — tests
   // trigger jobs deterministically via runNow()/POST .../:name/run

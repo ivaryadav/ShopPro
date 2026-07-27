@@ -36,7 +36,6 @@
     "test": "npm run test:unit && npm run test:integration && npm run test:migration && npm run test:concurrency && npm run test:security && npm run test:migration-safety && npm run test:security-phase2 && npm run test:operational && npm run test:license-registration && npm run test:license-email-verification && npm run test:license-admin-approval && npm run test:license-state-machine && npm run test:license-renewal && npm run test:license-offline-grace && npm run test:license-devices && npm run test:license-suspension && npm run test:license-backfill-regression && npm run test:admin-auth-migration && npm run test:auth-enumeration && npm run test:devops-hardening && npm run test:legacy-tenant-status-consistency && npm run test:rc1-validation && npm run test:super-admin-portal && npm run test:maintenance",
     "backup:verify": "node scripts/backup-verify.js",
     "validate:migrations": "node scripts/validate-migrations.js",
-
     "test:src:config": "node src/tests/config.test.js",
     "test:src:logging": "node src/tests/logging.test.js",
     "test:src:errors": "node src/tests/errors.test.js",
@@ -90,7 +89,7 @@
     "express-rate-limit": "^7.3.1",
     "jsonwebtoken": "^9.0.2",
     "mariadb": "^3.5.3",
-    "nodemailer": "^6.9.14",
+    "nodemailer": "^9.0.3",
     "pg": "^8.11.5"
   },
   "devDependencies": {

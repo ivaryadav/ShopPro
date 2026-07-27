@@ -211,6 +211,8 @@ function esc(s){ return String(s===null||s===undefined?'':s).replace(/&/g,'&amp;
 function toast(msg, type){
   const t = document.createElement('div');
   t.className = 'toast';
+  t.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  t.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   t.style.background = type==='error' ? 'rgba(239,68,68,.9)' : type==='success' ? 'rgba(52,211,153,.9)' : 'rgba(124,140,248,.9)';
   t.style.color = '#fff';
   t.textContent = msg;
@@ -910,6 +912,12 @@ document.addEventListener('keydown', function(e){
     if (ME) openCmdk();
   } else if (e.key === 'Escape') {
     closeCmdk();
+    // RC1 accessibility: every modal in this app shares the .modal-overlay
+    // class (dozens of call sites across every phase) — closing the
+    // topmost one here, rather than at each creation site, covers all of
+    // them with one keyboard-accessible exit instead of mouse-only dismiss.
+    const overlays = document.querySelectorAll('.modal-overlay');
+    if (overlays.length) overlays[overlays.length - 1].remove();
   }
 });
 document.getElementById('cmdk-overlay').addEventListener('click', function(e){ if (e.target === this) closeCmdk(); });

@@ -462,6 +462,10 @@ function migrate(db) {
       created_at      TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_license_history_org ON platform_license_history(organization_id, created_at);
+    -- RC1: reportService.renewalSuccessRate() / countByEventType() filter by
+    -- created_at and GROUP BY event_type platform-wide (no organization_id
+    -- filter) — the org-scoped index above doesn't serve that query at all.
+    CREATE INDEX IF NOT EXISTS idx_license_history_type_created ON platform_license_history(event_type, created_at);
 
     -- Manual Billing Ledger — no payment gateway in this phase, every row
     -- here is operator-entered. organization_id is TEXT (adapter-friendly)

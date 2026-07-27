@@ -18,6 +18,7 @@ const paymentRepository = require('../repositories/platformPaymentRepository');
 const adjustmentRepository = require('../repositories/platformBillingAdjustmentRepository');
 const auditService = require('./auditService');
 const eventBusService = require('./eventBusService');
+const { getDb } = require('../database/connection');
 const { NotFoundError: NF, ValidationError: VE } = require('../errors');
 
 function generateInvoiceNumber() {
@@ -75,13 +76,26 @@ function recordPayment({ organizationId, invoiceId, amount, currency, method, re
     if (!invoice) throw new NF('Invoice not found');
     if (invoice.status === 'void') throw new VE('Cannot record a payment against a voided invoice');
   }
-  const payment = paymentRepository.create({ organizationId, invoiceId, amount, currency, method, reference, note, recordedBy: actor.userId });
-  if (invoice) {
-    const totalPaid = paymentRepository.sumForInvoice(invoiceId);
-    if (totalPaid >= invoice.amount) {
-      invoiceRepository.updateStatus(invoiceId, 'paid', new Date().toISOString());
-      eventBusService.publish({ eventType: 'invoice.paid', organizationId, payload: { organizationId, invoiceId, invoiceNumber: invoice.invoice_number, amount: invoice.amount, currency: invoice.currency } });
+  // RC1: the payment INSERT and the resulting invoice status flip must
+  // both land or neither does — a crash between them would otherwise
+  // leave a real payment recorded against an invoice still showing
+  // 'sent', an inconsistency a support agent could reasonably mistake for
+  // a missing payment (the ledger-wide SUM-based balance stays correct
+  // regardless, but the invoice's own status would lag).
+  let becamePaid = false;
+  const payment = getDb().transaction(() => {
+    const created = paymentRepository.create({ organizationId, invoiceId, amount, currency, method, reference, note, recordedBy: actor.userId });
+    if (invoice) {
+      const totalPaid = paymentRepository.sumForInvoice(invoiceId);
+      if (totalPaid >= invoice.amount) {
+        invoiceRepository.updateStatus(invoiceId, 'paid', new Date().toISOString());
+        becamePaid = true;
+      }
     }
+    return created;
+  })();
+  if (becamePaid) {
+    eventBusService.publish({ eventType: 'invoice.paid', organizationId, payload: { organizationId, invoiceId, invoiceNumber: invoice.invoice_number, amount: invoice.amount, currency: invoice.currency } });
   }
   auditService.record({ platformUserId: actor.userId, action: 'PAYMENT_RECORDED', newValue: String(amount), detail: `${organizationId}${invoiceId ? ' — invoice ' + invoiceId : ''}`, ip: actor.ip });
   return payment;
